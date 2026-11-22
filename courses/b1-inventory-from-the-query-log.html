@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 1 of 10. Inventory a warehouse from its query log, not its table list: reads per table, who reads them, lineage from read-then-write queries, and the tables nobody has read in 90 days. Built in DuckDB on Serai Commerce's constructed log.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Inventory from the query log - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 1 of 10. Five SQL queries turn a query log into a migration inventory: move, move as a dependency, or retire.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b1-inventory-from-the-query-log.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Inventory from the query log - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 1 of 10. Reads, not tables: the inventory a migration actually needs, from the query log, in DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 1 · Inventory from the query log - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 1 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 1 of 10</div>
+    <h1>Inventory from <span class="accent">the query log</span></h1>
+    <p class="sub">A table list tells you what exists. A migration needs to know what is used: which tables are read, by whom, what feeds them, and which nobody has opened in months. Every warehouse keeps that answer in its query or access history. Tonight you turn a constructed slice of Serai Commerce's log into the first section of the migration runbook, in DuckDB, with five queries: reads per table, dead tables, lineage, people or jobs, and a status for every table.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Foundational</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone handed a warehouse to move</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Reads, lineage, dead assets</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: five queries</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>How the builder track works</h2>
+    </div>
+    <p class="lede">Ten sessions, SQL in DuckDB and a bench in the browser. You do Serai's move in the order a careful team does it: inventory from the query log tonight; session 2 the dependency graph and the order of moves; session 3 translating the SQL; sessions 4 and 5 row, key and aggregate parity; session 6 the historical reload; session 7 the parallel run; session 8 the cutover rehearsal and rollback; session 9 the drift that hides the week after; session 10 the parity bench with all seven planted drifts. Each session adds one section to <strong>Serai's migration runbook</strong>. The running case is a <strong>Constructed Serai Commerce example</strong>: the company, its warehouses and tonight's query log are constructed; the orders on the bench are 8,614 real Olist orders, derived and masked. The leader track's <a href="a1-why-migrations-break-the-numbers.html">session 1</a> defines done.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 1, the inventory: every table with its reads, readers and last read in the last 90 days, the lineage edges that feed it, and one status: move, move as a dependency, or retire candidate. On Serai's constructed slice that is 5, 6 and 3 of 14 tables, and you will have run every query that produced them.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers usage from the query log</span>
+      <h2>Reads, not tables</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The cheapest table to migrate is the one you do not move. To know which, count what is read, not what exists, and separate reads by people and dashboards from reads by the jobs that build other tables.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn flow from Serai's constructed query log, one row per table touched by a query, through a group-by on table name, into three bins: 5 tables read by people or dashboards, 6 tables read only by jobs, and 3 tables never read in the last 90 days. 14 tables in all.">
+        <defs>
+          <filter id="b1aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b1aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b1aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b1aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b1aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b1aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b1aH" x="30" y="26">FROM A QUERY LOG TO THREE KINDS OF TABLE</text>
+        <text class="b1aS" x="350" y="26">Constructed Serai Commerce example · last 90 days · run in DuckDB below</text>
+
+        <g filter="url(#b1aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="220" height="190" rx="10" transform="rotate(-0.6 140 145)" fill="#F8F2E6"/>
+          <rect x="300" y="110" width="160" height="70" rx="10" transform="rotate(0.6 380 145)" fill="#FFFFFF"/>
+          <rect x="520" y="50" width="330" height="54" rx="10" transform="rotate(-0.4 685 77)" fill="#9CC3E6"/>
+          <rect x="520" y="118" width="330" height="54" rx="10" transform="rotate(0.4 685 145)" fill="#FFFFFF"/>
+          <rect x="520" y="186" width="330" height="54" rx="10" transform="rotate(-0.4 685 213)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <path d="M254 145 L294 145" marker-end="url(#b1aAr)"/>
+          <path d="M462 135 L514 80" marker-end="url(#b1aAr)"/>
+          <path d="M462 145 L514 145" marker-end="url(#b1aAr)"/>
+          <path d="M462 155 L514 210" marker-end="url(#b1aAr)"/>
+        </g>
+
+        <text class="b1aH" x="44" y="74">QUERY LOG · 26 ROWS</text>
+        <text class="b1aS" x="44" y="100">actor · action · table</text>
+        <text class="b1aL" x="44" y="124">build_stg · read · raw.reviews</text>
+        <text class="b1aL" x="44" y="146">build_stg · write · stg.reviews</text>
+        <text class="b1aL" x="44" y="168">ops_daily · read · orders_daily</text>
+        <text class="b1aL" x="44" y="190">analyst_1 · read · scorecard_v2</text>
+        <text class="b1aS" x="44" y="220">one row per table a query touched</text>
+
+        <text class="b1aH" x="316" y="138">GROUP BY TABLE</text>
+        <text class="b1aS" x="316" y="158">reads, readers, last</text>
+
+        <text class="b1aV" x="536" y="84">5</text>
+        <text class="b1aH" x="560" y="74">READ BY PEOPLE OR DASHBOARDS</text>
+        <text class="b1aS" x="560" y="92" style="fill:#231C12">move: someone notices if it breaks</text>
+        <text class="b1aV" x="536" y="152">6</text>
+        <text class="b1aH" x="560" y="142">READ ONLY BY JOBS</text>
+        <text class="b1aS" x="560" y="160">move if something people read needs it</text>
+        <text class="b1aV" x="536" y="220">3</text>
+        <text class="b1aH" x="560" y="210">NEVER READ IN 90 DAYS</text>
+        <text class="b1aS" x="560" y="228">retire candidates: ask first</text>
+
+        <text class="b1aN" x="30" y="276">14 tables in the constructed slice. The useful question is not what exists but what is read, and by whom.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a query log sorts every table into move, move as a dependency, or retire candidate</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What a query log holds, and the shape to ask for<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most warehouses keep a history of the queries they ran and, in some form, which objects each one touched. The column names differ by engine and so does the retention, so the first job is to get it into one shape: <strong>one row per table per query</strong>, with the query id, when it ran, who or what ran it, and whether it read or wrote that table. Tonight's log is already in that shape.</p>
+        <table class="clean">
+          <thead><tr><th>Column</th><th>Why the inventory needs it</th></tr></thead>
+          <tbody>
+            <tr><td><code>query_id</code></td><td>Joins the reads and writes of one query, which is how lineage falls out</td></tr>
+            <tr><td><code>run_at</code></td><td>The window: last 90 days, and the last read per table</td></tr>
+            <tr><td><code>actor</code></td><td>Separates jobs (<code>job:</code>) from people and dashboards</td></tr>
+            <tr><td><code>action</code></td><td><code>read</code> or <code>write</code></td></tr>
+            <tr><td><code>table_name</code></td><td>The object, schema included</td></tr>
+          </tbody>
+        </table>
+        <p>If your engine only keeps query text, the table names have to be parsed out of the SQL. That works, with care for views and dynamic SQL, and it is slower. Ask the platform owner which history exists and how far back it goes before you promise an inventory date.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Serai's full estate, in constructed numbers<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Tonight's slice has 14 tables so every row fits on a screen. The constructed full estate the leader track plans against has 214 tables, 61 scheduled jobs and 38 dashboards; its 90-day log shows 131 tables read at least once, 83 never read, and 19 dashboards with no viewer. Those are teaching numbers for the case, not a benchmark: estates vary enormously, and nobody has published a reliable share of dead tables in a typical warehouse.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Vendors put discovery first.</strong> A 2019 Google Cloud blog on moving data warehouses names its phases "Prepare and discover", "Assess and plan" and "Execute", and argues for moving iteratively, use case by use case. Read it as a vendor describing its own process, not a recommendation. The shape is still right: you cannot plan a move of things you have not counted, and the query log is the cheapest honest count.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers lineage from read-then-write queries</span>
+      <h2>Lineage falls out of the log</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A query that reads table A and writes table B is an edge from A to B. Join the log to itself on the query id and you have a lineage graph without a lineage tool, good enough to plan a move.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn lineage graph built from Serai's constructed query log. Three marketplace exports feed stg.orders; raw.reviews feeds stg.reviews. stg.orders feeds orders_daily, brand_review, scorecard_v2 and scorecard_v1; stg.reviews and ref.state_region feed brand_review; orders_daily feeds orders_monthly. Readers: the ops daily dashboard reads orders_daily, the board pack reads orders_monthly, the brand review dashboard reads brand_review, an analyst reads scorecard_v2. scorecard_v1 is written every night and read by nobody.">
+        <defs>
+          <filter id="b1bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b1bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b1bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b1bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b1bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b1bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b1bA" x="30" y="36">RAW AND REFERENCE</text>
+        <text class="b1bA" x="270" y="36">STAGING</text>
+        <text class="b1bA" x="500" y="36">MARTS</text>
+        <text class="b1bA" x="730" y="36">READERS</text>
+
+        <g filter="url(#b1bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="180" height="28" rx="6" fill="#FFFFFF"/>
+          <rect x="30" y="90" width="180" height="28" rx="6" fill="#FFFFFF"/>
+          <rect x="30" y="130" width="180" height="28" rx="6" fill="#FFFFFF"/>
+          <rect x="30" y="190" width="180" height="28" rx="6" fill="#FFFFFF"/>
+          <rect x="30" y="250" width="180" height="28" rx="6" fill="#FFFFFF"/>
+          <rect x="270" y="90" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="270" y="190" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="500" y="50" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="500" y="100" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="500" y="170" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="500" y="230" width="170" height="28" rx="6" fill="#F8F2E6"/>
+          <rect x="500" y="290" width="170" height="28" rx="6" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="730" y="50" width="120" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="730" y="100" width="120" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="730" y="170" width="120" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="730" y="230" width="120" height="28" rx="14" fill="#9CC3E6"/>
+          <path d="M212 64 L266 100" marker-end="url(#b1bAr)"/>
+          <path d="M212 104 L266 104" marker-end="url(#b1bAr)"/>
+          <path d="M212 144 L266 108" marker-end="url(#b1bAr)"/>
+          <path d="M212 204 L266 204" marker-end="url(#b1bAr)"/>
+          <path d="M212 264 L470 264 L496 192" marker-end="url(#b1bAr)"/>
+          <path d="M442 100 L496 66" marker-end="url(#b1bAr)"/>
+          <path d="M442 106 L496 180" marker-end="url(#b1bAr)"/>
+          <path d="M442 110 L496 240" marker-end="url(#b1bAr)"/>
+          <path d="M442 114 L496 298" marker-end="url(#b1bAr)"/>
+          <path d="M442 204 L496 186" marker-end="url(#b1bAr)"/>
+          <path d="M585 80 L585 96" marker-end="url(#b1bAr)"/>
+          <path d="M672 64 L726 64" marker-end="url(#b1bAr)"/>
+          <path d="M672 114 L726 114" marker-end="url(#b1bAr)"/>
+          <path d="M672 184 L726 184" marker-end="url(#b1bAr)"/>
+          <path d="M672 244 L726 244" marker-end="url(#b1bAr)"/>
+        </g>
+
+        <text class="b1bL" x="42" y="68">raw.orders_export_a</text>
+        <text class="b1bL" x="42" y="108">raw.orders_export_b</text>
+        <text class="b1bL" x="42" y="148">raw.orders_export_c</text>
+        <text class="b1bL" x="42" y="208">raw.reviews</text>
+        <text class="b1bL" x="42" y="268">ref.state_region</text>
+        <text class="b1bL" x="282" y="108">stg.orders</text>
+        <text class="b1bL" x="282" y="208">stg.reviews</text>
+        <text class="b1bL" x="512" y="68">orders_daily</text>
+        <text class="b1bL" x="512" y="118">orders_monthly</text>
+        <text class="b1bL" x="512" y="188">brand_review</text>
+        <text class="b1bL" x="512" y="248">scorecard_v2</text>
+        <text class="b1bL" x="512" y="308">scorecard_v1</text>
+        <text class="b1bL" x="744" y="68">ops daily</text>
+        <text class="b1bL" x="744" y="118">board pack</text>
+        <text class="b1bL" x="744" y="188">brand review</text>
+        <text class="b1bL" x="744" y="248">analyst_1</text>
+        <text class="b1bS" x="690" y="308">no reader at all</text>
+
+        <text class="b1bN" x="30" y="342">Each arrow is one query that read the left table and wrote the right one. Dashed: written nightly, read never.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - eleven edges from one self-join, and one mart that a job builds every night for nobody</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why "read only by jobs" still moves<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No person has read <code>raw.reviews</code> in 90 days, and it still has to move: it feeds <code>stg.reviews</code>, which feeds <code>brand_review</code>, which the brand review dashboard reads. A table earns its move through the tables downstream of it. That is why the inventory needs lineage, and why "never read by a person" alone is the wrong retirement test.</p>
+        <p>The converse is the useful find. <code>mart.seller_scorecard_v1</code> is written every night by the mart job and read by nothing at all. Retiring it saves its storage, its compute every night, and one more table to translate, reload and prove in the new warehouse.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where a log-derived lineage goes wrong<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Reads that happen outside the warehouse are invisible: a spreadsheet that pulled an extract last year, a partner who receives a file. Views can hide the base tables a query really read, depending on how your engine logs them. And a 90-day window misses anything read quarterly or yearly, such as an annual report or an audit pack. Treat the log as the first draft, then confirm every retire candidate with an owner. Full lineage tooling belongs to the metadata world; the <a href="https://phoebefu6.github.io/learn-metadata-catalog-lineage-with-phoebe/">Metadata, Catalog and Lineage course</a> covers it properly.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Validation tools assume you know your keys and your tables.</strong> AWS's Database Migration Service documentation says its data validation "requires that the table has a primary key or unique index". Google's open-source Data Validation Tool runs column, row, schema and custom-query validation against tables you name. Neither can tell you which tables matter. The inventory is the input every validation step after it depends on.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers retire candidates and how to retire safely</span>
+      <h2>Dead is a question, not a verdict</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Three tables on Serai's slice had no read in the window. Each one needs a different next step, and none of them is "drop it tonight".</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn panels, one per retire candidate on Serai's constructed log. mart.seller_scorecard_v1: written every night, read never; retire the table and the job. mart.region_sales_2019: last read 2026-03-01 by job:old_export; find the job's owner. tmp.orders_backup_2017: last read 2026-05-10 by analyst_1; ask, archive, then drop.">
+        <defs>
+          <filter id="b1cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b1cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b1cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b1cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b1cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b1cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b1cH" x="30" y="26">THREE RETIRE CANDIDATES, THREE NEXT STEPS</text>
+
+        <g filter="url(#b1cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="260" height="164" rx="12" transform="rotate(-0.5 160 128)" fill="#EAF3FB"/>
+          <rect x="310" y="46" width="260" height="164" rx="12" transform="rotate(0.4 440 128)" fill="#FFFFFF"/>
+          <rect x="590" y="46" width="260" height="164" rx="12" transform="rotate(-0.4 720 128)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="b1cH" x="46" y="74">mart.seller_scorecard_v1</text>
+        <text class="b1cS" x="46" y="100">written every night</text>
+        <text class="b1cS" x="46" y="120">read: never, in the whole log</text>
+        <text class="b1cS" x="46" y="140">replaced by scorecard_v2</text>
+        <text class="b1cB" x="46" y="186">retire the table and the job</text>
+
+        <text class="b1cH" x="326" y="74">mart.region_sales_2019</text>
+        <text class="b1cS" x="326" y="100">last read 2026-03-01</text>
+        <text class="b1cS" x="326" y="120">by job:old_export</text>
+        <text class="b1cS" x="326" y="140">a job, so where does it send?</text>
+        <text class="b1cB" x="326" y="186">find the job's owner first</text>
+
+        <text class="b1cH" x="606" y="74">tmp.orders_backup_2017</text>
+        <text class="b1cS" x="606" y="100">last read 2026-05-10</text>
+        <text class="b1cS" x="606" y="120">by user:analyst_1</text>
+        <text class="b1cS" x="606" y="140">a person used it this year</text>
+        <text class="b1cB" x="606" y="186">ask, archive, then drop</text>
+
+        <text class="b1cN" x="30" y="236">"No read in 90 days" starts the conversation. Quarterly and yearly reports are read less often than that.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the clearest retirement is a table a job still writes and nothing reads</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A retirement that can be undone<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Retire in two steps. First, stop writing and revoke reads, leaving the data in place, and announce the date to everyone who ever read it. Second, after an agreed quiet period with no complaint, archive a copy outside the warehouse and drop the table. The first step is reversible in minutes; the second is cheap to reverse from the archive. Builder session 2 puts the retirements first in the order of moves, because every table retired is one less to translate and prove.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Dead dashboards, not just dead tables<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The same query runs over dashboards if your BI tool logs views. A dashboard with no viewer in 90 days keeps its whole lineage alive: every table it reads looks "used" because the dashboard refreshes it. Retire the dead dashboard and re-run the inventory; tables that were only read by its refresh job drop into the retire column. In Serai's constructed full estate, 19 of 38 dashboards had no viewer.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The vendor guides agree on one thing about scope.</strong> Google Cloud's 2019 migration blog asks teams to validate each use case "according to your definition of done" before moving on. A table that serves no use case has no definition of done, which is the strongest argument for retiring it before the move rather than proving it afterwards.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Five queries, one inventory</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Paste the setup once, then run the five queries in order. Every output below is what DuckDB prints on this exact log.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four hand-drawn query boxes, reads per table, dead tables, lineage edges, and people or jobs, each feeding a column of runbook section 1, the inventory, which a fifth query rolls up: move 5 tables, move as a dependency 6, retire candidates 3.">
+        <defs>
+          <filter id="b1dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b1dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b1dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b1dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b1dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b1dH" x="30" y="26">FIVE QUERIES BUILD RUNBOOK SECTION 1</text>
+
+        <g filter="url(#b1dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="190" height="70" rx="10" transform="rotate(-0.8 125 81)" fill="#FFFFFF"/>
+          <rect x="240" y="46" width="190" height="70" rx="10" transform="rotate(0.6 335 81)" fill="#FFFFFF"/>
+          <rect x="450" y="46" width="190" height="70" rx="10" transform="rotate(-0.6 545 81)" fill="#FFFFFF"/>
+          <rect x="660" y="46" width="190" height="70" rx="10" transform="rotate(0.8 755 81)" fill="#FFFFFF"/>
+          <path d="M125 120 L125 154" marker-end="url(#b1dAr)"/>
+          <path d="M335 120 L335 154" marker-end="url(#b1dAr)"/>
+          <path d="M545 120 L545 154" marker-end="url(#b1dAr)"/>
+          <path d="M755 120 L755 154" marker-end="url(#b1dAr)"/>
+          <rect x="30" y="160" width="820" height="72" rx="12" transform="rotate(-0.2 440 196)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b1dH" x="46" y="74">Q1 READS</text>
+        <text class="b1dS" x="46" y="94">per table, last 90 days</text>
+        <text class="b1dH" x="256" y="74">Q2 DEAD</text>
+        <text class="b1dS" x="256" y="94">no read in the window</text>
+        <text class="b1dH" x="466" y="74">Q3 LINEAGE</text>
+        <text class="b1dS" x="466" y="94">read A, write B: A to B</text>
+        <text class="b1dH" x="676" y="74">Q4 PEOPLE OR JOBS</text>
+        <text class="b1dS" x="676" y="94">who reads each table</text>
+
+        <text class="b1dH" x="50" y="188">Q5 · RUNBOOK SECTION 1, THE INVENTORY</text>
+        <text class="b1dV" x="50" y="216">move 5 · move as a dependency 6 · retire candidates 3</text>
+
+        <text class="b1dN" x="30" y="258">Every status traces back to a query you ran. Nobody's memory of what is used goes in the runbook.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four questions about the log, rolled into one status per table</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed log.</strong> Fourteen tables and 26 log rows from Serai's warehouse, with the window ending 2026-11-15.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE tables AS SELECT * FROM (VALUES
+ ('raw.orders_export_a'),('raw.orders_export_b'),('raw.orders_export_c'),('raw.reviews'),
+ ('ref.state_region'),('stg.orders'),('stg.reviews'),('mart.orders_daily'),('mart.orders_monthly'),
+ ('mart.brand_review'),('mart.seller_scorecard_v1'),('mart.seller_scorecard_v2'),
+ ('mart.region_sales_2019'),('tmp.orders_backup_2017')) t(table_name);
+
+CREATE OR REPLACE TABLE query_log AS
+SELECT query_id, CAST(run_at AS DATE) AS run_at, actor, action, table_name FROM (VALUES
+ (1,'2026-11-14','job:build_stg','read','raw.orders_export_a'),
+ (1,'2026-11-14','job:build_stg','read','raw.orders_export_b'),
+ (1,'2026-11-14','job:build_stg','read','raw.orders_export_c'),
+ (1,'2026-11-14','job:build_stg','write','stg.orders'),
+ (2,'2026-11-14','job:build_stg','read','raw.reviews'),
+ (2,'2026-11-14','job:build_stg','write','stg.reviews'),
+ (3,'2026-11-14','job:build_marts','read','stg.orders'),
+ (3,'2026-11-14','job:build_marts','write','mart.orders_daily'),
+ (4,'2026-11-14','job:build_marts','read','mart.orders_daily'),
+ (4,'2026-11-14','job:build_marts','write','mart.orders_monthly'),
+ (5,'2026-11-14','job:build_marts','read','stg.orders'),
+ (5,'2026-11-14','job:build_marts','read','stg.reviews'),
+ (5,'2026-11-14','job:build_marts','read','ref.state_region'),
+ (5,'2026-11-14','job:build_marts','write','mart.brand_review'),
+ (6,'2026-11-14','job:build_marts','read','stg.orders'),
+ (6,'2026-11-14','job:build_marts','write','mart.seller_scorecard_v2'),
+ (7,'2026-11-14','job:build_marts','read','stg.orders'),
+ (7,'2026-11-14','job:build_marts','write','mart.seller_scorecard_v1'),
+ (8,'2026-11-01','dash:board_pack','read','mart.orders_monthly'),
+ (9,'2026-11-14','dash:ops_daily','read','mart.orders_daily'),
+ (10,'2026-11-13','dash:ops_daily','read','mart.orders_daily'),
+ (11,'2026-11-03','dash:brand_review','read','mart.brand_review'),
+ (12,'2026-10-20','user:analyst_1','read','mart.seller_scorecard_v2'),
+ (13,'2026-09-02','user:analyst_2','read','stg.orders'),
+ (14,'2026-05-10','user:analyst_1','read','tmp.orders_backup_2017'),
+ (15,'2026-03-01','job:old_export','read','mart.region_sales_2019')
+) q(query_id, run_at, actor, action, table_name);</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, reads per table in the window.</strong> <code>stg.orders</code> leads with 5 reads by 2 readers. <code>mart.seller_scorecard_v1</code> appears with 0 reads, because the log holds its writes.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · reads, readers, last read</span>SELECT table_name,
+       count(*) FILTER (WHERE action = 'read') AS reads,
+       count(DISTINCT actor) FILTER (WHERE action = 'read') AS readers,
+       max(run_at) FILTER (WHERE action = 'read') AS last_read
+FROM query_log
+WHERE run_at &gt; DATE '2026-11-15' - INTERVAL 90 DAY
+GROUP BY table_name
+ORDER BY reads DESC, table_name;
+-- stg.orders 5 | 2 | 2026-11-14 ... mart.seller_scorecard_v1 0 | 0 | NULL (12 rows)</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, tables with no read in the window.</strong> Start from the table list, not the log, or a table nobody ever touched cannot appear at all.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · retire candidates</span>SELECT t.table_name
+FROM tables t
+LEFT JOIN query_log q
+  ON q.table_name = t.table_name AND q.action = 'read'
+ AND q.run_at &gt; DATE '2026-11-15' - INTERVAL 90 DAY
+WHERE q.query_id IS NULL
+ORDER BY t.table_name;
+-- mart.region_sales_2019, mart.seller_scorecard_v1, tmp.orders_backup_2017</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, lineage edges.</strong> Join reads to writes on the same query id. Eleven edges, the graph in Part 2.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · source to target</span>SELECT DISTINCT r.table_name AS source, w.table_name AS target
+FROM query_log r
+JOIN query_log w ON w.query_id = r.query_id AND w.action = 'write'
+WHERE r.action = 'read'
+ORDER BY target, source;
+-- 11 rows, from ref.state_region -&gt; mart.brand_review to raw.reviews -&gt; stg.reviews</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, people or jobs.</strong> Any reader whose actor does not start with <code>job:</code> counts as a person or a dashboard. Five tables are read by people, six only by jobs.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · read by people?</span>SELECT table_name,
+       bool_or(actor NOT LIKE 'job:%') AS read_by_people
+FROM query_log
+WHERE action = 'read' AND run_at &gt; DATE '2026-11-15' - INTERVAL 90 DAY
+GROUP BY table_name
+ORDER BY read_by_people DESC, table_name;
+-- true: brand_review, orders_daily, orders_monthly, scorecard_v2, stg.orders</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, one status per table.</strong> This is runbook section 1. "Move as a dependency" is right here because all six job-only tables sit upstream of a table people read; in a bigger estate, check that against Q3 before you trust it.</p>
+        <div class="prompt-box good"><span class="label">★ Q5 · the inventory</span>WITH r AS (
+  SELECT table_name, bool_or(actor NOT LIKE 'job:%') AS people
+  FROM query_log
+  WHERE action = 'read' AND run_at &gt; DATE '2026-11-15' - INTERVAL 90 DAY
+  GROUP BY table_name
+)
+SELECT CASE WHEN r.people THEN 'move'
+            WHEN NOT r.people THEN 'move as dependency'
+            ELSE 'retire candidate' END AS status,
+       count(*) AS tables,
+       string_agg(t.table_name, ', ' ORDER BY t.table_name) AS which
+FROM tables t
+LEFT JOIN r USING (table_name)
+GROUP BY status
+ORDER BY status;
+-- move 5 | move as dependency 6 | retire candidate 3</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Note the NULL in Q5.</strong> A table with no read has no row in <code>r</code>, so <code>r.people</code> is NULL, and neither <code>r.people</code> nor <code>NOT r.people</code> is true: it falls through to the ELSE branch. That is the behaviour you want here, and the same three-valued logic is what Builder session 3 shows breaking a migration.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 2</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Find out what query or access history your own warehouse keeps, how far back it goes, and whether it records the tables each query touched or only the query text.</li>
+      <li>Reshape a week of it into the five columns of tonight's log and run Q1 and Q2 on it.</li>
+      <li>Pick one retire candidate from your own Q2 and write its next step in the form of Part 3: retire with its job, find an owner, or ask and archive.</li>
+      <li>Change the window in Q2 from 90 to 365 days on tonight's log and write down which retire candidates survive. Explain why the window is a judgement, not a fact.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 1 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · <code>raw.reviews</code> has no reader except a job. What does the inventory say?</p>
+      <button class="qopt" type="button">A · Retire candidate: no person reads it</button>
+      <button class="qopt" type="button">B · Move it first, because raw tables are the most important</button>
+      <button class="qopt" type="button">C · Move as a dependency: it feeds stg.reviews, which feeds a mart the brand review dashboard reads</button>
+      <button class="qopt" type="button">D · Leave it in the legacy warehouse and read it across systems</button>
+      <p class="qwhy">A table earns its move through what is downstream of it. The lineage from Q3 shows the chain to a table people read, so it moves, but only because of that chain.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Why does Q2 start from the table list and LEFT JOIN the log, instead of querying the log alone?</p>
+      <button class="qopt" type="button">A · A table no query ever touched has no row in the log, so only the table list can show it</button>
+      <button class="qopt" type="button">B · LEFT JOIN is faster than GROUP BY in DuckDB</button>
+      <button class="qopt" type="button">C · The log does not record table names</button>
+      <button class="qopt" type="button">D · It avoids counting writes as reads</button>
+      <p class="qwhy">The deadest tables are exactly the ones with no log rows. Starting from the log would make them invisible, and they are the cheapest win in the whole migration.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · <code>tmp.orders_backup_2017</code> was last read on 2026-05-10 by an analyst. What is the safe next step?</p>
+      <button class="qopt" type="button">A · Drop it tonight: it is outside the 90-day window</button>
+      <button class="qopt" type="button">B · Move it, because someone read it once</button>
+      <button class="qopt" type="button">C · Rename it so nobody can find it</button>
+      <button class="qopt" type="button">D · Ask the analyst, revoke reads with a date announced, archive a copy, then drop</button>
+      <p class="qwhy">A person used it this year, so the window alone is not enough. A two-step retirement is reversible at each step and costs almost nothing.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Inventory, lineage and retirement from a query log</span><span class="note">Taught as a method; every output run in DuckDB on the constructed log above</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Discovery as a migration phase</span><span class="note">Google Cloud 2019 migration blog, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Validation tools and their inputs</span><span class="note">AWS DMS validation docs and the Google Data Validation Tool README, read at source; re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Lineage tooling and catalogs</span><span class="note">Owned by the Metadata, Catalog and Lineage course; linked, not retaught</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's query log and full-estate counts</span><span class="note">Constructed for the case; no share of dead tables is claimed for real estates</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>One row per table per query</b><span>query_id, run_at, actor, action, table_name.</span></div>
+      <div class="cheat-item"><b>Reads, not tables</b><span>Count what is read and by whom, in a stated window.</span></div>
+      <div class="cheat-item"><b>Lineage is a self-join</b><span>Read A and write B in one query: an edge from A to B.</span></div>
+      <div class="cheat-item"><b>Dead starts from the list</b><span>LEFT JOIN the table list to the log; no row, no read.</span></div>
+      <div class="cheat-item"><b>Jobs keep tables alive</b><span>Move a job-only table only if people read something downstream.</span></div>
+      <div class="cheat-item"><b>Retire in two steps</b><span>Stop and revoke with a date, then archive and drop.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You have the edges. Session 2 turns them into an order of moves: retirements first, then every table after the tables it is built from, in waves you can prove one at a time.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 1 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← Course home</a> &nbsp;·&nbsp; <a href="b2-the-dependency-graph.html">Next: The dependency graph and the order of moves →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

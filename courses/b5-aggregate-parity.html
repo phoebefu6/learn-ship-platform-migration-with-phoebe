@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 5 of 10. Aggregate parity between two warehouses: six metrics compared every day exactly (5 of 5 defects caught, 2 false alarms), then every month against a signed bar (0 false alarms, the fixed offset missed). Floating-point money and per-line rounding, run in DuckDB on a constructed Serai Commerce pair.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Aggregate parity at the grain people read - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 5 of 10. Six metrics by day and by month, a tolerance per metric, and the money that differs in the last bits, each found with SQL you run.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b5-aggregate-parity.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Aggregate parity at the grain people read - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 5 of 10. Exact by day catches everything and cries wolf twice; a signed bar by month is quiet and misses one. In DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 5 · Aggregate parity at the grain people read - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 5 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 5 of 10</div>
+    <h1>Aggregate parity at <span class="accent">the grain people read</span></h1>
+    <p class="sub">Every row arrived, once, and joins. Now the harder question: do the rows still say the same thing? Tonight you compare six metrics between the two warehouses, first every day and exactly, then every month against a bar someone signed, and you meet the two differences that should never stop a cutover: money summed as floating point and freight rounded per line. In DuckDB, on a small constructed pair where four faults are planted and every row is present.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Advanced-practical</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone who signs a parity report</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Daily, monthly, the last bits</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: six metrics, two grains</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede"><a href="b4-row-and-key-parity.html">Builder session 4</a> proved the rows: counts, keys both ways, duplicates and foreign keys, rungs 0 and 1 of the ladder that <a href="b10-the-parity-bench.html">Builder session 10's parity bench</a> scores. It ended on three defects that keep every key. Tonight climbs rungs 2 and 3: six metrics (orders, item value, freight, items per order, reviewed orders, average review score) compared between the warehouses, by day and then by month. The running case is a <strong>Constructed Serai Commerce example</strong>: tonight's ten-order pair is constructed, and the bench numbers on this page come from the same 8,614 real Olist orders, derived and masked, with each drift planted alone. The leader's side of the same decision, signing the bar, is <a href="a4-the-parity-bar.html">Leader session 4</a>; this page owns the SQL that runs it.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The second half of runbook section 4, the parity suite: one query that compares six metrics per day exactly, one that compares them per month against Serai's signed bar, and a failing-buckets report that lists every day and month that broke, with the metrics that broke it. You will have run it on a pair where daily exact fails four days and the monthly bar fails one month, and you will be able to say which failures are defects and which are differences Serai agreed to accept.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers exact daily aggregates (rung 2)</span>
+      <h2>Every metric, every day, exactly</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Compute the six metrics per day on each side with the same SQL, then demand that every value on every day is identical. On the bench that is 598 days of six numbers each. It is the most sensitive check on the ladder, and the most expensive to read.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn bar for each of the seven drifts on the parity bench, planted alone, showing on how many of 598 days a daily number differs between legacy and new. Late rows appended twice: 205 days of orders, caught. Fixed offset ignoring daylight saving: 74 days of orders, caught. Missing review score loaded as 0: 63 days, caught. Items per order by integer division: 427 days, caught. Case-sensitive customer-key join: no aggregate moves, the key check catches it. Freight split per line, an accepted difference: 80 days of freight, a false alarm. Money summed as floating point, accepted: item value on 302 days and freight on 269, a false alarm. Rung 2 catches 5 of 5 defects with 2 false alarms.">
+        <defs>
+          <filter id="b5aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b5aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b5aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b5aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b5aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b5aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b5aR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b5aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b5aH" x="30" y="26">HOW MANY DAYS EACH DRIFT MOVES, COMPARED EXACTLY</text>
+        <text class="b5aS" x="420" y="26">rung 2 on the bench · each drift planted alone · 598 days</text>
+
+        <text class="b5aA" x="46" y="56">drift planted in the new warehouse</text>
+        <text class="b5aA" x="340" y="56">days on which a daily number differs</text>
+        <text class="b5aA" x="700" y="56">rung 2 says</text>
+
+        <g filter="url(#b5aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="66" width="820" height="28" rx="6" transform="rotate(-0.2 440 80)" fill="#FFFFFF"/>
+          <rect x="30" y="102" width="820" height="28" rx="6" transform="rotate(0.2 440 116)" fill="#FFFFFF"/>
+          <rect x="30" y="138" width="820" height="28" rx="6" transform="rotate(-0.2 440 152)" fill="#FFFFFF"/>
+          <rect x="30" y="174" width="820" height="28" rx="6" transform="rotate(0.2 440 188)" fill="#FFFFFF"/>
+          <rect x="30" y="210" width="820" height="28" rx="6" transform="rotate(-0.2 440 224)" fill="#FFFFFF"/>
+          <rect x="30" y="246" width="820" height="28" rx="6" transform="rotate(0.2 440 260)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+          <rect x="30" y="282" width="820" height="28" rx="6" transform="rotate(-0.2 440 296)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+
+          <rect x="340" y="72" width="103" height="16" rx="3" transform="rotate(-0.6 391 80)" fill="#9CC3E6"/>
+          <rect x="340" y="108" width="37" height="16" rx="3" transform="rotate(0.8 358 116)" fill="#9CC3E6"/>
+          <rect x="340" y="144" width="32" height="16" rx="3" transform="rotate(-0.8 356 152)" fill="#9CC3E6"/>
+          <rect x="340" y="180" width="214" height="16" rx="3" transform="rotate(0.4 447 188)" fill="#9CC3E6"/>
+          <rect x="340" y="252" width="40" height="16" rx="3" transform="rotate(-0.8 360 260)" fill="#FCA5A5" stroke="#991B1B"/>
+          <rect x="340" y="288" width="152" height="16" rx="3" transform="rotate(0.5 416 296)" fill="#FCA5A5" stroke="#991B1B"/>
+        </g>
+
+        <text class="b5aL" x="46" y="85">Late rows appended twice</text>
+        <text class="b5aL" x="452" y="85">205 days (orders)</text>
+        <text class="b5aB" x="700" y="85">caught</text>
+
+        <text class="b5aL" x="46" y="121">Fixed -03:00 offset ignores daylight saving</text>
+        <text class="b5aL" x="386" y="121">74 days (orders)</text>
+        <text class="b5aB" x="700" y="121">caught</text>
+
+        <text class="b5aL" x="46" y="157">Missing review score loaded as 0</text>
+        <text class="b5aL" x="380" y="157">63 days</text>
+        <text class="b5aB" x="700" y="157">caught</text>
+
+        <text class="b5aL" x="46" y="193">Items per order by integer division</text>
+        <text class="b5aL" x="562" y="193">427 days</text>
+        <text class="b5aB" x="700" y="193">caught</text>
+
+        <text class="b5aL" x="46" y="229">Case-sensitive customer-key join</text>
+        <text class="b5aS" x="340" y="229">no aggregate moves</text>
+        <text class="b5aB" x="700" y="229">the key check catches it</text>
+
+        <text class="b5aL" x="46" y="265">Freight split per line (accepted)</text>
+        <text class="b5aL" x="390" y="265">80 days (freight)</text>
+        <text class="b5aR" x="700" y="265">false alarm</text>
+
+        <text class="b5aL" x="46" y="301">Money summed as floating point (accepted)</text>
+        <text class="b5aL" x="500" y="301">302 days (item value)</text>
+        <text class="b5aR" x="700" y="301">false alarm</text>
+
+        <text class="b5aN" x="30" y="336">Rung 2: 5 of 5 defects caught, 0 missed, 2 false alarms. Bars are drawn to scale on 598 days.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - exact daily comparison sees every defect, and also every difference Serai already agreed to accept</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why exact by day finds everything<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A day is a small bucket, so almost any drift moves at least one number in it. On the bench the late rows change the order count on 205 of 598 days. The fixed offset moves 72 orders to the day before and changes the order count on 74 days (item value on 81). The missing review loaded as 0 shows on 63 days, the days that had an unreviewed order. Integer division changes items per order on 427 days; on the other days the true ratio is already a whole number, so truncating it changes nothing.</p>
+        <p>The case-sensitive join moves no aggregate at all, but rung 2 keeps the counts and keys from Builder session 4, so the key check still catches it. That is how rung 2 reaches 5 of 5 defects caught, 0 missed.</p>
+        <table class="clean">
+          <thead><tr><th>Drift on the bench</th><th>Daily exact</th><th>Whole-sample effect</th></tr></thead>
+          <tbody>
+            <tr><td>Late rows appended twice</td><td>Orders differ on 205 days</td><td>Item value BRL 1,197,842.24 becomes BRL 1,262,425.64</td></tr>
+            <tr><td>Fixed -03:00 offset</td><td>Orders differ on 74 days</td><td>Totals unchanged</td></tr>
+            <tr><td>Missing review as 0</td><td>63 days differ</td><td>Average review 4.1390 becomes 4.1063</td></tr>
+            <tr><td>Integer division</td><td>427 days differ</td><td>Items per order 1.1427 becomes 1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The price: two alarms nobody should act on<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The bench also plants two accepted differences, and exact daily flags both. Freight split equally across an order's lines and rounded per line differs on 80 days. Money summed as floating point differs in the last bits on 302 days of item value and 269 days of freight. That is 2 false alarms out of 3 chances (the two accepted differences and the no-drift control).</p>
+        <p>False alarms are not harmless. A report that is red every night for reasons everybody already knows teaches the team to stop reading it, and the next real defect arrives in a report nobody opens. Part 2 is how a suite keeps the sensitivity and loses the noise.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Same SQL on both sides, one long table<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Write the six metrics once as a query over each side's orders, identical text on both, and store that text in the runbook. Then turn the wide result (one row per day, six columns) into a long one (one row per day and metric) with <code>UNPIVOT</code>. A long table lets one full outer join on day and metric compare all six metrics at once, and a day that exists on only one side shows up as a row with a NULL partner instead of vanishing.</p>
+        <p>Compare with <code>IS DISTINCT FROM</code>, not <code>&lt;&gt;</code>. PostgreSQL's documentation puts it plainly: "Do not write expression = NULL because NULL is not 'equal to' NULL". A day missing on one side makes one value NULL, and <code>&lt;&gt;</code> would quietly drop exactly the row you need. The build-along does both.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The tools compute the aggregates; the grain is yours.</strong> Google Cloud's migration overview tells you to "run the data validation tool to validate that your source and destination tables match." The tool's open-source README lists column validation with "count, sum, avg, min, max, stddev, group by", beside row, schema and custom-query validation. Read both as vendor claims about Google's own tooling, and re-verify the README before you rely on it. "Group by" is the important word: the tool will group by whatever you name. Which column, which grain and which tolerance are decisions, and they belong in the runbook, not in a default.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers tolerances by metric at the monthly grain (rung 3)</span>
+      <h2>A tolerance per metric, at the month</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Rung 3 replaces exact days with the grain Serai's board reads, the month (21 of them in the sample), and gives each metric its own tolerance, signed before anyone looked. The two false alarms disappear. One defect goes with them.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's signed parity bar drawn as six hand-drawn tolerance bands, one per metric, at the monthly grain. Orders: exact, absorbs nothing, catches the late rows in 21 of 21 months. Item value: within 0.05 percent, absorbs floating-point gaps of about 2e-10 BRL, catches the late rows. Freight: within 0.05 percent, absorbs per-line rounding and floating point, catches the late rows. Items per order: within 0.005, catches integer division in every month. Reviewed orders: exact, catches the missing review as 0 in 20 months. Average review: within 0.01, catches it in 19 months. The fixed offset stays inside the bar on every metric in every month. Bands are not to scale.">
+        <defs>
+          <filter id="b5bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="73" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b5bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b5bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b5bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b5bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b5bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b5bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b5bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b5bH" x="30" y="26">SERAI'S SIGNED BAR, ONE BAND PER METRIC, READ MONTHLY</text>
+        <text class="b5bS" x="470" y="26">constructed policy · bands not to scale · 21 months</text>
+
+        <text class="b5bA" x="46" y="56">metric</text>
+        <text class="b5bA" x="180" y="56">tolerance</text>
+        <text class="b5bA" x="330" y="56">gap around zero</text>
+        <text class="b5bA" x="490" y="56">absorbs</text>
+        <text class="b5bA" x="670" y="56">must still catch</text>
+
+        <g filter="url(#b5bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="66" width="820" height="32" rx="6" transform="rotate(-0.2 440 82)" fill="#FFFFFF"/>
+          <rect x="30" y="106" width="820" height="32" rx="6" transform="rotate(0.2 440 122)" fill="#FFFFFF"/>
+          <rect x="30" y="146" width="820" height="32" rx="6" transform="rotate(-0.2 440 162)" fill="#FFFFFF"/>
+          <rect x="30" y="186" width="820" height="32" rx="6" transform="rotate(0.2 440 202)" fill="#FFFFFF"/>
+          <rect x="30" y="226" width="820" height="32" rx="6" transform="rotate(-0.2 440 242)" fill="#FFFFFF"/>
+          <rect x="30" y="266" width="820" height="32" rx="6" transform="rotate(0.2 440 282)" fill="#FFFFFF"/>
+
+          <path d="M330 82 L470 82" stroke="#D6CDBE"/>
+          <path d="M330 122 L470 122" stroke="#D6CDBE"/>
+          <path d="M330 162 L470 162" stroke="#D6CDBE"/>
+          <path d="M330 202 L470 202" stroke="#D6CDBE"/>
+          <path d="M330 242 L470 242" stroke="#D6CDBE"/>
+          <path d="M330 282 L470 282" stroke="#D6CDBE"/>
+
+          <rect x="398" y="72" width="4" height="20" rx="1" fill="#9CC3E6"/>
+          <rect x="385" y="112" width="30" height="20" rx="4" transform="rotate(-1 400 122)" fill="#9CC3E6"/>
+          <rect x="385" y="152" width="30" height="20" rx="4" transform="rotate(1 400 162)" fill="#9CC3E6"/>
+          <rect x="385" y="192" width="30" height="20" rx="4" transform="rotate(-1 400 202)" fill="#9CC3E6"/>
+          <rect x="398" y="232" width="4" height="20" rx="1" fill="#9CC3E6"/>
+          <rect x="385" y="272" width="30" height="20" rx="4" transform="rotate(1 400 282)" fill="#9CC3E6"/>
+
+          <circle cx="401" cy="122" r="4" fill="#FFFFFF"/>
+          <circle cx="396" cy="162" r="4" fill="#FFFFFF"/>
+          <circle cx="405" cy="162" r="4" fill="#FFFFFF"/>
+
+          <circle cx="455" cy="82" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+          <circle cx="455" cy="122" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+          <circle cx="455" cy="162" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+          <circle cx="455" cy="202" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+          <circle cx="455" cy="242" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+          <circle cx="455" cy="282" r="5" fill="#FCA5A5" stroke="#991B1B"/>
+        </g>
+
+        <text class="b5bL" x="46" y="86">Orders</text>
+        <text class="b5bB" x="180" y="86">exact</text>
+        <text class="b5bS" x="490" y="86">nothing: it is a count</text>
+        <text class="b5bR" x="670" y="86">late rows: 21 of 21 months</text>
+
+        <text class="b5bL" x="46" y="126">Item value (BRL)</text>
+        <text class="b5bB" x="180" y="126">within 0.05%</text>
+        <text class="b5bS" x="490" y="126">float: about 2e-10 BRL</text>
+        <text class="b5bR" x="670" y="126">late rows</text>
+
+        <text class="b5bL" x="46" y="166">Freight (BRL)</text>
+        <text class="b5bB" x="180" y="166">within 0.05%</text>
+        <text class="b5bS" x="490" y="166">per-line rounding, float</text>
+        <text class="b5bR" x="670" y="166">late rows</text>
+
+        <text class="b5bL" x="46" y="206">Items per order</text>
+        <text class="b5bB" x="180" y="206">within 0.005</text>
+        <text class="b5bS" x="490" y="206">no drift named</text>
+        <text class="b5bR" x="670" y="206">integer division: 21 months</text>
+
+        <text class="b5bL" x="46" y="246">Reviewed orders</text>
+        <text class="b5bB" x="180" y="246">exact</text>
+        <text class="b5bS" x="490" y="246">nothing: it is a count</text>
+        <text class="b5bR" x="670" y="246">review as 0: 20 months</text>
+
+        <text class="b5bL" x="46" y="286">Average review</text>
+        <text class="b5bB" x="180" y="286">within 0.01</text>
+        <text class="b5bS" x="490" y="286">no drift named</text>
+        <text class="b5bR" x="670" y="286">review as 0: 19 months</text>
+
+        <text class="b5bN" x="30" y="322">Hollow dots sit inside a band (absorbed); red dots sit outside it (caught).</text>
+        <text class="b5bN" x="30" y="342">The fixed offset moves 72 orders a day but none across a month end: 0 months fail on any metric.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a tolerance is a band around zero gap, written with the drift it absorbs and the drift it must still catch</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why a count is exact and money is relative<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Orders and reviewed orders are counts. Nothing in a count rounds, so any gap is a defect and the tolerance is zero. Item value and freight are sums of money computed by two different engines, so they can differ in the last bits, and the gap grows with the size of the month, so their tolerance is relative: 0.05% of the legacy value. Items per order and average review are ratios on a fixed scale, so their tolerance is absolute, on that scale: 0.005 items and 0.01 of a 1 to 5 score.</p>
+        <p>Then check each band against the bench. The floating-point gaps are about 2e-10 BRL in a month and the per-line rounding moves the whole sample's freight from BRL 195,579.02 to BRL 195,579.59; both sit inside 0.05% every month. The defects sit outside: the late rows fail orders in all 21 months, integer division fails items per order in every month, and the missing review as 0 fails reviewed orders in 20 months and the average in 19. Rung 3: 4 of 5 caught, 0 false alarms.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What the month hides<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The fixed offset moves 72 orders from just after local midnight to the day before. None of them crosses a month end in this sample, so every monthly total is unchanged and 0 months fail. A monthly bar does not see a drift whose whole effect is inside the month. That is the one defect rung 3 misses.</p>
+        <p>Serai's ops dashboard reads some numbers daily, so the month is not the only grain people read. Going back to exact days would bring the two false alarms back. The ladder's answer is rung 4, a targeted check on the 595 orders placed within an hour of local midnight, which <a href="b9-drift-that-hides.html">Builder session 9</a> builds. Tonight, name the gap in the runbook: "the monthly bar does not see shifts inside a month; the edge check covers time zones."</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Recompute each grain from rows<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>It is tempting to build the monthly numbers by rolling up the daily ones. For sums and counts that works. For a ratio it does not: the average of daily averages weights a quiet day like a busy one. On tonight's legacy side, February's review scores give a different answer each way:</p>
+        <div class="prompt-box good"><span class="label">★ Run after the build-along setup and views</span>SELECT (SELECT avg(avg_review) FROM legacy_daily
+        WHERE day &gt;= DATE '2017-02-01')                     AS mean_of_daily_means,
+       (SELECT avg_review FROM legacy_monthly
+        WHERE month = DATE '2017-02-01')                    AS monthly_from_rows;
+-- mean_of_daily_means 4.333333333333333 | monthly_from_rows 4.0</div>
+        <p>Compute every grain from the rows, with the same SQL on both sides, and the comparison stays honest. A parity check that compares two wrong numbers can pass while both disagree with what the board sees.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Bars that are too loose, and the contested question<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A tolerance chosen for comfort hides any defect smaller than itself. With 3% on every metric, the missing review as 0 never fails a month: its largest monthly gap is 2.22%, in February 2017. Builder session 10 lets you press that lever and watch the score fall; Leader session 4 is where the signer learns to refuse it.</p>
+        <p>Whether aggregates are "enough", or row hashing is needed too, is genuinely contested, and Builder session 4 laid out the trade. Aggregates compare at the grain people read and need no key; they can average away a single changed row. Which miss is more expensive is a business call for whoever signs the bar.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A definition of done, written before the comparison.</strong> Google's 2019 blog on migrating data warehouses, a vendor's own guidance, says: "At the end of each iteration, validate that the use case was successfully migrated according to your definition of done". For a number people read, the definition of done is the signed bar: metric, grain, tolerance, what it absorbs, what it must still catch. Signed first, so that a result can never move it.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers floating point and rounding</span>
+      <h2>Money that differs in the last bits</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The two accepted differences on the bench are not mistakes anyone will fix. They are how numbers behave when two engines store and add them differently. Run them yourself once and you will recognise them in any diff.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn panels with values printed by DuckDB 1.5.3. Left, money as floating point: 10.10 plus 20.20 summed as DECIMAL gives 30.30; summed as DOUBLE gives 30.299999999999997. The order of addition matters: (0.1 plus 0.2) plus 0.3 gives 0.6000000000000001, while 0.1 plus (0.2 plus 0.3) gives 0.6. On the bench item value differs on 302 days and freight on 269, the largest monthly gap about 2e-10 BRL. Right, freight split per line: BRL 10.00 over three lines is 3.33 three times, 9.99; BRL 20.00 is 6.67 three times, 20.01; giving the last line the remainder, 3.34, restores 10.00. On the bench 90 orders move freight from BRL 195,579.02 to BRL 195,579.59.">
+        <defs>
+          <filter id="b5cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="79" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b5cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b5cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b5cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b5cB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b5cV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b5cA { font: 700 12px Inter, sans-serif; fill: #46330F; }
+          .b5cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b5cH" x="30" y="26">TWO DIFFERENCES SERAI SIGNS AS ACCEPTED</text>
+        <text class="b5cS" x="350" y="26">values printed by DuckDB 1.5.3 · bench figures from the canon</text>
+
+        <g filter="url(#b5cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="40" width="400" height="250" rx="12" transform="rotate(-0.4 230 165)" fill="#F8F2E6"/>
+          <rect x="450" y="40" width="400" height="250" rx="12" transform="rotate(0.4 650 165)" fill="#F8F2E6"/>
+
+          <rect x="40" y="72" width="380" height="26" rx="6" transform="rotate(0.3 230 85)" fill="#FFFFFF"/>
+          <rect x="40" y="106" width="380" height="26" rx="6" transform="rotate(-0.3 230 119)" fill="#9CC3E6"/>
+          <rect x="40" y="140" width="380" height="26" rx="6" transform="rotate(0.3 230 153)" fill="#FFFFFF"/>
+          <rect x="40" y="174" width="380" height="26" rx="6" transform="rotate(-0.3 230 187)" fill="#FFFFFF"/>
+
+          <rect x="470" y="94" width="54" height="24" rx="5" transform="rotate(-2 497 106)" fill="#FFFFFF"/>
+          <rect x="532" y="94" width="54" height="24" rx="5" transform="rotate(1.5 559 106)" fill="#FFFFFF"/>
+          <rect x="594" y="94" width="54" height="24" rx="5" transform="rotate(-1 621 106)" fill="#FFFFFF"/>
+
+          <rect x="470" y="150" width="54" height="24" rx="5" transform="rotate(1.5 497 162)" fill="#FFFFFF"/>
+          <rect x="532" y="150" width="54" height="24" rx="5" transform="rotate(-1.5 559 162)" fill="#FFFFFF"/>
+          <rect x="594" y="150" width="54" height="24" rx="5" transform="rotate(2 621 162)" fill="#FFFFFF"/>
+
+          <rect x="470" y="206" width="54" height="24" rx="5" transform="rotate(-1.5 497 218)" fill="#FFFFFF"/>
+          <rect x="532" y="206" width="54" height="24" rx="5" transform="rotate(1 559 218)" fill="#FFFFFF"/>
+          <rect x="594" y="206" width="54" height="24" rx="5" transform="rotate(-2 621 218)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b5cA" x="46" y="62">MONEY AS FLOATING POINT</text>
+        <text class="b5cL" x="54" y="89">10.10 + 20.20, as DECIMAL</text>
+        <text class="b5cB" x="250" y="89">30.30</text>
+        <text class="b5cL" x="54" y="123">10.10 + 20.20, as DOUBLE</text>
+        <text class="b5cB" x="250" y="123">30.299999999999997</text>
+        <text class="b5cL" x="54" y="157">(0.1 + 0.2) + 0.3, DOUBLE</text>
+        <text class="b5cB" x="250" y="157">0.6000000000000001</text>
+        <text class="b5cL" x="54" y="191">0.1 + (0.2 + 0.3), DOUBLE</text>
+        <text class="b5cB" x="250" y="191">0.6</text>
+        <text class="b5cS" x="46" y="236">Bench: item value differs on 302 days, freight on 269;</text>
+        <text class="b5cS" x="46" y="254">largest monthly gap about 2e-10 BRL.</text>
+
+        <text class="b5cA" x="466" y="62">FREIGHT SPLIT PER LINE, ROUNDED PER LINE</text>
+        <text class="b5cL" x="470" y="86">BRL 10.00 over 3 lines</text>
+        <text class="b5cL" x="482" y="111">3.33</text>
+        <text class="b5cL" x="544" y="111">3.33</text>
+        <text class="b5cL" x="606" y="111">3.33</text>
+        <text class="b5cL" x="662" y="111">=</text>
+        <text class="b5cV" x="684" y="112">9.99</text>
+        <text class="b5cL" x="470" y="142">BRL 20.00 over 3 lines</text>
+        <text class="b5cL" x="482" y="167">6.67</text>
+        <text class="b5cL" x="544" y="167">6.67</text>
+        <text class="b5cL" x="606" y="167">6.67</text>
+        <text class="b5cL" x="662" y="167">=</text>
+        <text class="b5cV" x="684" y="168">20.01</text>
+        <text class="b5cL" x="470" y="198">Fix: the last line takes the remainder</text>
+        <text class="b5cL" x="482" y="223">3.33</text>
+        <text class="b5cL" x="544" y="223">3.33</text>
+        <text class="b5cL" x="606" y="223">3.34</text>
+        <text class="b5cL" x="662" y="223">=</text>
+        <text class="b5cV" x="684" y="224">10.00</text>
+        <text class="b5cS" x="466" y="254">Bench: 90 orders; freight BRL 195,579.02 becomes</text>
+        <text class="b5cS" x="466" y="272">BRL 195,579.59, inside 0.05% every month.</text>
+
+        <text class="b5cN" x="30" y="318">Both are real gaps. Both are far smaller than any defect on the bench, so a small tolerance clears them.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same money, two storage types or two rounding points, two different last digits</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Run a sum that differs<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A DOUBLE stores 10.10 as the nearest binary fraction, not 10.10, so sums drift in the last bits; a DECIMAL stores cents exactly. And because floating-point addition is not associative, the order rows are added in changes the result. Two engines that split a sum across workers differently can disagree on the same rows. Paste this into DuckDB:</p>
+        <div class="prompt-box good"><span class="label">★ Float against DECIMAL, and the order of addition</span>SELECT sum(CAST(v AS DOUBLE))        AS as_double,
+       sum(CAST(v AS DECIMAL(10,2))) AS as_decimal
+FROM (VALUES (10.10), (20.20)) t(v);
+-- as_double 30.299999999999997 | as_decimal 30.30
+
+SELECT (0.1::DOUBLE + 0.2::DOUBLE) + 0.3::DOUBLE AS left_first,
+       0.1::DOUBLE + (0.2::DOUBLE + 0.3::DOUBLE) AS right_first;
+-- left_first 0.6000000000000001 | right_first 0.6</div>
+        <p>Do not assume you can predict which values drift: in the same DuckDB, <code>sum(CAST(0.1 AS DOUBLE))</code> over ten rows printed exactly 1.0. Test on your own rows. The professional rule is simple: store money as DECIMAL or integer cents on the new side if you can; if either side sums in floating point, sign a small relative tolerance for money and write "floating point" in its absorbs column.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Round once, at the grain you report<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>When an order's freight is split across its lines and each line is rounded to cents, the lines no longer add back to the order. Sometimes the total loses a cent, sometimes it gains one:</p>
+        <div class="prompt-box good"><span class="label">★ Per-line rounding, and the remainder fix</span>SELECT freight,
+       CAST(freight / 3 AS DECIMAL(10,2))     AS per_line,
+       CAST(freight / 3 AS DECIMAL(10,2)) * 3 AS three_lines
+FROM (VALUES (10.00::DECIMAL(10,2)), (20.00::DECIMAL(10,2))) f(freight);
+-- 10.00 | 3.33 | 9.99
+-- 20.00 | 6.67 | 20.01
+
+SELECT line_no,
+       CASE WHEN line_no &lt; 3 THEN CAST(10.00 / 3 AS DECIMAL(10,2))
+            ELSE 10.00 - 2 * CAST(10.00 / 3 AS DECIMAL(10,2)) END AS line_freight
+FROM range(1, 4) r(line_no);
+-- 1 | 3.33
+-- 2 | 3.33
+-- 3 | 3.34</div>
+        <p>On the bench, 90 orders are split this way and the whole sample's freight moves by BRL 0.57. If the new model needs freight per line, give the last line the remainder so the order still adds up; if it was built that way already and the business accepts it, sign it as an accepted difference with a tolerance that absorbs it and still catches the late rows.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Accepted is a signature, not a shrug<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>An accepted difference needs three things in the runbook: what it is (money summed as floating point), how big it can be on the bench or in the parallel run (about 2e-10 BRL a month), and the tolerance that absorbs it while still catching the defect it must never hide. Without the third, "accepted" quietly grows to cover whatever shows up next.</p>
+        <p>Never accept a difference because it is small today. Accept it because you know its mechanism and can say why it cannot grow. Floating point qualifies. "Freight is a few cents out" without a mechanism does not.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>One symbol, two numbers.</strong> PostgreSQL's documentation says integer division "truncates the result towards zero". DuckDB's says "When both operands are integers, / performs floating points division (5 / 2 = 2.5)", and "// performs integer division (5 // 2 = 2)". Both are engine documentation, read at source. The same <code>sum(items) / count(*)</code> therefore means two things on two engines, which is how items per order became 1 on the bench. Builder session 3 wrote the translation rule; tonight's daily check is the proof that it held, on 427 days.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Six metrics, compared by day and by month</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Constructed Serai Commerce example: ten orders in January and February 2017, during Brazilian summer time. Legacy stores money as DECIMAL; new stores it as DOUBLE and carries three more planted faults. Every row is present on both sides, so Builder session 4's key report would pass. Paste the setup once, then run the queries in order. Every output below is what DuckDB 1.5.3 printed on this exact pair.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn calendar of the seven days that hold orders on either side. Orders per day in legacy: 2, none, 2, 1, 2, 2, 1. In new: 2, 1, 1, 1, 2, 2, 1, because o4 moved from 16 January to 15 January. Daily exact verdicts: 14 January, 1 metric differs, floating point, a false alarm; 15 January, 6 metrics, offset; 16 January, 5 metrics, offset; 20 January equal; 3 February, 3 metrics, two causes; 7 and 10 February equal. Monthly bar: January, all six metrics pass, the offset is missed; February, reviewed and average review fail, the review as 0 is caught and the rounding absorbed.">
+        <defs>
+          <filter id="b5dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="83" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b5dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b5dL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b5dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b5dB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b5dA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b5dR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b5dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b5dH" x="30" y="26">THE PLANTED PAIR, DAY BY DAY AND MONTH BY MONTH</text>
+
+        <text class="b5dA" x="138" y="56">2017-01-14</text>
+        <text class="b5dA" x="241" y="56">2017-01-15</text>
+        <text class="b5dA" x="344" y="56">2017-01-16</text>
+        <text class="b5dA" x="447" y="56">2017-01-20</text>
+        <text class="b5dA" x="550" y="56">2017-02-03</text>
+        <text class="b5dA" x="653" y="56">2017-02-07</text>
+        <text class="b5dA" x="756" y="56">2017-02-10</text>
+
+        <text class="b5dS" x="30" y="85">legacy orders</text>
+        <text class="b5dS" x="30" y="119">new orders</text>
+        <text class="b5dS" x="30" y="158">daily exact</text>
+        <text class="b5dS" x="30" y="226">monthly bar</text>
+
+        <g filter="url(#b5dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="130" y="68" width="95" height="26" rx="5" transform="rotate(-0.8 177 81)" fill="#FFFFFF"/>
+          <rect x="233" y="68" width="95" height="26" rx="5" transform="rotate(0.8 280 81)" fill="#F8F2E6" stroke-dasharray="5 4"/>
+          <rect x="336" y="68" width="95" height="26" rx="5" transform="rotate(-0.6 383 81)" fill="#FFFFFF"/>
+          <rect x="439" y="68" width="95" height="26" rx="5" transform="rotate(0.6 486 81)" fill="#FFFFFF"/>
+          <rect x="542" y="68" width="95" height="26" rx="5" transform="rotate(-0.8 589 81)" fill="#FFFFFF"/>
+          <rect x="645" y="68" width="95" height="26" rx="5" transform="rotate(0.6 692 81)" fill="#FFFFFF"/>
+          <rect x="748" y="68" width="95" height="26" rx="5" transform="rotate(-0.6 795 81)" fill="#FFFFFF"/>
+
+          <rect x="130" y="102" width="95" height="26" rx="5" transform="rotate(0.6 177 115)" fill="#FFFFFF"/>
+          <rect x="233" y="102" width="95" height="26" rx="5" transform="rotate(-0.8 280 115)" fill="#FFFFFF"/>
+          <rect x="336" y="102" width="95" height="26" rx="5" transform="rotate(0.8 383 115)" fill="#FFFFFF"/>
+          <rect x="439" y="102" width="95" height="26" rx="5" transform="rotate(-0.6 486 115)" fill="#FFFFFF"/>
+          <rect x="542" y="102" width="95" height="26" rx="5" transform="rotate(0.6 589 115)" fill="#FFFFFF"/>
+          <rect x="645" y="102" width="95" height="26" rx="5" transform="rotate(-0.8 692 115)" fill="#FFFFFF"/>
+          <rect x="748" y="102" width="95" height="26" rx="5" transform="rotate(0.6 795 115)" fill="#FFFFFF"/>
+
+          <rect x="130" y="140" width="95" height="44" rx="6" transform="rotate(-0.6 177 162)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="233" y="140" width="95" height="44" rx="6" transform="rotate(0.6 280 162)" fill="#9CC3E6"/>
+          <rect x="336" y="140" width="95" height="44" rx="6" transform="rotate(-0.6 383 162)" fill="#9CC3E6"/>
+          <rect x="439" y="140" width="95" height="44" rx="6" transform="rotate(0.6 486 162)" fill="#FFFFFF"/>
+          <rect x="542" y="140" width="95" height="44" rx="6" transform="rotate(-0.6 589 162)" fill="#9CC3E6"/>
+          <rect x="645" y="140" width="95" height="44" rx="6" transform="rotate(0.6 692 162)" fill="#FFFFFF"/>
+          <rect x="748" y="140" width="95" height="44" rx="6" transform="rotate(-0.6 795 162)" fill="#FFFFFF"/>
+
+          <rect x="130" y="200" width="404" height="44" rx="8" transform="rotate(-0.3 332 222)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="542" y="200" width="301" height="44" rx="8" transform="rotate(0.3 692 222)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b5dL" x="144" y="86">2</text>
+        <text class="b5dS" x="247" y="86">none</text>
+        <text class="b5dL" x="350" y="86">2</text>
+        <text class="b5dL" x="453" y="86">1</text>
+        <text class="b5dL" x="556" y="86">2</text>
+        <text class="b5dL" x="659" y="86">2</text>
+        <text class="b5dL" x="762" y="86">1</text>
+
+        <text class="b5dL" x="144" y="120">2</text>
+        <text class="b5dB" x="247" y="120">1 (o4)</text>
+        <text class="b5dB" x="350" y="120">1</text>
+        <text class="b5dL" x="453" y="120">1</text>
+        <text class="b5dL" x="556" y="120">2</text>
+        <text class="b5dL" x="659" y="120">2</text>
+        <text class="b5dL" x="762" y="120">1</text>
+
+        <text class="b5dL" x="144" y="158">1 metric</text>
+        <text class="b5dR" x="144" y="175">float</text>
+        <text class="b5dL" x="247" y="158">6 metrics</text>
+        <text class="b5dB" x="247" y="175">offset</text>
+        <text class="b5dL" x="350" y="158">5 metrics</text>
+        <text class="b5dB" x="350" y="175">offset</text>
+        <text class="b5dS" x="453" y="158">equal</text>
+        <text class="b5dL" x="556" y="158">3 metrics</text>
+        <text class="b5dB" x="556" y="175">2 causes</text>
+        <text class="b5dS" x="659" y="158">equal</text>
+        <text class="b5dS" x="762" y="158">equal</text>
+
+        <text class="b5dL" x="146" y="219">2017-01 · all six metrics pass</text>
+        <text class="b5dR" x="146" y="236">the offset is missed: o4 stays in January</text>
+        <text class="b5dL" x="558" y="219">2017-02 · reviewed and average fail</text>
+        <text class="b5dB" x="558" y="236">review as 0 caught; rounding absorbed</text>
+
+        <text class="b5dN" x="30" y="268">Planted: o4 moved a day by the offset, o6's missing review loaded as 0, o7's freight 10.00 now 9.99, money as DOUBLE.</text>
+        <text class="b5dN" x="30" y="288">2017-02-03 holds two causes: review as 0 (a defect) and per-line rounding (accepted).</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the bench's whole trade on ten orders: exact by day catches both defects and raises a false alarm, the monthly bar is quiet and misses the offset</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed pair and the bar.</strong> Legacy holds ten orders with money as DECIMAL. New holds the same ten orders with money as DOUBLE and three planted faults: o4, placed at 00:30 local time on 16 January, landed on the 15th under the fixed offset; o6's missing review score was loaded as 0; o7's freight of 10.00 was split over three lines and rounded per line to 9.99. The <code>bar</code> table is Serai's signed bar, constructed policy.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE legacy_orders AS
+SELECT order_id, CAST(order_day AS DATE) AS order_day, items,
+       CAST(item_value AS DECIMAL(10,2)) AS item_value,
+       CAST(freight AS DECIMAL(10,2)) AS freight,
+       CAST(review_score AS INTEGER) AS review_score
+FROM (VALUES
+ ('o1','2017-01-14',1, 10.10,15.10,5),   ('o2','2017-01-14',2, 20.20,20.00,4),
+ ('o3','2017-01-16',1, 35.00,12.40,5),   ('o4','2017-01-16',1, 64.00,18.30,3),
+ ('o5','2017-01-20',3, 99.00,21.50,4),   ('o6','2017-02-03',1, 44.00,11.20,NULL),
+ ('o7','2017-02-03',3, 72.40,10.00,5),   ('o8','2017-02-07',2, 28.90,16.60,2),
+ ('o9','2017-02-07',1,130.00,19.90,4),   ('o10','2017-02-10',1,59.90,14.00,5)
+) t(order_id, order_day, items, item_value, freight, review_score);
+
+CREATE OR REPLACE TABLE new_orders AS
+SELECT order_id, CAST(order_day AS DATE) AS order_day, items,
+       CAST(item_value AS DOUBLE) AS item_value,
+       CAST(freight AS DOUBLE) AS freight,
+       CAST(review_score AS INTEGER) AS review_score
+FROM (VALUES
+ ('o1','2017-01-14',1, 10.10,15.10,5),   ('o2','2017-01-14',2, 20.20,20.00,4),
+ ('o3','2017-01-16',1, 35.00,12.40,5),   ('o4','2017-01-15',1, 64.00,18.30,3),
+ ('o5','2017-01-20',3, 99.00,21.50,4),   ('o6','2017-02-03',1, 44.00,11.20,0),
+ ('o7','2017-02-03',3, 72.40, 9.99,5),   ('o8','2017-02-07',2, 28.90,16.60,2),
+ ('o9','2017-02-07',1,130.00,19.90,4),   ('o10','2017-02-10',1,59.90,14.00,5)
+) t(order_id, order_day, items, item_value, freight, review_score);
+
+CREATE OR REPLACE TABLE bar AS
+SELECT * FROM (VALUES
+ ('orders','abs',0.0), ('item_value','rel',0.0005), ('freight','rel',0.0005),
+ ('items_per_order','abs',0.005), ('reviewed','abs',0.0), ('avg_review','abs',0.01)
+) b(metric, kind, tol);</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, the six metrics per day, same SQL on both sides.</strong> Each view casts to DOUBLE only at the end, so the comparison has one type; legacy's DECIMAL sums are exact before that cast. New has one more day than legacy: the day o4 moved to.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · daily views</span>CREATE OR REPLACE VIEW legacy_daily AS
+SELECT order_day                          AS day,
+       count(*)::DOUBLE                   AS orders,
+       sum(item_value)::DOUBLE            AS item_value,
+       sum(freight)::DOUBLE               AS freight,
+       sum(items) / count(*)              AS items_per_order,
+       count(review_score)::DOUBLE        AS reviewed,
+       avg(review_score)                  AS avg_review
+FROM legacy_orders GROUP BY order_day;
+
+CREATE OR REPLACE VIEW new_daily AS
+SELECT order_day                          AS day,
+       count(*)::DOUBLE                   AS orders,
+       sum(item_value)::DOUBLE            AS item_value,
+       sum(freight)::DOUBLE               AS freight,
+       sum(items) / count(*)              AS items_per_order,
+       count(review_score)::DOUBLE        AS reviewed,
+       avg(review_score)                  AS avg_review
+FROM new_orders GROUP BY order_day;
+
+SELECT (SELECT count(*) FROM legacy_daily) AS legacy_days,
+       (SELECT count(*) FROM new_daily)    AS new_days;
+-- legacy_days 6 | new_days 7</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, rung 2: every cell, exactly.</strong> Unpivot each side into one row per day and metric, full outer join on both, and keep every pair that is distinct. Fifteen cells on four days. Read each one before you call it a defect.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · daily exact</span>WITH l AS (UNPIVOT legacy_daily ON COLUMNS(* EXCLUDE (day)) INTO NAME metric VALUE v),
+     r AS (UNPIVOT new_daily    ON COLUMNS(* EXCLUDE (day)) INTO NAME metric VALUE v)
+SELECT coalesce(l.day, r.day)       AS day,
+       coalesce(l.metric, r.metric) AS metric,
+       l.v AS legacy, r.v AS new
+FROM l FULL OUTER JOIN r ON l.day = r.day AND l.metric = r.metric
+WHERE l.v IS DISTINCT FROM r.v
+ORDER BY day, metric;
+-- 2017-01-14 | item_value      | 30.3 | 30.299999999999997
+-- 2017-01-15 | avg_review      | NULL | 3.0
+-- 2017-01-15 | freight         | NULL | 18.3
+-- 2017-01-15 | item_value      | NULL | 64.0
+-- 2017-01-15 | items_per_order | NULL | 1.0
+-- 2017-01-15 | orders          | NULL | 1.0
+-- 2017-01-15 | reviewed        | NULL | 1.0
+-- 2017-01-16 | avg_review      | 4.0  | 5.0
+-- 2017-01-16 | freight         | 30.7 | 12.4
+-- 2017-01-16 | item_value      | 99.0 | 35.0
+-- 2017-01-16 | orders          | 2.0  | 1.0
+-- 2017-01-16 | reviewed        | 2.0  | 1.0
+-- 2017-02-03 | avg_review      | 5.0  | 2.5
+-- 2017-02-03 | freight         | 21.2 | 21.189999999999998
+-- 2017-02-03 | reviewed        | 1.0  | 2.0</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, rung 3: the same six metrics per month, against the bar.</strong> Recompute the month from rows, never from the daily views. Each gap is measured the way its metric is signed: relative for money, absolute for the rest. January passes everything, although o4 sits on the wrong day inside it.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · monthly views and the signed bar</span>CREATE OR REPLACE VIEW legacy_monthly AS
+SELECT date_trunc('month', order_day)     AS month,
+       count(*)::DOUBLE                   AS orders,
+       sum(item_value)::DOUBLE            AS item_value,
+       sum(freight)::DOUBLE               AS freight,
+       sum(items) / count(*)              AS items_per_order,
+       count(review_score)::DOUBLE        AS reviewed,
+       avg(review_score)                  AS avg_review
+FROM legacy_orders GROUP BY 1;
+
+CREATE OR REPLACE VIEW new_monthly AS
+SELECT date_trunc('month', order_day)     AS month,
+       count(*)::DOUBLE                   AS orders,
+       sum(item_value)::DOUBLE            AS item_value,
+       sum(freight)::DOUBLE               AS freight,
+       sum(items) / count(*)              AS items_per_order,
+       count(review_score)::DOUBLE        AS reviewed,
+       avg(review_score)                  AS avg_review
+FROM new_orders GROUP BY 1;
+
+WITH l AS (UNPIVOT legacy_monthly ON COLUMNS(* EXCLUDE (month)) INTO NAME metric VALUE v),
+     r AS (UNPIVOT new_monthly    ON COLUMNS(* EXCLUDE (month)) INTO NAME metric VALUE v),
+     g AS (SELECT coalesce(l.month, r.month) AS month, coalesce(l.metric, r.metric) AS metric,
+                  l.v AS legacy, r.v AS new
+           FROM l FULL OUTER JOIN r ON l.month = r.month AND l.metric = r.metric)
+SELECT strftime(g.month, '%Y-%m') AS month, g.metric,
+       round(g.legacy, 2) AS legacy, round(g.new, 2) AS new,
+       round(CASE b.kind WHEN 'rel' THEN abs(g.new - g.legacy) / abs(g.legacy)
+                         ELSE abs(g.new - g.legacy) END, 6) AS gap,
+       b.tol,
+       CASE WHEN g.legacy IS NULL OR g.new IS NULL THEN 'FAIL'
+            WHEN (CASE b.kind WHEN 'rel' THEN abs(g.new - g.legacy) / abs(g.legacy)
+                              ELSE abs(g.new - g.legacy) END) &lt;= b.tol THEN 'pass'
+            ELSE 'FAIL' END AS verdict
+FROM g JOIN bar b USING (metric)
+ORDER BY month, metric;
+-- 2017-01 | avg_review      | 4.2   | 4.2   | 0.0      | 0.0100 | pass
+-- 2017-01 | freight         | 87.3  | 87.3  | 0.0      | 0.0005 | pass
+-- 2017-01 | item_value      | 228.3 | 228.3 | 0.0      | 0.0005 | pass
+-- 2017-01 | items_per_order | 1.6   | 1.6   | 0.0      | 0.0050 | pass
+-- 2017-01 | orders          | 5.0   | 5.0   | 0.0      | 0.0000 | pass
+-- 2017-01 | reviewed        | 5.0   | 5.0   | 0.0      | 0.0000 | pass
+-- 2017-02 | avg_review      | 4.0   | 3.2   | 0.8      | 0.0100 | FAIL
+-- 2017-02 | freight         | 71.7  | 71.69 | 0.000139 | 0.0005 | pass
+-- 2017-02 | item_value      | 335.2 | 335.2 | 0.0      | 0.0005 | pass
+-- 2017-02 | items_per_order | 1.6   | 1.6   | 0.0      | 0.0050 | pass
+-- 2017-02 | orders          | 5.0   | 5.0   | 0.0      | 0.0000 | pass
+-- 2017-02 | reviewed        | 4.0   | 5.0   | 1.0      | 0.0000 | FAIL</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, the failing-buckets report: runbook section 4, rungs 2 and 3.</strong> One row per failing day or month, with the metrics that failed it. This is the output a person reads every night of the parallel run, so it lists buckets, not fifteen loose cells.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · failing buckets</span>WITH dl AS (UNPIVOT legacy_daily   ON COLUMNS(* EXCLUDE (day))   INTO NAME metric VALUE v),
+     dr AS (UNPIVOT new_daily      ON COLUMNS(* EXCLUDE (day))   INTO NAME metric VALUE v),
+     ml AS (UNPIVOT legacy_monthly ON COLUMNS(* EXCLUDE (month)) INTO NAME metric VALUE v),
+     mr AS (UNPIVOT new_monthly    ON COLUMNS(* EXCLUDE (month)) INTO NAME metric VALUE v),
+     daily_fail AS (
+       SELECT 'daily exact' AS check_name,
+              strftime(coalesce(dl.day, dr.day), '%Y-%m-%d') AS bucket,
+              coalesce(dl.metric, dr.metric) AS metric
+       FROM dl FULL OUTER JOIN dr ON dl.day = dr.day AND dl.metric = dr.metric
+       WHERE dl.v IS DISTINCT FROM dr.v),
+     monthly_fail AS (
+       SELECT 'monthly bar' AS check_name,
+              strftime(coalesce(ml.month, mr.month), '%Y-%m') AS bucket,
+              coalesce(ml.metric, mr.metric) AS metric
+       FROM ml FULL OUTER JOIN mr ON ml.month = mr.month AND ml.metric = mr.metric
+       JOIN bar b ON b.metric = coalesce(ml.metric, mr.metric)
+       WHERE ml.v IS NULL OR mr.v IS NULL
+          OR (CASE b.kind WHEN 'rel' THEN abs(mr.v - ml.v) / abs(ml.v)
+                          ELSE abs(mr.v - ml.v) END) &gt; b.tol)
+SELECT check_name, bucket, count(*) AS metrics_failing,
+       string_agg(metric, ', ' ORDER BY metric) AS which
+FROM (SELECT * FROM daily_fail UNION ALL SELECT * FROM monthly_fail)
+GROUP BY check_name, bucket
+ORDER BY check_name, bucket;
+-- daily exact | 2017-01-14 | 1 | item_value
+-- daily exact | 2017-01-15 | 6 | avg_review, freight, item_value, items_per_order, orders, reviewed
+-- daily exact | 2017-01-16 | 5 | avg_review, freight, item_value, orders, reviewed
+-- daily exact | 2017-02-03 | 3 | avg_review, freight, reviewed
+-- monthly bar | 2017-02    | 2 | avg_review, reviewed</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, classify every failing bucket by hand.</strong> No query does this part. For each row of Q4, write the cause and whether it is a defect or an accepted difference. Tonight's answer: 2017-01-14 is floating point (accepted, a false alarm at rung 2); 2017-01-15 and 2017-01-16 are the offset (a defect, caught only by daily exact); 2017-02-03 is the review as 0 (a defect) plus per-line rounding (accepted); the February month is the review as 0 again, with the rounding absorbed by the bar. The pair reproduces the bench's trade in miniature: daily exact catches both defects with a false alarm, the monthly bar is quiet and misses the offset.</p>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Why both grains stay in the suite.</strong> The monthly bar is the one Serai signs, because it is quiet and it is the grain the board reads. The daily exact report is still worth keeping as a read-only view during the parallel run: it is the check most likely to surface a drift nobody planned for. Nothing here checks the time-zone edge directly. That is rung 4, the edge check of <a href="b9-drift-that-hides.html">Builder session 9</a>, and it is why Serai's suite does not stop at rung 3.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 6</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Add an order o11 placed at 00:30 local time on 1 February: insert it into <code>legacy_orders</code> on <code>2017-02-01</code> and into <code>new_orders</code> on <code>2017-01-31</code>, as the fixed offset would. Rerun Q4. Write one sentence on why the monthly bar now fails both months when it missed o4.</li>
+      <li>Loosen the bar to 3% relative on every metric (<code>UPDATE bar SET kind = 'rel', tol = 0.03</code>) and rerun Q4. The February failures survive here, while on the bench 3% hides the missing review in every month. Explain the difference in one sentence about how many reviews each month holds.</li>
+      <li>Pick one dashboard in your own estate and list the metrics it shows, the grain each is read at, and a tolerance for each with the drift it absorbs and the drift it must still catch. Your numbers will differ.</li>
+      <li>Find one money column on your legacy side and check its type. If it is floating point, write the accepted-difference line for it, mechanism included.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 5 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · On the bench, rung 2 (exact daily aggregates) catches 5 of 5 defects. What are its 2 false alarms?</p>
+      <button class="qopt" type="button">A · The late rows and the fixed offset</button>
+      <button class="qopt" type="button">B · Integer division and the missing review loaded as 0</button>
+      <button class="qopt" type="button">C · Freight split per line (80 days) and money summed as floating point (302 days of item value)</button>
+      <button class="qopt" type="button">D · None: exact comparison never raises a false alarm</button>
+      <p class="qwhy">Both are differences Serai accepted in advance. Exact equality flags any gap, including the last-bit gaps of floating point and the cents moved by per-line rounding.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · In tonight's build-along, why does January pass the monthly bar although o4 sits on the wrong day?</p>
+      <button class="qopt" type="button">A · o4 moved from the 16th to the 15th, still inside January, so every monthly total is unchanged</button>
+      <button class="qopt" type="button">B · The tolerance on orders is 0.05%, which absorbs one order</button>
+      <button class="qopt" type="button">C · The monthly views read the daily views, which hide the move</button>
+      <button class="qopt" type="button">D · DOUBLE money rounds the difference away</button>
+      <p class="qwhy">Orders are compared exactly, and the monthly views are computed from rows. The drift is invisible at the month because its whole effect is inside the month, the same reason the bench's rung 3 misses the 72 shifted orders.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Why does Serai's bar compare reviewed orders exactly but item value within 0.05%?</p>
+      <button class="qopt" type="button">A · Reviewed orders matter more to the board than revenue</button>
+      <button class="qopt" type="button">B · Item value is a vendor default</button>
+      <button class="qopt" type="button">C · Relative tolerances are always safer</button>
+      <button class="qopt" type="button">D · A count has nothing that rounds, so any gap is a defect; money summed by two engines can differ in the last bits, and the gap scales with the month</button>
+      <p class="qwhy">Each tolerance is set by how the metric is computed and written next to the drift it absorbs and the drift it must still catch. 0.05% clears floating point and per-line rounding and still catches the late rows.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Daily exact and monthly tolerance comparison between two systems</span><span class="note">Taught as a method; every output run in DuckDB 1.5.3 on the constructed pair above; bench figures from the parity bench's measured ladder</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Floating-point money and per-line rounding as accepted differences</span><span class="note">Mechanisms shown with DuckDB output above; sizes on the bench from the measured canon</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Validation tools that compute aggregates</span><span class="note">Google Cloud's migration overview and the Data Validation Tool README, read at source as vendor claims; re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">A definition of done per iteration</span><span class="note">Google Cloud blog, 2019, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">NULL comparison and integer division semantics</span><span class="note">PostgreSQL and DuckDB documentation, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Row hashing versus aggregates as "enough"</span><span class="note">Contested; taught as a trade the bar's signer makes, not resolved</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The time-zone edge check (rung 4)</span><span class="note">Named here as the gap rung 3 leaves; built in Builder session 9</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 5 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Same SQL, both sides</b><span>Six metrics per bucket, identical text, stored in the runbook.</span></div>
+      <div class="cheat-item"><b>Long table, one join</b><span>Unpivot, full outer join on bucket and metric, IS DISTINCT FROM.</span></div>
+      <div class="cheat-item"><b>Exact daily: 5 of 5, 2 alarms</b><span>Sees every defect and every accepted difference.</span></div>
+      <div class="cheat-item"><b>Signed bar monthly: 4 of 5, 0</b><span>Quiet at the board's grain; blind to shifts inside a month.</span></div>
+      <div class="cheat-item"><b>Counts exact, money relative</b><span>Ratios absolute on their own scale; each grain from rows.</span></div>
+      <div class="cheat-item"><b>Accepted needs a mechanism</b><span>Floating point and per-line rounding, signed with a tolerance.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>The suite can now tell whether two warehouses say the same thing. Session 6 fills the new one with history: a reload one month at a time, a parity run after every window, and the 367 late orders that come back on the late feed and must be merged, not appended.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 5 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b4-row-and-key-parity.html">← Prev: Row and key parity</a> &nbsp;·&nbsp; <a href="b6-historical-reload.html">Next: Historical reload →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

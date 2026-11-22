@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 5 of 6. Cutover day is four gates, a freeze and a way back. Serai's go/no-go list asks for a done sheet with nothing open, a rung-4 parity report that names both targets and the signed bar, a timed rehearsal and a tested rollback. The rollback trigger is a number written while everyone is calm, and one named person pulls it.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Cutover day and the rollback - learn ship platform migration with phoebe">
+<meta property="og:description" content="Leader session 5 of 6. Four go/no-go gates, the freeze, and a rollback trigger written before anyone needs it.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/a5-cutover-day-and-the-rollback.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cutover day and the rollback - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Leader session 5 of 6. A parity report with both sides on the new warehouse catches 0 of 5 defects and shows all green: that is why gate two asks what each side read.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 5 · Cutover day and the rollback - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Leader session 5 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Leader session 5 of 6</div>
+    <h1>Cutover day and <span class="accent">the rollback</span></h1>
+    <p class="sub">Cutover day is the one day a migration is judged by the people who read the numbers rather than the people who built the pipes. It goes well when nothing on it is decided for the first time. Tonight you write the three things that keep it that way for the Constructed Serai Commerce example: a go/no-go list with four gates that are either met or not, the order of the freeze from the last change on legacy to the announcement, and the rollback trigger, a number written while everyone is calm, with the name of the one person who pulls it.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Advanced-practical</span>
+      <span class="chip audience">Heads of data and platform owners</span>
+      <span class="chip audience">Migration leads who own the go/no-go call</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:5">3-23 · Gates, freeze, trigger</span>
+      <span class="a3" style="flex:4">23-43 · Build-along: the go/no-go sheet</span>
+      <span class="a4" style="flex:1">43-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 gave you the done sheet; session 2 a reader and a signer for every number on it; session 3 the order of moves; session 4 the parity bar, signed before the first diff. Tonight is runbook section 7, cutover and rollback, seen from the chair that makes the call. <a href="b8-cutover-rehearsal-and-rollback.html">Builder session 8</a> rehearses the same day on a copy, times every step and writes the rollback as SQL; <a href="b10-the-parity-bench.html">Builder session 10</a> is where every parity count on this page is measured. The running example is a <strong>Constructed Serai Commerce example</strong>: the warehouses, the timings and the roles are constructed, and the 8,614 orders underneath are real, from the public Olist dataset. This page owns what goes into the cutover section of the runbook. How to write a runbook well, as a document people can follow at three in the morning, belongs to the <a href="https://phoebefu6.github.io/learn-runbooks-postmortems-with-phoebe/">Runbooks and Postmortems course</a>.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Serai's go/no-go and rollback sheet on one page: four gates with the evidence each one needs, the cutover-day sequence with an owner per step, the rollback trigger tied line by line to the signed bar, the person who pulls it, and the written condition that ends the rollback window. Plus one sentence for the steering meeting: "we go when all four gates are met, and we come back when the trigger fires, without a meeting".</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the go/no-go call</span>
+      <h2>Four gates, all or nothing</h2>
+      <span class="tag concept">7 min live</span>
+    </div>
+    <p class="lede">A go/no-go meeting that debates is a meeting that will say go. The defence is a list of gates, each of which is met or not met on evidence someone can show, written weeks before the date so nobody is tempted to redefine "met" on the night.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn decision chain of four gates, left to right. Gate 1, the done sheet: no row says open and every defect is fixed. Gate 2, the parity report: rung 4, the signed bar, both connection targets printed. Gate 3, the rehearsal: run end to end on a copy and timed, as in Builder session 8. Gate 4, the rollback: tested in both directions, with a signed trigger. A yes at each gate leads to the next; a yes at all four leads to go, switch the readers. A no at any gate drops into one band: no-go, the move waits, with the gate, the owner and the new date written down.">
+        <defs>
+          <filter id="a5aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="51" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a5aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a5aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a5aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a5aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a5aB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .a5aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a5aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a5aH" x="30" y="26">THE GO/NO-GO CALL · FOUR GATES, IN ORDER</text>
+        <text class="a5aS" x="360" y="26">each gate is met on evidence or it is not · there is no "nearly"</text>
+
+        <g filter="url(#a5aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="140" height="92" rx="10" transform="rotate(-0.6 100 98)" fill="#FFFFFF"/>
+          <rect x="200" y="52" width="140" height="92" rx="10" transform="rotate(0.5 270 98)" fill="#FFFFFF"/>
+          <rect x="370" y="52" width="140" height="92" rx="10" transform="rotate(-0.5 440 98)" fill="#FFFFFF"/>
+          <rect x="540" y="52" width="140" height="92" rx="10" transform="rotate(0.4 610 98)" fill="#FFFFFF"/>
+          <rect x="716" y="62" width="134" height="72" rx="12" transform="rotate(-0.8 783 98)" fill="#9CC3E6"/>
+          <path d="M172 104 L196 104" marker-end="url(#a5aAr)"/>
+          <path d="M342 104 L366 104" marker-end="url(#a5aAr)"/>
+          <path d="M512 104 L536 104" marker-end="url(#a5aAr)"/>
+          <path d="M682 104 L712 104" marker-end="url(#a5aAr)"/>
+          <path d="M70 146 L70 196" marker-end="url(#a5aAr)"/>
+          <path d="M240 146 L240 196" marker-end="url(#a5aAr)"/>
+          <path d="M410 146 L410 196" marker-end="url(#a5aAr)"/>
+          <path d="M580 146 L580 196" marker-end="url(#a5aAr)"/>
+          <rect x="30" y="200" width="660" height="50" rx="10" transform="rotate(0.3 360 225)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+        </g>
+
+        <text class="a5aH" x="44" y="76">1 · DONE SHEET</text>
+        <text class="a5aS" x="44" y="98">no row says open</text>
+        <text class="a5aS" x="44" y="116">every defect fixed</text>
+        <text class="a5aH" x="214" y="76">2 · PARITY</text>
+        <text class="a5aS" x="214" y="98">rung 4, signed bar</text>
+        <text class="a5aS" x="214" y="116">both targets named</text>
+        <text class="a5aH" x="384" y="76">3 · REHEARSAL</text>
+        <text class="a5aS" x="384" y="98">run on a copy</text>
+        <text class="a5aS" x="384" y="116">timed (Builder 8)</text>
+        <text class="a5aH" x="554" y="76">4 · ROLLBACK</text>
+        <text class="a5aS" x="554" y="98">tested both ways</text>
+        <text class="a5aS" x="554" y="116">trigger signed</text>
+        <text class="a5aB" x="732" y="96">GO</text>
+        <text class="a5aB" x="732" y="114">switch readers</text>
+
+        <text class="a5aA" x="174" y="94">yes</text>
+        <text class="a5aA" x="344" y="94">yes</text>
+        <text class="a5aA" x="514" y="94">yes</text>
+        <text class="a5aA" x="686" y="94">yes</text>
+        <text class="a5aA" x="78" y="176">no</text>
+        <text class="a5aA" x="248" y="176">no</text>
+        <text class="a5aA" x="418" y="176">no</text>
+        <text class="a5aA" x="588" y="176">no</text>
+
+        <text class="a5aH" x="48" y="230">NO-GO: the move waits. Write the gate, its owner and the new date.</text>
+
+        <text class="a5aN" x="30" y="282">One missed gate is a no-go, whatever the other three say. The reason goes in the log, not the minutes.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four gates, each met on evidence, and a single "no" anywhere stops the move</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What each gate asks for, as evidence<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Gate</th><th>Met when you can show</th><th>Not met when you hear</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 · Done sheet</strong></td><td>Every number the business reads says "same" or "explained", with a cause and an owner. Every explained defect is fixed; only accepted differences remain, such as Serai's freight split across 90 orders.</td><td>"That one is still being looked at."</td></tr>
+            <tr><td><strong>2 · Parity report</strong></td><td>A rung-4 run against the signed bar, with both connection targets printed at the top. On the bench, rung 4 with the signed bar catches 5 of 5 defects with 0 false alarms.</td><td>"All green." With no rung, no bar and no targets on the page.</td></tr>
+            <tr><td><strong>3 · Rehearsal</strong></td><td>The whole day run end to end on a copy, every step timed, and the timings written into the plan. Builder session 8 does this.</td><td>"Each step was tested separately."</td></tr>
+            <tr><td><strong>4 · Rollback</strong></td><td>Readers moved to new and back to legacy on the copy, with the numbers checked after each move, and the trigger on paper with a name next to it.</td><td>"We can always switch back if we need to."</td></tr>
+          </tbody>
+        </table>
+        <p>Read gate 2 carefully, because it is the one a green report fools most easily. When both sides of the comparison point at the new warehouse, which happens when a connection string is copied, the bench catches 0 of 5 defects and every check passes. Loosen the bar to 3% on every metric and even rung 4 catches only 4 of 5, missing the review scores loaded as 0. A report that does not print what each side read and which bar it used does not meet gate 2, however green it is.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why all four, and why written in advance<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each gate covers a different way to be wrong. The done sheet says the numbers are understood; the parity report says they were checked against a bar nobody chose on the night; the rehearsal says the day itself fits the window; the rollback test says there is a way back that has actually been walked. Three out of four is a move with one unguarded door.</p>
+        <p>In a phased move like Serai's, chosen in session 3, every wave that moves readers has its own cutover day, and each one gets the same four gates. The list is short enough to read aloud at the start of the call. Read it aloud: a gate that is met can be answered with a document, and a gate that is not met is answered with an explanation, and the room hears the difference.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who is on the call, and who decides<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The signers from session 2 each answer for their own lines on the done sheet: at Serai, the finance director for orders, the financial controller for item value and freight, the head of operations for items per order and the edge check, the brand lead for reviewed orders and the average review score. The data platform lead answers for gates 3 and 4. The migration lead, one named person, reads the gates and makes the call.</p>
+        <p>The rule that keeps this honest is that the decider cannot overrule a gate, only report it. If gate 2 is not met, the migration lead's job is to say "no-go, gate 2, owner, new date", not to weigh it against the cost of delay. The cost of delay was weighed when the gates were written. Serai's roles are constructed; yours will have different titles and the same shape.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Readiness that was reported, not proved.</strong> TSB's own release on the independent review of its 2018 migration notes that go-live "followed a long period of testing, with reports to the Board signalling readiness", and that the review raised "questions around how testing was carried out". Google's SRE book, describing how launches are run at scale, says plainly: "The checklist proved to be a useful tool for ensuring reproducibly reliable launches." A go/no-go list is that checklist, with one addition: every line names the evidence that meets it, so a report of readiness and proof of readiness look different on the page.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the freeze and the order of the day</span>
+      <h2>Freeze, level, prove, switch, announce</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">The day itself is five steps in a fixed order, and the order matters more than the hours. Each step exists so the next one compares like with like: nothing changes on legacy while you prove new matches it, and nobody reads new until the proof is in.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 366" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn cutover-day timeline in three lanes, with constructed hours and not to scale. Legacy lane: open for changes until 18:00, then definitions frozen while loads continue, then after the switch still loaded and read-only as the way back. New lane: built and proved, then level with legacy after the last delta load at 18:30, then serving readers after 22:15. Readers lane: reading legacy until 22:15, reading new after it. Events on the axis: 18:00 freeze, 18:30 last delta load, 20:00 final parity run, 22:00 go/no-go call, 22:15 switch readers, 22:45 announce.">
+        <defs>
+          <filter id="a5bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="57" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a5bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a5bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a5bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a5bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a5bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a5bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a5bH" x="30" y="26">SERAI'S CUTOVER DAY · THREE LANES, SIX EVENTS</text>
+        <text class="a5bS" x="400" y="26">hours constructed · not to scale · rehearsal sets the real ones</text>
+
+        <g filter="url(#a5bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="150" y="56" width="40" height="38" rx="6" fill="#FFFFFF"/>
+          <rect x="190" y="56" width="440" height="38" rx="6" transform="rotate(0.2 410 75)" fill="#F8F2E6"/>
+          <rect x="630" y="56" width="220" height="38" rx="6" transform="rotate(-0.3 740 75)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+          <rect x="150" y="116" width="150" height="38" rx="6" transform="rotate(-0.2 225 135)" fill="#FFFFFF"/>
+          <rect x="300" y="116" width="330" height="38" rx="6" transform="rotate(0.2 465 135)" fill="#FFFFFF"/>
+          <rect x="630" y="116" width="220" height="38" rx="6" transform="rotate(-0.2 740 135)" fill="#9CC3E6"/>
+          <rect x="150" y="176" width="480" height="38" rx="6" transform="rotate(0.2 390 195)" fill="#FFFFFF"/>
+          <rect x="630" y="176" width="220" height="38" rx="6" transform="rotate(-0.3 740 195)" fill="#9CC3E6"/>
+          <path d="M150 244 L850 244"/>
+          <circle cx="190" cy="244" r="5" fill="#231C12"/>
+          <circle cx="300" cy="244" r="5" fill="#231C12"/>
+          <circle cx="410" cy="244" r="5" fill="#231C12"/>
+          <circle cx="520" cy="244" r="5" fill="#231C12"/>
+          <circle cx="630" cy="244" r="7" fill="#9CC3E6"/>
+          <circle cx="740" cy="244" r="5" fill="#231C12"/>
+        </g>
+
+        <text class="a5bH" x="30" y="80">LEGACY</text>
+        <text class="a5bH" x="30" y="140">NEW</text>
+        <text class="a5bH" x="30" y="200">READERS</text>
+
+        <text class="a5bL" x="204" y="80">definitions frozen, loads keep running</text>
+        <text class="a5bL" x="644" y="80">still loaded: the way back</text>
+        <text class="a5bS" x="164" y="140">built and proved</text>
+        <text class="a5bS" x="314" y="140">level with legacy after the last delta</text>
+        <text class="a5bB" x="644" y="140">serving readers</text>
+        <text class="a5bS" x="164" y="200">reading legacy</text>
+        <text class="a5bB" x="644" y="200">reading new</text>
+
+        <text class="a5bA" x="190" y="268" text-anchor="middle">18:00</text>
+        <text class="a5bS" x="190" y="284" text-anchor="middle">freeze</text>
+        <text class="a5bA" x="300" y="268" text-anchor="middle">18:30</text>
+        <text class="a5bS" x="300" y="300" text-anchor="middle">last delta load</text>
+        <text class="a5bA" x="410" y="268" text-anchor="middle">20:00</text>
+        <text class="a5bS" x="410" y="284" text-anchor="middle">final parity run</text>
+        <text class="a5bA" x="520" y="268" text-anchor="middle">22:00</text>
+        <text class="a5bS" x="520" y="300" text-anchor="middle">go/no-go call</text>
+        <text class="a5bA" x="630" y="268" text-anchor="middle">22:15</text>
+        <text class="a5bB" x="630" y="284" text-anchor="middle">switch readers</text>
+        <text class="a5bA" x="740" y="268" text-anchor="middle">22:45</text>
+        <text class="a5bS" x="740" y="300" text-anchor="middle">announce</text>
+
+        <text class="a5bN" x="30" y="330">From 22:15 readers see new. Legacy keeps loading, so the way back is a repoint, not a reload.</text>
+        <text class="a5bN" x="30" y="350">The only step that changes what anyone reads is the switch, and it comes after the proof.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - nothing changes on legacy while new is proved against it, and readers move only after the proof</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The five steps, and what each one protects<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <ol>
+          <li><strong>Freeze changes on legacy.</strong> No new SQL, no schema change, no dashboard edit on either side from the freeze until the switch. Loads keep running. A definition that changes during the final parity run turns the comparison into a comparison with a moving target.</li>
+          <li><strong>Last delta load.</strong> Bring new level with legacy: every row that arrived since the previous load, including the late-row feed. Serai's late feed is where 367 orders were once appended twice, which is why the parity run comes after this step and not before.</li>
+          <li><strong>Final parity run.</strong> The rung-4 suite against the signed bar, with both targets printed. This is the report gate 2 reads at the go/no-go call.</li>
+          <li><strong>Switch readers.</strong> Repoint what readers query from legacy to new. Builder session 8 does this as a single view swap, so the switch, and the way back, is one statement.</li>
+          <li><strong>Announce.</strong> Tell readers which numbers moved and why, from the "explained" column of the done sheet, before they find out on their own. Serai's announcement names the freight rounding policy, because the finance team will see 57 centavos and ask.</li>
+        </ol>
+        <p>Serai's hours on the figure are constructed. The real ones come from the rehearsal: if the final parity run took two hours on the copy, the plan says two hours, and the go/no-go call is set after it, never during it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why legacy keeps loading after the switch<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The cheapest rollback is a repoint: readers go back to a warehouse that is still current. That only works if legacy keeps receiving the same loads as new for the whole rollback window. Stop loading it and the way back becomes a reload of every day since the switch, which is a second migration done in a hurry.</p>
+        <p>The same logic sets one more rule: during the window, nothing is written only to new. A manual adjustment, a new table an analyst builds on the first morning, a corrected figure typed into a mart: each one is a write the other side does not have, and each one makes the way back lose something. Log any such write, or hold it until the window closes.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Two copies that each took writes the other did not.</strong> In GitHub's incident of 21 October 2018, network connectivity was "restored in 43 seconds", but in that gap the database in one data centre "contained writes that were not present in the other data center". Reconciling them is why service stayed degraded for "24 hours and 11 minutes". A warehouse cutover is slower and calmer than a network partition, and the lesson transfers: once two copies have accepted different writes, going back is no longer a switch. The freeze and the no-new-only-writes rule exist to keep the way back a switch.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers rollback criteria written while calm</span>
+      <h2>A trigger, a name and a window</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">At 23:00 on cutover day, with readers on new and the team tired, a gap in a number will look like something that can be explained by morning. That is why the rollback decision is made weeks earlier, as a rule: which numbers, how far out, who acts, and for how long the way back stays open.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn rollback mechanism. The parity runs on new after the switch check each done-sheet line against the signed bar, plus the edge check on 595 near-midnight orders. A decision box asks whether any line is outside the bar: orders exact, money within 0.05 percent, average review within 0.01, edge orders on the same day. No leads to hold, keep watching until the written end condition. Yes leads to rollback with no debate: the migration lead repoints readers. The repoint moves one pointer, the readers' view, from the new warehouse back to legacy, which is still loaded and read-only.">
+        <defs>
+          <filter id="a5cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="63" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a5cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a5cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a5cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a5cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a5cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a5cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a5cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a5cH" x="30" y="26">THE ROLLBACK TRIGGER · A NUMBER, A NAME, ONE POINTER</text>
+        <text class="a5cS" x="440" y="26">thresholds = Serai's signed bar (constructed policy)</text>
+
+        <g filter="url(#a5cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="200" height="96" rx="10" transform="rotate(-0.5 130 104)" fill="#FFFFFF"/>
+          <rect x="280" y="56" width="220" height="96" rx="10" transform="rotate(0.4 390 104)" fill="#F8F2E6"/>
+          <rect x="550" y="56" width="300" height="96" rx="10" transform="rotate(-0.4 700 104)" fill="#FFFFFF"/>
+          <rect x="280" y="206" width="220" height="62" rx="10" transform="rotate(-0.4 390 237)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="550" y="210" width="140" height="56" rx="10" transform="rotate(0.8 620 238)" fill="#9CC3E6"/>
+          <rect x="740" y="190" width="110" height="42" rx="8" transform="rotate(-1 795 211)" fill="#FFFFFF"/>
+          <rect x="740" y="258" width="110" height="42" rx="8" transform="rotate(1 795 279)" fill="#F8F2E6"/>
+          <path d="M232 104 L276 104" marker-end="url(#a5cAr)"/>
+          <path d="M502 104 L546 104" marker-end="url(#a5cAr)"/>
+          <path d="M390 154 L390 202" marker-end="url(#a5cAr)"/>
+          <path d="M620 154 L620 206" marker-end="url(#a5cAr)"/>
+          <path d="M692 228 L736 212" stroke-dasharray="5 4" marker-end="url(#a5cAr)"/>
+          <path d="M692 250 L736 276" marker-end="url(#a5cAr)"/>
+        </g>
+
+        <text class="a5cH" x="44" y="80">PARITY RUNS ON NEW</text>
+        <text class="a5cS" x="44" y="100">each done-sheet line</text>
+        <text class="a5cS" x="44" y="118">against the signed bar</text>
+        <text class="a5cS" x="44" y="136">+ edge check, 595 orders</text>
+
+        <text class="a5cH" x="294" y="80">ANY LINE OUTSIDE THE BAR?</text>
+        <text class="a5cS" x="294" y="100">orders exact · money 0.05%</text>
+        <text class="a5cS" x="294" y="118">average review 0.01</text>
+        <text class="a5cS" x="294" y="136">edge: same day, all 595</text>
+
+        <text class="a5cH" x="564" y="80">ROLLBACK, NO DEBATE</text>
+        <text class="a5cL" x="564" y="100">the migration lead repoints readers</text>
+        <text class="a5cS" x="564" y="118">signers told; cause found afterwards</text>
+        <text class="a5cS" x="564" y="136">the move waits for a new go/no-go</text>
+
+        <text class="a5cA" x="508" y="94">yes</text>
+        <text class="a5cA" x="398" y="182">no</text>
+        <text class="a5cA" x="628" y="184">repoint</text>
+
+        <text class="a5cH" x="294" y="232">HOLD</text>
+        <text class="a5cS" x="294" y="252">watch until the written end</text>
+
+        <text class="a5cB" x="564" y="234">READERS' VIEW</text>
+        <text class="a5cB" x="564" y="252">one pointer</text>
+        <text class="a5cL" x="754" y="215">NEW</text>
+        <text class="a5cL" x="754" y="283">LEGACY</text>
+        <text class="a5cS" x="740" y="318">loaded, read-only</text>
+
+        <text class="a5cN" x="30" y="344">The decision was made weeks ago. On the night, someone only reads a number and moves one pointer.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the trigger is the signed bar read after the switch, and rolling back moves one pointer to a legacy that never stopped loading</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Three parts of a rollback rule<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The trigger is a number, tied to the done sheet.</strong> Serai's is simply the signed bar, read again after the switch: orders exact; item value and freight within 0.05%; items per order within 0.005; reviewed orders exact; average review within 0.01; and the edge check finding every one of the 595 near-midnight orders on the same day in both. Any line outside it fires the trigger. A second line covers what a check cannot see: a reader reports a number that differs and nobody can explain it before the next scheduled parity run. Both are constructed policy, built from the bar Serai already signed.</p>
+        <p><strong>One person pulls it, and does not ask first.</strong> At Serai the migration lead repoints readers to legacy when the trigger fires, then tells the signers. The cause is found afterwards, with readers safely on numbers everyone trusts. A rule that says "the steering group will decide" is a meeting at midnight, and a meeting at midnight looks for reasons to stay.</p>
+        <p><strong>The window ends on a written condition, not a feeling.</strong> Legacy stays loaded and read-only until the condition is met. Serai's: the first month-end close on new has passed a rung-4 parity run, and every monthly signer has said "same" or "explained". A condition, not a length: how long a parallel run or a rollback window should last is a question no source settles, and Serai's 4-week parallel run before cutover is constructed. Session 6 picks up what happens when the window closes.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Gradual, partial, reversible: how others roll out<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Google's SRE book describes launches this way: "Almost all updates to Google's services proceed gradually, according to a defined process", and "If the change doesn't pass the validation period, it's automatically rolled back." The SRE Workbook defines canarying as "a partial and time-limited deployment of a change in a service and its evaluation", and if the evaluation looks bad, the instruction is to "pause and roll back the deployment."</p>
+        <p>A warehouse is not a web service, and these are descriptions of one organisation's practice, not a rule for yours. The shape carries over all the same: a phased move is a partial deployment, the period after each switch is its validation, and the way back is decided before the change, not during it. Whether the whole move should be phased at all is the disagreement from session 3, and it stays a disagreement.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Test the rollback as hard as the move<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A rollback that has never run is a hope. Gate 4 asks for it to be walked on the copy: switch readers to new, check the numbers, switch them back, check again, and time both. Builder session 8 does exactly this with a view repointed forward and back and a count after each swap.</p>
+        <p>Test the awkward cases too. Roll back after the first morning's loads have run on both sides, so you know legacy really is current. Roll back from a laptop that is not the usual one, so you know the step does not depend on one person's credentials. And confirm that readers' extracts and caches follow the pointer; a dashboard that cached new's numbers will keep showing them after you roll back. Builder session 9 returns to caches that outlive a cutover.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Choosing the numbers over the clock, in advance.</strong> GitHub's analysis of its October 2018 incident records the choice to "prioritize data integrity over site usability and time to recovery". That choice cost a long period of degraded service and protected the data. TSB's 2018 migration ended, four years later, with the Bank of England announcing fines of "a total of £48,650,000" and a finding that TSB "failed to organise and control the IT migration programme adequately." Neither case tells you what your trigger should be. Both say the trade between integrity and time is a decision someone owns, and it is better owned on paper before cutover day than in a room on the night.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Serai's go/no-go and rollback sheet</h2>
+      <span class="tag demo">★ 20 min · everyone builds</span>
+    </div>
+    <p class="lede">You need the done sheet from session 1, the signers from session 2 and the bar from session 4. No sheet to hand? Build Serai's with the numbers on this page. The result is runbook section 7 from the leader's side: one page the migration lead reads aloud at the start of the call.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's go/no-go and rollback sheet as a hand-drawn grid with four columns: item, evidence or rule, owner, status. Done sheet, no row open and every defect fixed, migration lead, met. Parity report, rung 4 against the signed bar with both targets printed, head of data, met. Rehearsal, end to end on a copy with every step timed, data platform lead, met. Rollback test, readers moved to new and back with numbers checked, data platform lead, met. The highlighted row is the rollback trigger: any done-sheet line outside the signed bar, or any edge order on another day, pulled by the migration lead, signed. Last row, legacy ready until the first month-end close on new passes rung 4, data platform lead, signed.">
+        <defs>
+          <filter id="a5dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a5dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a5dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a5dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a5dB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a5dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a5dH" x="30" y="26">GO/NO-GO AND ROLLBACK · RUNBOOK SECTION 7</text>
+        <text class="a5dS" x="350" y="26">Constructed Serai Commerce example · roles constructed</text>
+
+        <g filter="url(#a5dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="820" height="234" rx="12" transform="rotate(-0.2 440 161)" fill="#FFFFFF"/>
+          <path d="M30 78 L850 78"/>
+          <path d="M190 44 L190 278"/>
+          <path d="M560 44 L560 278"/>
+          <path d="M730 44 L730 278"/>
+          <rect x="34" y="200" width="812" height="36" rx="6" fill="#9CC3E6"/>
+        </g>
+
+        <text class="a5dH" x="44" y="66">ITEM</text>
+        <text class="a5dH" x="204" y="66">EVIDENCE OR RULE</text>
+        <text class="a5dH" x="574" y="66">OWNER</text>
+        <text class="a5dH" x="744" y="66">STATUS</text>
+
+        <text class="a5dL" x="44" y="102">1 · Done sheet</text>
+        <text class="a5dS" x="204" y="102">no row open, every defect fixed</text>
+        <text class="a5dS" x="574" y="102">migration lead</text>
+        <text class="a5dS" x="744" y="102">met</text>
+        <text class="a5dL" x="44" y="128">2 · Parity report</text>
+        <text class="a5dS" x="204" y="128">rung 4, signed bar, both targets printed</text>
+        <text class="a5dS" x="574" y="128">head of data</text>
+        <text class="a5dS" x="744" y="128">met</text>
+        <text class="a5dL" x="44" y="154">3 · Rehearsal</text>
+        <text class="a5dS" x="204" y="154">end to end on a copy, every step timed</text>
+        <text class="a5dS" x="574" y="154">data platform lead</text>
+        <text class="a5dS" x="744" y="154">met</text>
+        <text class="a5dL" x="44" y="180">4 · Rollback test</text>
+        <text class="a5dS" x="204" y="180">to new and back, numbers checked</text>
+        <text class="a5dS" x="574" y="180">data platform lead</text>
+        <text class="a5dS" x="744" y="180">met</text>
+
+        <text class="a5dB" x="44" y="222">Rollback trigger</text>
+        <text class="a5dB" x="204" y="222">any line outside the bar, or edge</text>
+        <text class="a5dB" x="574" y="222">migration lead pulls</text>
+        <text class="a5dB" x="744" y="222">signed</text>
+
+        <text class="a5dL" x="44" y="260">Legacy ready until</text>
+        <text class="a5dS" x="204" y="260">first month-end close on new passes rung 4</text>
+        <text class="a5dS" x="574" y="260">data platform lead</text>
+        <text class="a5dS" x="744" y="260">signed</text>
+
+        <text class="a5dN" x="30" y="302">Status says "met" only with the evidence attached. A blank status on the night is a no-go.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four gates, one trigger, one end condition, and a name on every line</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Write the four gates, each with the evidence that meets it.</strong> Not "parity OK" but the document that shows it: the rung-4 report, with the bar and both targets printed at the top. Put an owner on each gate, and leave the status column empty until the evidence exists.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's gates</span>1 Done sheet      no row "open", every defect fixed           migration lead
+2 Parity report   rung 4, signed bar, both targets printed    head of data
+3 Rehearsal       end to end on a copy, every step timed      data platform lead
+4 Rollback test   readers to new and back, numbers checked    data platform lead</div>
+      </div>
+      <div class="step">
+        <p><strong>Write the day as a sequence with an owner per step.</strong> Freeze, last delta load, final parity run, go/no-go call, switch, announce. Leave the hours blank until the rehearsal gives you real ones. Serai's on the timeline above are constructed.</p>
+      </div>
+      <div class="step">
+        <p><strong>Write the trigger from the bar, line by line.</strong> Copy the signed bar from session 4 and add the edge check. Add one line for a reader-reported difference nobody can explain before the next scheduled parity run.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's rollback trigger (constructed policy)</span>Roll back if, on any parity run after the switch:
+  orders            differ at all (monthly)
+  item value        differ by more than 0.05%
+  freight           differ by more than 0.05%
+  items per order   differ by more than 0.005
+  reviewed orders   differ at all
+  average review    differ by more than 0.01
+  edge check        any of the 595 near-midnight orders on another day
+or a reader reports a difference nobody explains before the next run.</div>
+      </div>
+      <div class="step">
+        <p><strong>Name the one person who pulls it, and the end condition of the window.</strong> One name, not a group. The window closes on a condition you can check, not on a date someone hopes for.</p>
+        <div class="prompt-box good"><span class="label">★ Who acts, and for how long</span>Pulled by:   the migration lead, without asking first; signers told after.
+Way back:    repoint the readers' view to legacy (Builder session 8).
+Window:      legacy stays loaded and read-only until the first month-end
+             close on new passes a rung-4 run and every monthly signer
+             has said "same" or "explained".
+During it:   nothing is written only to new, or every such write is logged.</div>
+      </div>
+      <div class="step">
+        <p><strong>Read the steering sentence to whoever approves the move.</strong></p>
+        <div class="prompt-box good"><span class="label">★ The steering sentence</span>We go only when all four gates are met on evidence. If any number on the
+done sheet leaves the signed bar after the switch, the migration lead
+moves readers back to legacy without a meeting, and the move waits for
+a new go/no-go. Legacy stays loaded until the first month-end close on
+new has passed.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">A rollback plan that will never be used</span>
+Rollback: if critical issues are identified post-cutover, the steering
+committee will convene to assess impact and decide whether to revert.
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 6</h2>
+      <span class="tag exercise">25 min</span>
+    </div>
+    <ol>
+      <li>Finish your go/no-go sheet: four gates, the evidence for each, an owner, and an empty status column.</li>
+      <li>Write your rollback trigger from your own signed bar, one line per number on the done sheet. If a line has no tolerance yet, that is an open item for the bar, not the trigger.</li>
+      <li>Find out what your readers actually query: a view, a connection string in each dashboard, a scheduled extract. Write how many places would have to change to switch them, and to switch them back.</li>
+      <li>Ask who on your team would pull the rollback at midnight today. If the answer is "we would discuss it", write one name and the condition that lets them act alone.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 5 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · At the go/no-go call, the parity report says "all checks green" but does not print what each side read. Is gate 2 met?</p>
+      <button class="qopt" type="button">A · Yes, green is green</button>
+      <button class="qopt" type="button">B · Yes, if the report ran at rung 4</button>
+      <button class="qopt" type="button">C · No: with both sides on the new warehouse the bench catches 0 of 5 and still shows green</button>
+      <button class="qopt" type="button">D · No, because a report should never be fully green</button>
+      <p class="qwhy">A comparison of new against new passes every check. Without both targets printed, a green report cannot be told apart from that break, so the gate is not met. B is the trap: the rung matters, but so does what each side read.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Why does Serai keep legacy loaded, and read-only, after readers move to new?</p>
+      <button class="qopt" type="button">A · So the way back is a repoint to a current warehouse, not a reload of every day since the switch</button>
+      <button class="qopt" type="button">B · So analysts can keep editing legacy tables during the window</button>
+      <button class="qopt" type="button">C · Because the parallel run must last exactly four weeks</button>
+      <button class="qopt" type="button">D · Because legacy is the system of record until the steering group meets</button>
+      <p class="qwhy">A stale legacy turns rollback into a second migration in a hurry. B breaks the rule that nothing is written to one side only; C states a length no source gives, and Serai's 4 weeks is constructed; D replaces a written end condition with a meeting.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Which rollback rule can someone act on alone at midnight?</p>
+      <button class="qopt" type="button">A · "Revert if critical issues are identified, by steering committee decision"</button>
+      <button class="qopt" type="button">B · "Revert if users report that the numbers look wrong"</button>
+      <button class="qopt" type="button">C · "Revert within four hours of cutover if anything fails"</button>
+      <button class="qopt" type="button">D · "Revert if any done-sheet number leaves the signed bar; the migration lead acts without asking first"</button>
+      <p class="qwhy">A trigger is a number tied to the done sheet plus one named person who acts on it. A and B leave the decision to be made on the night; C has a clock but no definition of "fails", and its four hours come from nowhere.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Gradual rollout, validation and automatic rollback</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", and SRE Workbook, "Canarying Releases", read at source; one organisation's practice, not a rule</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">GitHub's 21 October 2018 incident</span><span class="note">GitHub's post-incident analysis, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB's 2018 migration and the 2022 fine</span><span class="note">Bank of England release (2022) and TSB's release on its independent review, read at source; the review's own text is not quoted</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Parity counts behind gate 2 and the trigger</span><span class="note">Rung 4, the loose bar and the break, measured on the bench in Builder session 10, matched by an independent Python reference</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">How long the rollback window or parallel run should last</span><span class="note">No source gives a length; Serai's end condition and 4-week parallel run are constructed</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's cutover hours, roles and trigger</span><span class="note">Constructed for the case; the trigger is built from Serai's constructed signed bar</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 5 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Four gates</b><span>Done sheet, parity report, rehearsal, rollback test. One "no" is a no-go.</span></div>
+      <div class="cheat-item"><b>Gate 2 reads the header</b><span>Rung 4, the signed bar, both targets. New against new: 0 of 5, all green.</span></div>
+      <div class="cheat-item"><b>The order of the day</b><span>Freeze, last delta load, final parity run, go/no-go, switch, announce.</span></div>
+      <div class="cheat-item"><b>Legacy keeps loading</b><span>The way back is a repoint, not a reload. Nothing written to one side only.</span></div>
+      <div class="cheat-item"><b>The trigger is the bar</b><span>Any done-sheet line outside it, or any edge order on another day.</span></div>
+      <div class="cheat-item"><b>One name, one condition</b><span>One person pulls it without asking. The window ends on a written condition.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>Readers are on new and the trigger has not fired. Session 6 is the week after: the drift that hides in monthly numbers, the written condition that ends the watch, and the decommission log that finally switches legacy off, which is the day the saving starts.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 5 of 6 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a4-the-parity-bar.html">← Prev: The parity bar</a> &nbsp;·&nbsp; <a href="a6-the-week-after-and-switching-off.html">Next: The week after and switching off →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 8 of 10. Rehearse cutover day end to end on a copy and time every step; make the switch and the way back one statement each by putting readers on a view; and rehearse the rollback as hard as the move, with a trigger read from the signed bar. Built in DuckDB on a constructed Serai Commerce pair of tables.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Cutover rehearsal and rollback - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 8 of 10. A timed rehearsal, a view swapped forward and back, and a rollback trigger that fires on a number, in DuckDB.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b8-cutover-rehearsal-and-rollback.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cutover rehearsal and rollback - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 8 of 10. The switch is one statement, the way back is the same statement, and both are rehearsed on a copy before the night.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 8 · Cutover rehearsal and rollback - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 8 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 8 of 10</div>
+    <h1>Cutover rehearsal and <span class="accent">rollback</span></h1>
+    <p class="sub">Cutover day should be the second time you do it, not the first. Tonight you run Serai's day on a copy with a stopwatch, put every reader behind one view so the switch is a single statement and the way back is the same statement pointed the other way, and then you make the rollback fire: a late row lands twice on the new side, the trigger check reads the signed bar, and the view goes back to legacy. Everything runs in DuckDB, and every output on this page is what DuckDB printed.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Advanced</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Platform engineers who run the cutover</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Rehearse, swap, trigger</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: forward and back</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 6 reloaded the history and session 7 ran both warehouses side by side with a nightly diff. Tonight is runbook section 7, cutover and rollback, from the builder's side: the rehearsal that turns the plan's hours into measured ones, the mechanism that makes the switch reversible, and the rollback walked on a copy. The leader's side, the four go/no-go gates and who makes the call, is <a href="a5-cutover-day-and-the-rollback.html">Leader session 5</a>; this page supplies the evidence for its gates 3 and 4. The running case is a <strong>Constructed Serai Commerce example</strong>: the warehouses, the tables tonight, the rehearsal timings and the roles are constructed; the parity counts quoted from the bench come from 8,614 real Olist orders, measured in <a href="b10-the-parity-bench.html">Builder session 10</a>. How to write a runbook that a tired person can follow is its own craft, owned by the <a href="https://phoebefu6.github.io/learn-runbooks-postmortems-with-phoebe/">Runbooks and Postmortems course</a>; this page owns what goes into section 7.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 7, the builder's half: a rehearsal log with every step's measured time and the slack before the next one, a reporting view that is the only name readers query, the two statements that move them forward and back, and a trigger query that prints both targets and says "ROLL BACK" or "within bar" per month. You will have run all of it in DuckDB, including a rollback that fires.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the timed end-to-end rehearsal</span>
+      <h2>Time every step on a copy</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A plan says the final parity run takes two hours because someone guessed. A rehearsal says it took 105 minutes because someone watched. Run the whole day, in order, on a copy of production with the real volumes and the real people, and write down when each step started and finished.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn rehearsal timeline for Serai's cutover day, constructed hours from 18:00 to 23:00. Each of six steps has a dashed planned slot and a filled measured bar. Freeze changes on legacy took 10 minutes of a slot ending 18:30, 20 minutes slack. Last delta load took 65 minutes, 25 slack. Final parity run at rung 4 took 105 minutes of the 20:00 to 22:00 slot, 15 slack, the longest step. Go/no-go call took 10 minutes, 5 slack. Switch readers took 1 minute, 29 slack. Announce took 5 minutes.">
+        <defs>
+          <filter id="b8aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="81" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b8aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b8aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b8aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b8aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b8aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b8aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b8aH" x="30" y="26">SERAI'S REHEARSAL · PLANNED SLOT VS MEASURED</text>
+        <text class="b8aS" x="380" y="26">dashed = planned slot · filled = measured on the copy · constructed</text>
+
+        <g filter="url(#b8aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="220" y="50" width="63" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="220" y="53" width="21" height="16" rx="3" fill="#F8F2E6"/>
+          <rect x="283" y="86" width="189" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="283" y="89" width="136" height="16" rx="3" transform="rotate(0.3 351 97)" fill="#F8F2E6"/>
+          <rect x="472" y="122" width="252" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="472" y="125" width="220" height="16" rx="3" transform="rotate(-0.3 582 133)" fill="#9CC3E6"/>
+          <rect x="724" y="158" width="31" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="724" y="161" width="21" height="16" rx="3" fill="#F8F2E6"/>
+          <rect x="755" y="194" width="63" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="755" y="197" width="5" height="16" rx="2" fill="#F8F2E6"/>
+          <rect x="818" y="230" width="21" height="22" rx="4" stroke-dasharray="5 4" fill="#FFFFFF"/>
+          <rect x="818" y="233" width="11" height="16" rx="2" fill="#F8F2E6"/>
+          <path d="M220 270 L850 270"/>
+          <path d="M220 266 L220 274"/>
+          <path d="M346 266 L346 274"/>
+          <path d="M472 266 L472 274"/>
+          <path d="M598 266 L598 274"/>
+          <path d="M724 266 L724 274"/>
+          <path d="M850 266 L850 274"/>
+        </g>
+
+        <text class="b8aL" x="30" y="65">1 · freeze changes on legacy</text>
+        <text class="b8aL" x="30" y="101">2 · last delta load</text>
+        <text class="b8aB" x="30" y="137">3 · final parity run, rung 4</text>
+        <text class="b8aL" x="30" y="173">4 · go/no-go call</text>
+        <text class="b8aL" x="30" y="209">5 · switch readers</text>
+        <text class="b8aL" x="30" y="245">6 · announce</text>
+
+        <text class="b8aS" x="292" y="65">10 min · 20 slack</text>
+        <text class="b8aS" x="480" y="101">65 min · 25 slack</text>
+        <text class="b8aB" x="734" y="137">105 min · 15 slack</text>
+        <text class="b8aS" x="716" y="173" text-anchor="end">10 min · 5 slack</text>
+        <text class="b8aS" x="747" y="209" text-anchor="end">1 min · 29 slack</text>
+        <text class="b8aS" x="810" y="245" text-anchor="end">5 min</text>
+
+        <text class="b8aA" x="220" y="290" text-anchor="middle">18:00</text>
+        <text class="b8aA" x="346" y="290" text-anchor="middle">19:00</text>
+        <text class="b8aA" x="472" y="290" text-anchor="middle">20:00</text>
+        <text class="b8aA" x="598" y="290" text-anchor="middle">21:00</text>
+        <text class="b8aA" x="724" y="290" text-anchor="middle">22:00</text>
+        <text class="b8aA" x="846" y="290" text-anchor="middle">23:00</text>
+
+        <text class="b8aN" x="30" y="320">The parity run is the longest step and has the least slack, so the go/no-go call is set after it, never during it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the rehearsal replaces each guessed hour with a measured one, and shows which step has least room</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What a rehearsal is, and what it is not<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A rehearsal is the whole cutover day run end to end, in order, on a copy of production, by the people who will run it on the night, reading from the runbook rather than from memory. It is not a set of steps each tested on its own: the last delta load can pass alone and still overrun the slot the parity run needs, and only running them back to back shows that.</p>
+        <p>Serai rehearses the six steps of Leader session 5's timeline: freeze changes on legacy at 18:00, last delta load at 18:30, final rung-4 parity run at 20:00, go/no-go call at 22:00, switch readers at 22:15, announce at 22:45. Those planned hours are constructed, and so are the measured times on the figure; your own will differ, which is the point of measuring them. Each step gets a start and a finish in a log table, so the timings are data you can query, not a recollection in a chat thread.</p>
+        <table class="clean">
+          <thead><tr><th>Make the copy like the night</th><th>Because</th></tr></thead>
+          <tbody>
+            <tr><td>Same data volume as production</td><td>A delta load on a tenth of the rows times a tenth of the night</td></tr>
+            <tr><td>Same people, same runbook</td><td>The rehearsal tests the instructions as much as the system</td></tr>
+            <tr><td>Same credentials and network path</td><td>A step that works from one engineer's laptop may fail from the on-call one</td></tr>
+            <tr><td>Rollback included, timed the same way</td><td>Part 3: the way back is a step like any other</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Reading the slack column<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Slack is the gap between a step finishing and the next step's planned start. On Serai's constructed rehearsal the final parity run took 105 minutes of its 120-minute slot, so the call at 22:00 has 15 minutes of margin. That is the number to watch. If a later rehearsal pushes the parity run past 22:00, the plan does not shorten the run: it moves the call later, because a go/no-go made while the report is still computing is a go made without gate 2.</p>
+        <p>The 1-minute switch has 29 minutes of slack before the announcement, and that time is not idle. It is when the first parity check runs against the readers' view on new, so the announcement goes out only after somebody has looked. Rehearse more than once if the timings move between runs; a step whose time varies a lot is a step to understand before the night.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A report of readiness is not a rehearsal.</strong> TSB's own release on the independent review of its 2018 migration says go-live "followed a long period of testing, with reports to the Board signalling readiness", and that the review raised "questions around how testing was carried out". What the review itself found is not quoted here. The lesson that carries is narrow and practical: a rehearsal log with start and finish times on every step is evidence someone can inspect, and a readiness report without it is a summary someone has to trust.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the rollback as a pointer swap</span>
+      <h2>One pointer, two directions</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">If readers query tables by name, switching them means editing every dashboard, extract and notebook, and switching back means editing them all again under pressure. Put one view between readers and the data. Cutover repoints the view to new; rollback repoints it to legacy. Same statement, opposite direction.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn view swap. Three readers, the ops daily dashboard, the board pack and the brand review dashboard, all query one view, reporting_orders. A solid arrow labelled cutover points the view at new_orders, which serves readers after cutover and keeps loading. A dashed arrow labelled rollback points the same view at legacy_orders, still loaded and read-only, the way back. Below, a warning panel: a reader wired to a table name never follows the swap.">
+        <defs>
+          <filter id="b8bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="83" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b8bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b8bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b8bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b8bB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b8bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b8bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b8bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b8bH" x="30" y="26">THE ROLLBACK IS THE CUTOVER, POINTED THE OTHER WAY</text>
+        <text class="b8bS" x="440" y="26">Constructed Serai Commerce example · built in DuckDB below</text>
+
+        <g filter="url(#b8bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="180" height="180" rx="12" transform="rotate(-0.5 120 146)" fill="#F8F2E6"/>
+          <rect x="48" y="90" width="144" height="28" rx="14" transform="rotate(-2 120 104)" fill="#FFFFFF"/>
+          <rect x="48" y="134" width="144" height="28" rx="14" transform="rotate(1.5 120 148)" fill="#FFFFFF"/>
+          <rect x="48" y="178" width="144" height="28" rx="14" transform="rotate(-1 120 192)" fill="#FFFFFF"/>
+          <path d="M196 104 L286 140" marker-end="url(#b8bAr)"/>
+          <path d="M196 148 L286 152" marker-end="url(#b8bAr)"/>
+          <path d="M196 192 L286 164" marker-end="url(#b8bAr)"/>
+          <rect x="290" y="114" width="200" height="76" rx="12" transform="rotate(0.6 390 152)" fill="#9CC3E6"/>
+          <rect x="640" y="56" width="210" height="80" rx="10" transform="rotate(-0.5 745 96)" fill="#FFFFFF"/>
+          <rect x="640" y="196" width="210" height="80" rx="10" transform="rotate(0.5 745 236)" fill="#F8F2E6"/>
+          <path d="M492 140 L636 96" marker-end="url(#b8bAr)"/>
+          <path d="M492 166 L636 236" stroke-dasharray="7 5" marker-end="url(#b8bAr)"/>
+          <rect x="30" y="268" width="560" height="46" rx="10" transform="rotate(-0.3 310 291)" fill="#FEF2F2"/>
+        </g>
+
+        <text class="b8bA" x="44" y="78">READERS</text>
+        <text class="b8bL" x="64" y="108">ops daily</text>
+        <text class="b8bL" x="64" y="152">board pack</text>
+        <text class="b8bL" x="64" y="196">brand review</text>
+
+        <text class="b8bB" x="306" y="146">reporting_orders</text>
+        <text class="b8bS" x="306" y="166" style="fill:#231C12">the one name readers query</text>
+
+        <text class="b8bA" x="530" y="112">cutover</text>
+        <text class="b8bA" x="520" y="226">rollback</text>
+
+        <text class="b8bH" x="656" y="82">new_orders</text>
+        <text class="b8bS" x="656" y="102">serves readers after cutover</text>
+        <text class="b8bS" x="656" y="120">loads keep running</text>
+        <text class="b8bH" x="656" y="222">legacy_orders</text>
+        <text class="b8bS" x="656" y="242">still loaded, read-only</text>
+        <text class="b8bS" x="656" y="260">the way back</text>
+
+        <text class="b8bR" x="46" y="288">A READER WIRED TO A TABLE NAME NEVER FOLLOWS THE SWAP</text>
+        <text class="b8bS" x="46" y="304">find every one before the night, and move it onto the view</text>
+
+        <text class="b8bN" x="30" y="338">The view is cheap to repoint only because legacy never stopped loading. Stop the loads and the way back is a reload.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - readers query one view, and cutover and rollback each move that one pointer</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Readers query a view, never a table<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>In the weeks before cutover, every reader of a moving table is repointed from the table to a reporting view that, for now, still reads legacy. Nothing changes for the reader: same columns, same numbers. On the night, <code>CREATE OR REPLACE VIEW reporting_orders AS ... FROM new_orders</code> moves all of them at once, and the same statement with <code>legacy_orders</code> moves them all back. The build-along does exactly this and counts after every swap.</p>
+        <p>Add a column that says which side the view is serving, such as <code>served_from</code>. It costs nothing, and it means anyone looking at a number at midnight can tell which warehouse produced it, which is the same discipline as printing both targets on a parity report.</p>
+        <p>The view only helps if it really is the one name. Before the rehearsal, list every reader from the query log, the way Builder session 1 did, and check that none still names a table directly: a scheduled extract, a notebook, a dashboard built before the view existed. Each one is a reader the swap leaves behind.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Three things that keep the swap reversible<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <ol>
+          <li><strong>Legacy keeps loading.</strong> The same loads run on both sides for the whole rollback window, so the warehouse you swap back to is current.</li>
+          <li><strong>Legacy is read-only for people.</strong> Loads write; nobody else does. A fix typed into legacy after the switch is a difference you did not prove.</li>
+          <li><strong>Nothing is written only to new.</strong> An analyst's new table or a corrected figure on the first morning is a write the way back loses. Log it or hold it until the window closes.</li>
+        </ol>
+        <p>The window stays open until the written condition from Leader session 5 is met: the first month-end close on new has passed a rung-4 parity run and every monthly signer has said "same" or "explained". It is a condition, not a length; no source gives a right length, and Serai's 4-week parallel run before cutover is constructed.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the pointer is not a view<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Some readers cannot sit behind a view: a BI tool with its own extract, a cache that refreshes on a schedule, a partner who receives a file. For each one, write its own switch and its own way back in section 7, and time both in the rehearsal. A cached dashboard is the awkward case: after a rollback it may keep showing new's numbers until its next refresh. Force the refresh as part of the rollback step, and check it. Builder session 9 comes back to caches that outlive a cutover.</p>
+        <p>In engines where a view is bound to its table at creation, or where permissions sit on the view, check that the repointed view keeps its grants. Rehearse the swap with a reader's account, not an administrator's.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Gradual, validated, and reversible by design.</strong> Google's SRE book says "Almost all updates to Google's services proceed gradually, according to a defined process", and "If the change doesn't pass the validation period, it's automatically rolled back." The SRE Workbook defines canarying as "a partial and time-limited deployment of a change in a service and its evaluation", with the instruction to "pause and roll back the deployment" if it looks bad. That is one organisation's practice for services, not a rule for warehouses. The mechanism transfers: a view swap per wave is a partial change, the window after it is the validation period, and the rollback is cheap because it was built before the change.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the rollback trigger and rehearsing the way back</span>
+      <h2>Make the rollback fire on the copy</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A rollback that has only ever been described is a hope. Rehearse it with the same stopwatch as the move, and rehearse the trigger too: plant a defect on the copy after the switch and confirm the check fires, the right person acts, and the numbers come back.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 312" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn trigger table with four lines from Serai's signed bar, each a band around zero gap and a dot for one bench drift. Orders, exact: the late rows fail all 21 months, outside the band, the trigger fires. Freight, within 0.05 percent: the per-line rounding sits inside the bar every month, it holds as an accepted difference. Average review, within 0.01: the missing score loaded as 0 has a largest gap of 0.0931, outside, fires. Edge check, all 595 near-midnight orders on the same day: the fixed offset moves 72 of 595, outside, fires.">
+        <defs>
+          <filter id="b8cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="87" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b8cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b8cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b8cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b8cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b8cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b8cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b8cH" x="30" y="26">THE TRIGGER IS THE SIGNED BAR, READ AFTER THE SWITCH</text>
+        <text class="b8cS" x="450" y="26">bench drifts, each planted alone · bands not to scale</text>
+
+        <text class="b8cA" x="30" y="56">TRIGGER LINE</text>
+        <text class="b8cA" x="380" y="56">GAP AGAINST THE BAR</text>
+        <text class="b8cA" x="640" y="56">WHAT THE BENCH SHOWS</text>
+
+        <g filter="url(#b8cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M250 84 L610 84"/>
+          <rect x="426" y="74" width="8" height="20" rx="2" fill="#9CC3E6"/>
+          <circle cx="572" cy="84" r="7" fill="#231C12"/>
+          <path d="M250 140 L610 140"/>
+          <rect x="370" y="130" width="120" height="20" rx="4" transform="rotate(0.5 430 140)" fill="#9CC3E6"/>
+          <circle cx="446" cy="140" r="7" fill="#FFFFFF"/>
+          <path d="M250 196 L610 196"/>
+          <rect x="370" y="186" width="120" height="20" rx="4" transform="rotate(-0.5 430 196)" fill="#9CC3E6"/>
+          <circle cx="556" cy="196" r="7" fill="#231C12"/>
+          <path d="M250 252 L610 252"/>
+          <rect x="426" y="242" width="8" height="20" rx="2" fill="#9CC3E6"/>
+          <circle cx="532" cy="252" r="7" fill="#231C12"/>
+        </g>
+
+        <text class="b8cL" x="30" y="81">orders</text>
+        <text class="b8cS" x="30" y="97">exact, per month</text>
+        <text class="b8cL" x="30" y="137">freight</text>
+        <text class="b8cS" x="30" y="153">within 0.05%</text>
+        <text class="b8cL" x="30" y="193">average review</text>
+        <text class="b8cS" x="30" y="209">within 0.01</text>
+        <text class="b8cL" x="30" y="249">edge check</text>
+        <text class="b8cS" x="30" y="265">all 595 on the same day</text>
+
+        <text class="b8cS" x="640" y="80">late rows: fails all 21 months</text>
+        <text class="b8cB" x="640" y="96">fires: roll back</text>
+        <text class="b8cS" x="640" y="136">per-line rounding: inside the bar</text>
+        <text class="b8cA" x="640" y="152">holds: accepted difference</text>
+        <text class="b8cS" x="640" y="192">missing score as 0: gap 0.0931</text>
+        <text class="b8cB" x="640" y="208">fires: roll back</text>
+        <text class="b8cS" x="640" y="248">fixed offset: 72 of 595 moved</text>
+        <text class="b8cB" x="640" y="264">fires: roll back</text>
+
+        <text class="b8cN" x="30" y="296">Without the edge line the fixed offset passes: 0 months fail at the monthly grain. Rung 4 is what makes it a trigger.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - each trigger line is a band from the signed bar, and a drift outside any band moves the readers back</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The trigger list, line by line<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Serai's trigger is the signed bar from Builder session 5 and Leader session 4, read again after every parity run on new once readers have moved, plus the edge check: orders exact; item value and freight within 0.05%; items per order within 0.005; reviewed orders exact; average review within 0.01; every one of the 595 near-midnight orders on the same day in both. Any line outside its band fires. One more line covers what a check cannot see: a reader reports a difference and nobody can explain it before the next scheduled run. All of it is constructed policy built from Serai's constructed bar, and it matches the trigger in Leader session 5 word for word, because there must be one trigger, not one per team.</p>
+        <p>The edge line earns its place. On the bench, the fixed-offset drift moves 72 orders to the day before and none crosses a month end, so the monthly bar shows 0 months failing: rung 3 misses it. Rung 4 adds the edge check and finds 72 of 595 near-midnight orders on another day. A trigger written from rung 3 would let that drift ride through cutover.</p>
+        <p>Print both targets on every trigger run. With both sides pointed at the new warehouse, the bench catches 0 of 5 defects and every check is green. A trigger check that compares new with new can never fire, so the first line of its output says what each side read. The build-along's trigger query does this in its <code>compared</code> column.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Rehearse the way back with the same stopwatch<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>On the copy, after the switch: let the first morning's loads run on both sides, plant a defect on new (tonight, a late row appended twice), run the trigger check, watch it say "ROLL BACK", repoint the view to legacy, and count. Time the repoint and the count the same way as the forward steps, and write both into the rehearsal log. Leader session 5's gate 4 is met by exactly this record: readers moved to new and back on the copy, numbers checked after each move.</p>
+        <p>Then rehearse the awkward variants. Roll back from the on-call engineer's machine with their credentials. Roll back after a second load has run, so you know legacy is really current. Force the refresh of any cached reader and check its number. Each variant is a way the real rollback could fail at midnight that costs a few minutes to find on a Tuesday afternoon.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who pulls it, and what the builder does next<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The migration lead, one named person, pulls the trigger without asking first and tells the signers after; that is Leader session 5's rule and section 7 states it the same way. The builder's job is to make pulling it one statement the migration lead can run, or watch run, and to have the trigger query's output in front of them when they do.</p>
+        <p>After a rollback, readers are on numbers everyone trusts, so the cause is found calmly: which drift, which load, which step. The fix goes through the same suite, the nightly diff from Builder session 7 runs clean again, and the move waits for a new go/no-go. A rollback is not a failure of the migration; an unrehearsed one would be.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Integrity first, decided in the open.</strong> In GitHub's incident of 21 October 2018, connectivity was "restored in 43 seconds", yet one data centre's database "contained writes that were not present in the other data center". GitHub chose to "prioritize data integrity over site usability and time to recovery", and ran degraded for "24 hours and 11 minutes". At TSB, the Bank of England announced fines of "a total of £48,650,000" in 2022, finding the bank "failed to organise and control the IT migration programme adequately." Neither case sets your trigger. Both show the trade between the numbers and the clock gets made by someone; a rehearsed trigger makes it before the night, and keeps the way back a switch because no side took writes the other lacks.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Swap forward, fire the trigger, swap back</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Constructed Serai Commerce example: ten orders on each side, a rehearsal log with the constructed timings from Part 1, and one reporting view. Every output below is what DuckDB 1.5.3 printed through its Python module on this exact data.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 244" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four hand-drawn snapshots of the build-along. One: the view on legacy, 10 orders, item value 923.98. Two: the cutover swap, served from new_orders, 10 orders, 923.98. Three: the morning load lands order 105 twice on new; the trigger check finds January 2017 with 5 orders on legacy and 6 on new and says roll back. Four: the rollback swap, served from legacy_orders, 11 orders, 968.98, because legacy kept loading.">
+        <defs>
+          <filter id="b8dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="89" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b8dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b8dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b8dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b8dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b8dR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b8dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b8dH" x="30" y="26">FOUR COUNTS, ONE VIEW, TWO SWAPS</text>
+        <text class="b8dS" x="300" y="26">Constructed Serai Commerce example · outputs as DuckDB printed them</text>
+
+        <g filter="url(#b8dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="180" height="140" rx="10" transform="rotate(-0.7 120 118)" fill="#F8F2E6"/>
+          <rect x="240" y="48" width="180" height="140" rx="10" transform="rotate(0.6 330 118)" fill="#FFFFFF"/>
+          <rect x="450" y="48" width="190" height="140" rx="10" transform="rotate(-0.5 545 118)" fill="#FEF2F2"/>
+          <rect x="670" y="48" width="180" height="140" rx="10" transform="rotate(0.7 760 118)" fill="#9CC3E6"/>
+          <path d="M212 118 L236 118" marker-end="url(#b8dAr)"/>
+          <path d="M422 118 L446 118" marker-end="url(#b8dAr)"/>
+          <path d="M642 118 L666 118" marker-end="url(#b8dAr)"/>
+        </g>
+
+        <text class="b8dH" x="44" y="72">1 · VIEW ON LEGACY</text>
+        <text class="b8dS" x="44" y="94" style="fill:#231C12">served from legacy_orders</text>
+        <text class="b8dV" x="44" y="130">10 · 923.98</text>
+        <text class="b8dS" x="44" y="156">orders · item value</text>
+
+        <text class="b8dH" x="254" y="72">2 · CUTOVER SWAP</text>
+        <text class="b8dS" x="254" y="94">served from new_orders</text>
+        <text class="b8dV" x="254" y="130">10 · 923.98</text>
+        <text class="b8dS" x="254" y="156">same numbers, new side</text>
+
+        <text class="b8dH" x="464" y="72">3 · MORNING LOAD</text>
+        <text class="b8dS" x="464" y="94">order 105 lands twice on new</text>
+        <text class="b8dV" x="464" y="130">5 vs 6</text>
+        <text class="b8dR" x="464" y="156">2017-01: ROLL BACK</text>
+
+        <text class="b8dH" x="684" y="72">4 · ROLLBACK SWAP</text>
+        <text class="b8dS" x="684" y="94" style="fill:#231C12">served from legacy_orders</text>
+        <text class="b8dV" x="684" y="130">11 · 968.98</text>
+        <text class="b8dS" x="684" y="156" style="fill:#231C12">legacy kept loading</text>
+
+        <text class="b8dN" x="30" y="222">Legacy shows 11 orders after the rollback, not 10: it took the morning's real order too. That is what current means.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same view counted after each swap, with the trigger firing in between</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Set up both sides and the rehearsal log.</strong> Ten constructed orders on legacy, an identical copy on new (the state after the reload and the parallel run), and the six cutover steps with the constructed planned, started and finished times from Part 1.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE legacy_orders AS
+SELECT order_id, CAST(order_day AS DATE) AS order_day,
+       CAST(item_value AS DECIMAL(12,2)) AS item_value
+FROM (VALUES
+ (101,'2017-01-03',129.90),(102,'2017-01-03',54.50),(103,'2017-01-09',89.00),
+ (104,'2017-01-17',210.40),(105,'2017-01-28',35.99),(106,'2017-02-02',149.00),
+ (107,'2017-02-06',72.30),(108,'2017-02-14',18.90),(109,'2017-02-21',99.99),
+ (110,'2017-02-27',64.00)
+) o(order_id, order_day, item_value);
+
+CREATE OR REPLACE TABLE new_orders AS SELECT * FROM legacy_orders;
+
+CREATE OR REPLACE TABLE rehearsal_log AS
+SELECT step_no, step, CAST(planned AS TIME) AS planned,
+       CAST(started AS TIME) AS started, CAST(finished AS TIME) AS finished
+FROM (VALUES
+ (1,'freeze changes on legacy','18:00','18:00','18:10'),
+ (2,'last delta load',         '18:30','18:30','19:35'),
+ (3,'final parity run, rung 4','20:00','20:00','21:45'),
+ (4,'go/no-go call',           '22:00','22:00','22:10'),
+ (5,'switch readers',          '22:15','22:15','22:16'),
+ (6,'announce',                '22:45','22:45','22:50')
+) r(step_no, step, planned, started, finished);</div>
+      </div>
+      <div class="step">
+        <p><strong>Read the rehearsal.</strong> How long each step took, and how much room it left before the next step's planned start. <code>lead()</code> looks one row ahead; the last step has no next slot, so its slack is NULL.</p>
+        <div class="prompt-box good"><span class="label">★ Step time and slack</span>SELECT step_no, step,
+       date_diff('minute', started, finished) AS took_min,
+       date_diff('minute', finished,
+                 lead(planned) OVER (ORDER BY step_no)) AS slack_min
+FROM rehearsal_log
+ORDER BY step_no;
+-- 1 freeze changes on legacy  10 | 20
+-- 2 last delta load           65 | 25
+-- 3 final parity run, rung 4 105 | 15
+-- 4 go/no-go call             10 |  5
+-- 5 switch readers             1 | 29
+-- 6 announce                   5 | NULL</div>
+      </div>
+      <div class="step">
+        <p><strong>Put readers on the view, still reading legacy.</strong> This happens weeks before the night. The <code>served_from</code> column says which side answered.</p>
+        <div class="prompt-box good"><span class="label">★ The reporting view, on legacy</span>CREATE OR REPLACE VIEW reporting_orders AS
+SELECT 'legacy_orders' AS served_from, * FROM legacy_orders;
+
+SELECT served_from, count(*) AS orders, sum(item_value) AS item_value
+FROM reporting_orders GROUP BY served_from;
+-- legacy_orders | 10 | 923.98</div>
+      </div>
+      <div class="step">
+        <p><strong>Cutover: one statement.</strong> Every reader of the view now reads new. Same numbers, because new was proved level before the switch.</p>
+        <div class="prompt-box good"><span class="label">★ Swap forward</span>CREATE OR REPLACE VIEW reporting_orders AS
+SELECT 'new_orders' AS served_from, * FROM new_orders;
+
+SELECT served_from, count(*) AS orders, sum(item_value) AS item_value
+FROM reporting_orders GROUP BY served_from;
+-- new_orders | 10 | 923.98</div>
+      </div>
+      <div class="step">
+        <p><strong>The first morning's loads, with a planted defect.</strong> Both sides receive order 111. New also receives order 105 again from the late feed, appended rather than merged: the same mechanism that put 367 duplicated keys on the bench. Readers now see 12 orders.</p>
+        <div class="prompt-box good"><span class="label">★ Morning load (both sides keep loading)</span>INSERT INTO legacy_orders VALUES (111, DATE '2017-02-28', 45.00);
+INSERT INTO new_orders    VALUES (111, DATE '2017-02-28', 45.00);
+INSERT INTO new_orders    VALUES (105, DATE '2017-01-28', 35.99);
+
+SELECT served_from, count(*) AS orders, sum(item_value) AS item_value
+FROM reporting_orders GROUP BY served_from;
+-- new_orders | 12 | 1004.97</div>
+      </div>
+      <div class="step">
+        <p><strong>The trigger check.</strong> Two lines of the signed bar at the monthly grain: orders exact, item value within 0.05%. The first column prints both targets, so this check cannot quietly compare new with new. January fails on both lines.</p>
+        <div class="prompt-box good"><span class="label">★ Trigger: the signed bar after the switch</span>WITH l AS (
+  SELECT strftime(order_day, '%Y-%m') AS month, count(*) AS orders,
+         sum(item_value) AS item_value
+  FROM legacy_orders GROUP BY month
+), n AS (
+  SELECT strftime(order_day, '%Y-%m') AS month, count(*) AS orders,
+         sum(item_value) AS item_value
+  FROM new_orders GROUP BY month
+)
+SELECT 'legacy_orders vs new_orders' AS compared,
+       coalesce(l.month, n.month) AS month,
+       l.orders AS legacy_n, n.orders AS new_n,
+       round(100 * abs(n.item_value - l.item_value) / l.item_value, 3) AS value_gap_pct,
+       CASE WHEN l.orders IS DISTINCT FROM n.orders
+              OR abs(n.item_value - l.item_value) &gt; 0.0005 * l.item_value
+            THEN 'ROLL BACK' ELSE 'within bar' END AS verdict
+FROM l FULL OUTER JOIN n ON l.month = n.month
+ORDER BY month;
+-- legacy_orders vs new_orders | 2017-01 | 5 | 6 | 6.924 | ROLL BACK
+-- legacy_orders vs new_orders | 2017-02 | 6 | 6 | 0.0   | within bar</div>
+      </div>
+      <div class="step">
+        <p><strong>Rollback: the same statement, pointed back.</strong> Readers see legacy again, and legacy is current: 11 orders, including the morning's order 111, and order 105 once.</p>
+        <div class="prompt-box good"><span class="label">★ Swap back</span>CREATE OR REPLACE VIEW reporting_orders AS
+SELECT 'legacy_orders' AS served_from, * FROM legacy_orders;
+
+SELECT served_from, count(*) AS orders, sum(item_value) AS item_value
+FROM reporting_orders GROUP BY served_from;
+-- legacy_orders | 11 | 968.98</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">A rollback that is really a second migration</span>
+-- rollback: if numbers look wrong after cutover, stop the loads into legacy,
+-- then reload legacy from new and repoint each dashboard by hand.
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Note what the IS DISTINCT FROM is for.</strong> If a month exists on only one side, the FULL OUTER JOIN gives NULL for the other side's count, and <code>l.orders &lt;&gt; n.orders</code> would be NULL, which a CASE treats as not true: the month would read "within bar". <code>IS DISTINCT FROM</code> treats NULL as a comparable value, so a missing month fires the trigger. Builder session 3 showed the same three-valued logic breaking a translation.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 9</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>List every reader of one table you plan to move, from your query log, and mark which already query a view and which name the table directly. The second list is your pre-cutover work.</li>
+      <li>Write your cutover day as a <code>rehearsal_log</code> with planned times, then fill in started and finished from a dry run of even one step on a copy, and run the slack query.</li>
+      <li>Add to tonight's trigger query one more line of Serai's bar, reviewed orders exact, with a <code>reviewed</code> column on both tables, and plant a row where the score is missing on one side.</li>
+      <li>Rehearse tonight's rollback again, but stop the morning load into legacy first. Write down what the swap back shows, and why that number is the argument for keeping legacy loaded.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 8 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · What makes Serai's rollback a single statement rather than a second migration?</p>
+      <button class="qopt" type="button">A · DuckDB can undo any CREATE OR REPLACE automatically</button>
+      <button class="qopt" type="button">B · Readers query one view, and legacy kept receiving the same loads, so repointing the view lands on a current warehouse</button>
+      <button class="qopt" type="button">C · The new warehouse keeps a backup of legacy</button>
+      <button class="qopt" type="button">D · The rollback window is exactly four weeks</button>
+      <p class="qwhy">The view makes the switch one pointer; the loads make the target of that pointer current. Without either, the way back is editing every reader or reloading legacy. D states a length no source gives: Serai's 4-week parallel run is constructed, and the window ends on a written condition.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · After the switch, the trigger query prints "2017-01 · 5 · 6 · ROLL BACK". What happens next?</p>
+      <button class="qopt" type="button">A · The team investigates on new, and rolls back only if the cause is serious</button>
+      <button class="qopt" type="button">B · The steering group meets in the morning to decide</button>
+      <button class="qopt" type="button">C · Delete the duplicate row on new and carry on</button>
+      <button class="qopt" type="button">D · The migration lead repoints the view to legacy without asking first; the cause is found afterwards</button>
+      <p class="qwhy">The decision was made when the trigger was written. A and B reopen it on the night; C is a write on one side only, a fix nobody has proved, and it leaves the late feed that caused it still running.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · The rehearsal shows the final parity run took 105 minutes of a 120-minute slot. A later rehearsal takes 140. What changes in the plan?</p>
+      <button class="qopt" type="button">A · The go/no-go call moves later, so it is always made after the parity report is complete</button>
+      <button class="qopt" type="button">B · The call stays at 22:00 and reads whatever the report shows so far</button>
+      <button class="qopt" type="button">C · The parity run drops the edge check to save time</button>
+      <button class="qopt" type="button">D · Nothing: rehearsal timings are only estimates</button>
+      <p class="qwhy">Gate 2 reads a complete rung-4 report. B makes the call without it; C turns rung 4 into rung 3, which misses the fixed-offset drift (0 months fail at the monthly grain); D throws away the only measured hours you have.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Timed rehearsal, view swap, trigger query, rollback</span><span class="note">Taught as a method; every output run in DuckDB 1.5.3 on the constructed tables above</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Gradual rollout, validation and automatic rollback</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", and SRE Workbook, "Canarying Releases", read at source; one organisation's practice, not a rule</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">GitHub's 21 October 2018 incident and TSB's 2018 migration</span><span class="note">GitHub's post-incident analysis, the Bank of England release (2022) and TSB's release on its independent review, read at source; the review's own text is not quoted</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Parity counts behind the trigger lines</span><span class="note">Late rows, review score as 0, fixed offset, rung 3 vs rung 4 and the break, measured on the bench in Builder session 10</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">How long the rollback window or parallel run should last</span><span class="note">No source gives a length; Serai's end condition and 4-week parallel run are constructed</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's rehearsal timings, roles and trigger</span><span class="note">Constructed for the case, the same as Leader session 5; writing the runbook itself belongs to the Runbooks and Postmortems course</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 8 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Rehearse the whole day</b><span>End to end, on a copy, same volumes, same people, same runbook.</span></div>
+      <div class="cheat-item"><b>Time it into a table</b><span>planned, started, finished; slack = next planned minus finished.</span></div>
+      <div class="cheat-item"><b>Readers query a view</b><span>Cutover and rollback are the same CREATE OR REPLACE VIEW, pointed opposite ways.</span></div>
+      <div class="cheat-item"><b>Keep the way back current</b><span>Legacy keeps loading, read-only for people; nothing written only to new.</span></div>
+      <div class="cheat-item"><b>The trigger is the bar</b><span>Signed bar plus the edge check, both targets printed, IS DISTINCT FROM for missing months.</span></div>
+      <div class="cheat-item"><b>Make it fire on the copy</b><span>Plant a defect after the switch, watch "ROLL BACK", swap back, count, time it.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>Readers are on new and the trigger has stayed quiet. Session 9 is the week after: the fixed-offset drift that moves 72 orders across midnight and never shows in a monthly number, the late feed, the cache still serving legacy, and the watch list that says when the watching ends.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 8 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b7-parallel-run.html">← Prev: Parallel run</a> &nbsp;·&nbsp; <a href="b9-drift-that-hides.html">Next: The week after: drift that hides →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

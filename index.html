@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Sixteen sessions on moving a data warehouse without breaking the numbers: inventory, scope, SQL translation, parity tests, historical reload, parallel run, cutover with a rehearsed rollback and the week after, on 8,614 real Olist orders under a constructed company, with a parity bench computed in your browser. Free, by Phoebe Fu.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Learn Ship It: Data Platform Migration with Phoebe">
+<meta property="og:description" content="Move a warehouse without breaking the numbers. Inventory, parity on real orders, a rehearsed rollback and the drift that shows up the week after.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Learn Ship It: Data Platform Migration with Phoebe">
+<meta name="twitter:description" content="Row counts catch 1 of 5 planted defects. The full parity suite catches 5 with no false alarm.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Learn Ship It: Data Platform Migration with Phoebe</title>
+<link rel="stylesheet" href="assets/style.css?v=1">
+<style>
+
+  .stats-row { display: flex; gap: 2.4rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .stat b { display: block; font-size: 2.1rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: .72rem; opacity: 1; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
+
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .course-card {
+    border: 1px solid var(--hairline);
+    border-top: 4px solid var(--diff, var(--indigo));
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    text-decoration: none;
+    color: var(--ink);
+    background: #fff;
+    transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+    position: relative;
+  }
+  .course-card:hover { border-color: var(--indigo-soft); border-top-color: var(--diff, var(--indigo)); box-shadow: 0 8px 28px rgba(var(--shadow-rgb),.16); transform: translateY(-3px); }
+  .course-card .cicon { font-size: 1.7rem; line-height: 1; }
+  .course-card .cnum { font-size: .72rem; font-weight: 700; color: var(--indigo-deep); text-transform: uppercase; letter-spacing: .1em; }
+  .course-card h3 { font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+  .course-card p { font-size: .85rem; color: var(--muted); flex: 1; }
+  .course-card .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+  .diff-legend { display: flex; gap: 1rem; margin-top: 1.6rem; font-size: .74rem; color: var(--muted); font-weight: 600; flex-wrap: wrap; }
+  .diff-legend i { display: inline-block; width: .85rem; height: .35rem; border-radius: 999px; margin-right: .35rem; vertical-align: middle; }
+
+  .paths { margin-top: 2.6rem; }
+  .paths h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .3rem; }
+  .paths .plede { color: var(--muted); font-size: .92rem; margin-bottom: .8rem; }
+  .path { display: flex; gap: .55rem; align-items: center; padding: .75rem 0; border-bottom: .5px solid var(--hairline); flex-wrap: wrap; }
+  .path:last-child { border-bottom: none; }
+  .path b { min-width: 15.5rem; font-size: .9rem; }
+  .path .pstep { background: var(--indigo-50); color: var(--indigo-deep); border-radius: 999px; padding: .16rem .68rem; font-weight: 700; font-size: .8rem; text-decoration: none; transition: all .12s ease; }
+  .path .pstep:hover { background: var(--indigo-deep); color: #fff; }
+  .path .parr { color: var(--muted); font-weight: 700; }
+
+  .mm-section { margin-top: 1.6rem; }
+  .mm-section h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .2rem; }
+  .mm-section .mm-lede { color: var(--muted); font-size: .92rem; margin-bottom: .4rem; }
+  .mm-wrap { border: 1px solid var(--hairline); border-radius: var(--radius); background: linear-gradient(180deg, #fff, var(--indigo-50)); padding: .6rem; overflow-x: auto; }
+  .mm-svg { width: 100%; height: auto; display: block; max-width: 60rem; margin: 0 auto; min-width: 34rem; }
+  .mm-link { cursor: pointer; text-decoration: none; }
+  .mm-node rect { transition: opacity .15s ease, filter .15s ease; }
+  .mm-node text { pointer-events: none; }
+  .mm-link:hover .mm-node rect { filter: brightness(1.06); }
+  .mm-edge { transition: opacity .15s ease; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn with Phoebe · Let's Ship It End to End</div>
+    <h1>Ship It: <span class="accent">Data Platform Migration</span></h1>
+    <p class="sub">Move a warehouse without breaking the numbers. Serai Commerce, a constructed Southeast Asian commerce enabler, is moving its warehouse from a legacy stack to a new one; underneath are the same 8,614 real orders from the public Olist dataset its sibling courses use. Six leader sessions decide what to move, in what order, which differences to accept, when to cut over and when to switch the old system off. Ten builder sessions do the move: inventory from the query log, the dependency graph, SQL translation, row, key and aggregate parity, historical reload, a parallel run, a rehearsed rollback, the drift that hides the week after, and a parity bench computed in your browser. On cutover day, can you prove every number the business reads is the same, or say exactly why it changed?</p>
+    <div class="stats-row">
+      <div class="stat"><b data-count="16">16</b><span>sessions, two tracks</span></div>
+      <div class="stat"><b data-count="8614">8,614</b><span>real orders</span></div>
+      <div class="stat"><b data-count="7">7</b><span>planted drifts</span></div>
+      <div class="stat"><b data-count="5">5</b><span>rungs of checks</span></div>
+      <div class="stat"><b data-count="45">45</b><span>min per session</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Leader track 🧭 <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· six sessions, no code</span></h2>
+      <p class="plede">For heads of data and platform owners asked to approve or run a warehouse move. Decide the scope, the order, the bar the numbers must clear, the cutover call and the day the old system goes dark.</p>
+    </div>
+
+    <div class="course-grid">
+      <a class="course-card" href="courses/a1-why-migrations-break-the-numbers.html" style="--diff:#34D399">
+        <span class="cicon">🧯</span>
+        <span class="cnum">Leader session 1 · start here</span>
+        <h3>Why migrations break the numbers</h3>
+        <p>Seven ways a warehouse move changes a number without an error message, planted on 8,614 real orders, and what done means on cutover day.</p>
+        <span class="meta"><span class="pill amber">▶ Start here</span></span>
+      </a>
+      <a class="course-card" href="courses/a2-inventory-before-plan.html" style="--diff:#FBBF24">
+        <span class="cicon">📋</span>
+        <span class="cnum">Leader session 2</span>
+        <h3>Inventory before plan</h3>
+        <p>What you own, who reads it and what nobody reads. In Serai&#x27;s constructed estate, 83 of 214 tables went unread for 90 days.</p>
+      </a>
+      <a class="course-card" href="courses/a3-lift-rebuild-or-retire.html" style="--diff:#FBBF24">
+        <span class="cicon">🧭</span>
+        <span class="cnum">Leader session 3</span>
+        <h3>Sequence and scope: lift, rebuild or retire</h3>
+        <p>One decision per asset, and the order of moves. Big bang against a phased, parallel move, taught as the disagreement it is.</p>
+      </a>
+      <a class="course-card" href="courses/a4-the-parity-bar.html" style="--diff:#FB923C">
+        <span class="cicon">⚖️</span>
+        <span class="cnum">Leader session 4</span>
+        <h3>The parity bar</h3>
+        <p>Which differences you accept, signed before anyone looks. Exact daily checks raise 2 false alarms; a 3% bar on every metric lets a real defect through.</p>
+      </a>
+      <a class="course-card" href="courses/a5-cutover-day-and-the-rollback.html" style="--diff:#FB923C">
+        <span class="cicon">🚦</span>
+        <span class="cnum">Leader session 5</span>
+        <h3>Cutover day and the rollback</h3>
+        <p>Go/no-go, the freeze, and rollback criteria written while everyone is calm, with two real incidents read closely.</p>
+      </a>
+      <a class="course-card" href="courses/a6-the-week-after-and-switching-off.html" style="--diff:#F87171">
+        <span class="cicon">🔌</span>
+        <span class="cnum">Leader session 6</span>
+        <h3>The week after and switching off</h3>
+        <p>The drift that hides inside a month, the decommission log, and why the cost case only closes when the old system is off.</p>
+        <span class="meta"><span class="pill amber">the decision</span></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Builder track 🔧 <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· ten sessions, SQL in DuckDB and the browser</span></h2>
+      <p class="plede">The move itself, in the order a careful team does it: find out what is used, order the moves, translate, prove parity three ways, reload, run in parallel, rehearse, cut over and watch.</p>
+    </div>
+
+    <div class="course-grid">
+      <a class="course-card" href="courses/b1-inventory-from-the-query-log.html" style="--diff:#34D399">
+        <span class="cicon">🔎</span>
+        <span class="cnum">Builder session 1 · start here</span>
+        <h3>Inventory from the query log</h3>
+        <p>Usage and lineage from 90 days of a constructed query log in DuckDB: which tables are read, by whom, and which are dead.</p>
+        <span class="meta"><span class="pill amber">▶ Start here</span></span>
+      </a>
+      <a class="course-card" href="courses/b2-the-dependency-graph.html" style="--diff:#FBBF24">
+        <span class="cicon">🕸️</span>
+        <span class="cnum">Builder session 2</span>
+        <h3>The dependency graph and the order of moves</h3>
+        <p>Turn the inventory into a graph and the graph into an order: leaves first, shared sources last, cycles named.</p>
+      </a>
+      <a class="course-card" href="courses/b3-translate-the-sql.html" style="--diff:#FBBF24">
+        <span class="cicon">🔤</span>
+        <span class="cnum">Builder session 3</span>
+        <h3>Translate the SQL</h3>
+        <p>Dialect gaps that compile and still change the answer: time zones, NULL, integer division and collation, each run in DuckDB.</p>
+      </a>
+      <a class="course-card" href="courses/b4-row-and-key-parity.html" style="--diff:#FBBF24">
+        <span class="cicon">🔑</span>
+        <span class="cnum">Builder session 4</span>
+        <h3>Row and key parity</h3>
+        <p>Counts catch 1 of 5 planted defects. Keys add the 1,767 orders whose customer key no longer resolves.</p>
+      </a>
+      <a class="course-card" href="courses/b5-aggregate-parity.html" style="--diff:#FB923C">
+        <span class="cicon">📊</span>
+        <span class="cnum">Builder session 5</span>
+        <h3>Aggregate parity at the grain people read</h3>
+        <p>Six metrics by day and by month, with tolerances by metric, and why exact equality on floating point is an alarm machine.</p>
+      </a>
+      <a class="course-card" href="courses/b6-historical-reload.html" style="--diff:#FB923C">
+        <span class="cicon">📦</span>
+        <span class="cnum">Builder session 6</span>
+        <h3>Historical reload</h3>
+        <p>Reloading history as one cutover step, and the 367 late rows that came back twice.</p>
+      </a>
+      <a class="course-card" href="courses/b7-parallel-run.html" style="--diff:#FB923C">
+        <span class="cicon">🛤️</span>
+        <span class="cnum">Builder session 7</span>
+        <h3>Parallel run</h3>
+        <p>Two systems, one truth: the diff dashboard that runs every night until the numbers stop moving.</p>
+      </a>
+      <a class="course-card" href="courses/b8-cutover-rehearsal-and-rollback.html" style="--diff:#F87171">
+        <span class="cicon">🎬</span>
+        <span class="cnum">Builder session 8</span>
+        <h3>Cutover rehearsal and rollback</h3>
+        <p>Rehearse the cutover end to end, time it, and test the rollback as hard as the move.</p>
+      </a>
+      <a class="course-card" href="courses/b9-drift-that-hides.html" style="--diff:#F87171">
+        <span class="cicon">🕳️</span>
+        <span class="cnum">Builder session 9</span>
+        <h3>The week after: drift that hides</h3>
+        <p>72 orders move a day in Brazilian summer time: 74 daily numbers change and no monthly number does.</p>
+      </a>
+      <a class="course-card" href="courses/b10-the-parity-bench.html" style="--diff:#F87171">
+        <span class="cicon">🎛️</span>
+        <span class="cnum">Builder session 10</span>
+        <h3>The parity bench</h3>
+        <p>Seven planted drifts on 8,614 real orders, five rungs of checks, a loose bar and a break button. Capstone: Serai&#x27;s signed runbook.</p>
+        <span class="meta"><span class="pill amber">the capstone</span></span>
+      </a>
+    </div>
+
+    <div class="diff-legend">
+      <span><i style="background:#34D399"></i>start here</span>
+      <span><i style="background:#FBBF24"></i>foundations</span>
+      <span><i style="background:#FB923C"></i>hands-on</span>
+      <span><i style="background:#F87171"></i>capstone</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths">
+      <h2>Choose your path 🗺️</h2>
+      <p class="plede">Three doors into the same move. Each starts at the part its reader is answerable for.</p>
+      <div class="path"><b>💼 I approve the move</b>
+        <a class="pstep" href="courses/a1-why-migrations-break-the-numbers.html">L1</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/a3-lift-rebuild-or-retire.html">L3</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/a4-the-parity-bar.html">L4</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/a5-cutover-day-and-the-rollback.html">L5</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/a6-the-week-after-and-switching-off.html">L6</a>
+        <span style="font-size:.82rem;color:var(--muted)">failure modes, scope, the bar, cutover, switching off</span>
+      </div>
+      <div class="path"><b>🗂️ I map the estate</b>
+        <a class="pstep" href="courses/b1-inventory-from-the-query-log.html">B1</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b2-the-dependency-graph.html">B2</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/a2-inventory-before-plan.html">L2</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b3-translate-the-sql.html">B3</a>
+        <span style="font-size:.82rem;color:var(--muted)">query log, graph, inventory, translation</span>
+      </div>
+      <div class="path"><b>🧪 I prove the numbers</b>
+        <a class="pstep" href="courses/b4-row-and-key-parity.html">B4</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b5-aggregate-parity.html">B5</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b7-parallel-run.html">B7</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b9-drift-that-hides.html">B9</a>
+        <span class="parr">→</span>
+        <a class="pstep" href="courses/b10-the-parity-bench.html">B10</a>
+        <span style="font-size:.82rem;color:var(--muted)">keys, aggregates, parallel run, hidden drift, then the bench</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Your passport 🎫</h2>
+      <p class="plede">Clear all three quiz questions in a session and it gets stamped. Sixteen stamps across both tracks, and they live in this browser only.</p>
+    </div>
+    <div class="pp-strip"></div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>What is real here 🧾</h2>
+      <p class="plede">A course about trustworthy numbers should be exact about which of its own are measured.</p>
+    </div>
+    <table class="clean">
+      <tr><th>Claim</th><th>Status</th></tr>
+      <tr><td>Serai Commerce, its two warehouses, its inventory counts and its parity bar</td><td>Constructed, continued from the Social Commerce courses and labelled wherever it appears. No real company's data is shown</td></tr>
+      <tr><td>The orders, items, prices, freight, purchase times and review scores</td><td>Real: 8,614 delivered orders from the Brazilian E-Commerce Public Dataset by Olist (CC BY-NC-SA 4.0), derived and masked; the same sample the sibling Ship It courses use. No review text is used</td></tr>
+      <tr><td>The seven drifts in the new warehouse</td><td>Constructed rules applied to real rows. The orders each one touches are real, for example the 72 placed just after midnight in Brazilian summer time</td></tr>
+      <tr><td>Every count, key diff, aggregate and verdict on the bench</td><td>Computed live in your browser on those rows. An independent Python reference matches all 1,740 numbers on the ladder</td></tr>
+      <tr><td>SQL behaviour: integer division, NULL, time zones, collation</td><td>Read at source in the PostgreSQL, DuckDB, Oracle and MySQL documentation, and run in DuckDB in the builder track</td></tr>
+      <tr><td>Two real incidents: a bank's 2018 platform migration and a 2018 database failover</td><td>Read at source in the regulator's notice, the bank's own release and the company's post-incident analysis. Findings of the bank's independent review are marked reported</td></tr>
+      <tr><td>Big bang against a phased move, and how long a parallel run should last</td><td>Contested, and taught as a disagreement. No source gives a number; Serai's four-week parallel run is constructed</td></tr>
+    </table>
+  </section>
+
+  <section class="section mm-section">
+    <h2>The knowledge map 🧠</h2>
+    <p class="mm-lede">Both tracks at a glance - hover a session to spotlight its concepts, click any node to jump in.</p>
+    <div class="mm-wrap"><div id="mindmap"></div></div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span>Pairs with <a href="https://phoebefu6.github.io/learn-ship-social-commerce-with-phoebe/">Ship It: Social Commerce ↗</a> and <a href="https://phoebefu6.github.io/learn-dataops-with-phoebe/">DataOps ↗</a></span>
+  </footer>
+
+</main>
+
+<script>
+window.MINDMAP_DATA = {
+  "title": "Data Platform\nMigration",
+  "centerColor": "#46330F",
+  "sessions": [
+    {
+      "label": "Why numbers break",
+      "href": "courses/a1-why-migrations-break-the-numbers.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Seven quiet drifts",
+          "href": "courses/a1-why-migrations-break-the-numbers.html"
+        },
+        {
+          "label": "Done means explained",
+          "href": "courses/a1-why-migrations-break-the-numbers.html"
+        },
+        {
+          "label": "Five rungs of checks",
+          "href": "courses/a1-why-migrations-break-the-numbers.html"
+        }
+      ]
+    },
+    {
+      "label": "Inventory",
+      "href": "courses/a2-inventory-before-plan.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "What you own",
+          "href": "courses/a2-inventory-before-plan.html"
+        },
+        {
+          "label": "Who reads it",
+          "href": "courses/a2-inventory-before-plan.html"
+        },
+        {
+          "label": "Retire first",
+          "href": "courses/a2-inventory-before-plan.html"
+        }
+      ]
+    },
+    {
+      "label": "Lift or retire",
+      "href": "courses/a3-lift-rebuild-or-retire.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "Lift, rebuild, retire",
+          "href": "courses/a3-lift-rebuild-or-retire.html"
+        },
+        {
+          "label": "Big bang or phased",
+          "href": "courses/a3-lift-rebuild-or-retire.html"
+        },
+        {
+          "label": "The order of moves",
+          "href": "courses/a3-lift-rebuild-or-retire.html"
+        }
+      ]
+    },
+    {
+      "label": "Parity bar",
+      "href": "courses/a4-the-parity-bar.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Accepted differences",
+          "href": "courses/a4-the-parity-bar.html"
+        },
+        {
+          "label": "Tolerance by metric",
+          "href": "courses/a4-the-parity-bar.html"
+        },
+        {
+          "label": "Too loose a bar",
+          "href": "courses/a4-the-parity-bar.html"
+        }
+      ]
+    },
+    {
+      "label": "Cutover day",
+      "href": "courses/a5-cutover-day-and-the-rollback.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Go/no-go",
+          "href": "courses/a5-cutover-day-and-the-rollback.html"
+        },
+        {
+          "label": "The freeze",
+          "href": "courses/a5-cutover-day-and-the-rollback.html"
+        },
+        {
+          "label": "Rollback criteria",
+          "href": "courses/a5-cutover-day-and-the-rollback.html"
+        }
+      ]
+    },
+    {
+      "label": "Week after",
+      "href": "courses/a6-the-week-after-and-switching-off.html",
+      "color": "#F87171",
+      "concepts": [
+        {
+          "label": "Drift watch",
+          "href": "courses/a6-the-week-after-and-switching-off.html"
+        },
+        {
+          "label": "Decommission log",
+          "href": "courses/a6-the-week-after-and-switching-off.html"
+        },
+        {
+          "label": "Cost case closed",
+          "href": "courses/a6-the-week-after-and-switching-off.html"
+        }
+      ]
+    },
+    {
+      "label": "Query log",
+      "href": "courses/b1-inventory-from-the-query-log.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Reads, not tables",
+          "href": "courses/b1-inventory-from-the-query-log.html"
+        },
+        {
+          "label": "Lineage from SQL",
+          "href": "courses/b1-inventory-from-the-query-log.html"
+        },
+        {
+          "label": "Dead assets",
+          "href": "courses/b1-inventory-from-the-query-log.html"
+        }
+      ]
+    },
+    {
+      "label": "Dependency graph",
+      "href": "courses/b2-the-dependency-graph.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "The graph",
+          "href": "courses/b2-the-dependency-graph.html"
+        },
+        {
+          "label": "Topological order",
+          "href": "courses/b2-the-dependency-graph.html"
+        },
+        {
+          "label": "Waves of moves",
+          "href": "courses/b2-the-dependency-graph.html"
+        }
+      ]
+    },
+    {
+      "label": "Translate SQL",
+      "href": "courses/b3-translate-the-sql.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "Dates and time zones",
+          "href": "courses/b3-translate-the-sql.html"
+        },
+        {
+          "label": "NULL and empty",
+          "href": "courses/b3-translate-the-sql.html"
+        },
+        {
+          "label": "Division and collation",
+          "href": "courses/b3-translate-the-sql.html"
+        }
+      ]
+    },
+    {
+      "label": "Row and key",
+      "href": "courses/b4-row-and-key-parity.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "Counts",
+          "href": "courses/b4-row-and-key-parity.html"
+        },
+        {
+          "label": "Keys both ways",
+          "href": "courses/b4-row-and-key-parity.html"
+        },
+        {
+          "label": "Duplicates",
+          "href": "courses/b4-row-and-key-parity.html"
+        }
+      ]
+    },
+    {
+      "label": "Aggregates",
+      "href": "courses/b5-aggregate-parity.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Daily and monthly",
+          "href": "courses/b5-aggregate-parity.html"
+        },
+        {
+          "label": "Tolerance by metric",
+          "href": "courses/b5-aggregate-parity.html"
+        },
+        {
+          "label": "Float and rounding",
+          "href": "courses/b5-aggregate-parity.html"
+        }
+      ]
+    },
+    {
+      "label": "Reload",
+      "href": "courses/b6-historical-reload.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Reload windows",
+          "href": "courses/b6-historical-reload.html"
+        },
+        {
+          "label": "Late rows",
+          "href": "courses/b6-historical-reload.html"
+        },
+        {
+          "label": "Reload, then check",
+          "href": "courses/b6-historical-reload.html"
+        }
+      ]
+    },
+    {
+      "label": "Parallel run",
+      "href": "courses/b7-parallel-run.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Two systems",
+          "href": "courses/b7-parallel-run.html"
+        },
+        {
+          "label": "The diff dashboard",
+          "href": "courses/b7-parallel-run.html"
+        },
+        {
+          "label": "Exit criteria",
+          "href": "courses/b7-parallel-run.html"
+        }
+      ]
+    },
+    {
+      "label": "Rehearsal",
+      "href": "courses/b8-cutover-rehearsal-and-rollback.html",
+      "color": "#F87171",
+      "concepts": [
+        {
+          "label": "Rehearse",
+          "href": "courses/b8-cutover-rehearsal-and-rollback.html"
+        },
+        {
+          "label": "Time it",
+          "href": "courses/b8-cutover-rehearsal-and-rollback.html"
+        },
+        {
+          "label": "Roll back for real",
+          "href": "courses/b8-cutover-rehearsal-and-rollback.html"
+        }
+      ]
+    },
+    {
+      "label": "Hidden drift",
+      "href": "courses/b9-drift-that-hides.html",
+      "color": "#F87171",
+      "concepts": [
+        {
+          "label": "Time-zone edges",
+          "href": "courses/b9-drift-that-hides.html"
+        },
+        {
+          "label": "Late data",
+          "href": "courses/b9-drift-that-hides.html"
+        },
+        {
+          "label": "Caches",
+          "href": "courses/b9-drift-that-hides.html"
+        }
+      ]
+    },
+    {
+      "label": "Parity bench",
+      "href": "courses/b10-the-parity-bench.html",
+      "color": "#F87171",
+      "concepts": [
+        {
+          "label": "Five rungs",
+          "href": "courses/b10-the-parity-bench.html"
+        },
+        {
+          "label": "The loose bar",
+          "href": "courses/b10-the-parity-bench.html"
+        },
+        {
+          "label": "Both sides on new",
+          "href": "courses/b10-the-parity-bench.html"
+        }
+      ]
+    }
+  ]
+};
+</script>
+<script src="assets/mindmap.js?v=1"></script>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>

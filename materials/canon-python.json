@@ -1,0 +1,3462 @@
+{
+ "normal": {
+  "mode": "normal",
+  "perDrift": {
+   "none": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "late": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8981,
+     "alarm": true
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 367,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": true
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 205,
+       "maxGap": 13
+      },
+      "itemValue": {
+       "fail": 205,
+       "maxGap": 3373.8900000000012
+      },
+      "freight": {
+       "fail": 205,
+       "maxGap": 311.3299999999999
+      },
+      "itemsPerOrder": {
+       "fail": 166,
+       "maxGap": 0.15833333333333344
+      },
+      "reviewed": {
+       "fail": 196,
+       "maxGap": 13
+      },
+      "avgReview": {
+       "fail": 196,
+       "maxGap": 0.6666666666666665
+      }
+     },
+     "failing": 1173,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 21,
+       "maxGap": 71
+      },
+      "itemValue": {
+       "fail": 21,
+       "maxGap": 14309.559999999998
+      },
+      "freight": {
+       "fail": 21,
+       "maxGap": 2602.779999999999
+      },
+      "itemsPerOrder": {
+       "fail": 8,
+       "maxGap": 0.015713120278083137
+      },
+      "reviewed": {
+       "fail": 21,
+       "maxGap": 70
+      },
+      "avgReview": {
+       "fail": 19,
+       "maxGap": 0.19741181531402363
+      }
+     },
+     "failing": 111,
+     "alarm": true
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8981,
+      "itemValue": 1262425.64,
+      "freight": 206703.66,
+      "itemsPerOrder": 1.1415209887540363,
+      "reviewed": 8901,
+      "avgReview": 4.0578586675654424
+     }
+    }
+   },
+   "tz": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 74,
+       "maxGap": 7
+      },
+      "itemValue": {
+       "fail": 81,
+       "maxGap": 678.29
+      },
+      "freight": {
+       "fail": 81,
+       "maxGap": 109.24000000000001
+      },
+      "itemsPerOrder": {
+       "fail": 65,
+       "maxGap": 0.25
+      },
+      "reviewed": {
+       "fail": 74,
+       "maxGap": 7
+      },
+      "avgReview": {
+       "fail": 76,
+       "maxGap": 1.0
+      }
+     },
+     "failing": 451,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 72,
+     "alarm": true
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "nul": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 63,
+       "maxGap": 2
+      },
+      "avgReview": {
+       "fail": 63,
+       "maxGap": 1.083333333333333
+      }
+     },
+     "failing": 126,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 20,
+       "maxGap": 10
+      },
+      "avgReview": {
+       "fail": 19,
+       "maxGap": 0.09307568438003244
+      }
+     },
+     "failing": 39,
+     "alarm": true
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8614,
+      "avgReview": 4.106338518690504
+     }
+    }
+   },
+   "idiv": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 427,
+       "maxGap": 0.9333333333333333
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 427,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 21,
+       "maxGap": 0.19691780821917804
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 21,
+     "alarm": true
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "case": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 1767,
+     "alarm": true
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "round": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 80,
+       "maxGap": 0.020000000000038654
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 80,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0.12000000000080036
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.59,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "float": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 302,
+       "maxGap": 1.2732925824820995e-11
+      },
+      "freight": {
+       "fail": 269,
+       "maxGap": 1.3642420526593924e-12
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 571,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 2.0372681319713593e-10
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 3.2741809263825417e-11
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.2399999967,
+      "freight": 195579.0200000018,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   }
+  },
+  "all": {
+   "counts": {
+    "legacy": 8614,
+    "fresh": 8981,
+    "alarm": true
+   },
+   "keys": {
+    "missing": 0,
+    "extra": 0,
+    "dupLegacy": 0,
+    "duplicated": 367,
+    "unresolvedLegacy": 0,
+    "unresolvedNew": 1767,
+    "alarm": true
+   },
+   "daily": {
+    "buckets": 598,
+    "metrics": {
+     "orders": {
+      "fail": 232,
+      "maxGap": 13
+     },
+     "itemValue": {
+      "fail": 413,
+      "maxGap": 3373.889999999996
+     },
+     "freight": {
+      "fail": 415,
+      "maxGap": 311.3299999999999
+     },
+     "itemsPerOrder": {
+      "fail": 427,
+      "maxGap": 0.9333333333333333
+     },
+     "reviewed": {
+      "fail": 260,
+      "maxGap": 14
+     },
+     "avgReview": {
+      "fail": 266,
+      "maxGap": 1.733333333333333
+     }
+    },
+    "failing": 2013,
+    "alarm": true
+   },
+   "parity": {
+    "buckets": 21,
+    "metrics": {
+     "orders": {
+      "fail": 21,
+      "maxGap": 71
+     },
+     "itemValue": {
+      "fail": 21,
+      "maxGap": 14309.559999999969
+     },
+     "freight": {
+      "fail": 21,
+      "maxGap": 2602.829999999969
+     },
+     "itemsPerOrder": {
+      "fail": 21,
+      "maxGap": 0.19691780821917804
+     },
+     "reviewed": {
+      "fail": 21,
+      "maxGap": 74
+     },
+     "avgReview": {
+      "fail": 21,
+      "maxGap": 0.21776363863194836
+     }
+    },
+    "failing": 126,
+    "alarm": true
+   },
+   "edge": {
+    "near": 595,
+    "mismatched": 72,
+    "alarm": true
+   },
+   "totals": {
+    "legacy": {
+     "orders": 8614,
+     "itemValue": 1197842.24,
+     "freight": 195579.02,
+     "itemsPerOrder": 1.1426747155792896,
+     "reviewed": 8546,
+     "avgReview": 4.139012403463608
+    },
+    "fresh": {
+     "orders": 8981,
+     "itemValue": 1262425.6399999855,
+     "freight": 206704.26000000202,
+     "itemsPerOrder": 1,
+     "reviewed": 8981,
+     "avgReview": 4.021712504175482
+    }
+   }
+  },
+  "rungs": [
+   {
+    "caught": 1,
+    "missed": 4,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 2,
+    "missed": 3,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 5,
+    "missed": 0,
+    "falseAlarms": 2,
+    "quiet": 1,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "daily"
+      ]
+     },
+     "tz": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "nul": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "false alarm",
+      "fired": [
+       "daily"
+      ]
+     },
+     "float": {
+      "verdict": "false alarm",
+      "fired": [
+       "daily"
+      ]
+     }
+    }
+   },
+   {
+    "caught": 4,
+    "missed": 1,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "parity"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 5,
+    "missed": 0,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "parity"
+      ]
+     },
+     "tz": {
+      "verdict": "caught",
+      "fired": [
+       "edge"
+      ]
+     },
+     "nul": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   }
+  ]
+ },
+ "loose": {
+  "mode": "loose",
+  "perDrift": {
+   "none": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "late": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8981,
+     "alarm": true
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 367,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": true
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 205,
+       "maxGap": 13
+      },
+      "itemValue": {
+       "fail": 205,
+       "maxGap": 3373.8900000000012
+      },
+      "freight": {
+       "fail": 205,
+       "maxGap": 311.3299999999999
+      },
+      "itemsPerOrder": {
+       "fail": 166,
+       "maxGap": 0.15833333333333344
+      },
+      "reviewed": {
+       "fail": 196,
+       "maxGap": 13
+      },
+      "avgReview": {
+       "fail": 196,
+       "maxGap": 0.6666666666666665
+      }
+     },
+     "failing": 1173,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 11,
+       "maxGap": 71
+      },
+      "itemValue": {
+       "fail": 12,
+       "maxGap": 14309.559999999998
+      },
+      "freight": {
+       "fail": 14,
+       "maxGap": 2602.779999999999
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0.015713120278083137
+      },
+      "reviewed": {
+       "fail": 10,
+       "maxGap": 70
+      },
+      "avgReview": {
+       "fail": 3,
+       "maxGap": 0.19741181531402363
+      }
+     },
+     "failing": 50,
+     "alarm": true
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8981,
+      "itemValue": 1262425.64,
+      "freight": 206703.66,
+      "itemsPerOrder": 1.1415209887540363,
+      "reviewed": 8901,
+      "avgReview": 4.0578586675654424
+     }
+    }
+   },
+   "tz": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 74,
+       "maxGap": 7
+      },
+      "itemValue": {
+       "fail": 81,
+       "maxGap": 678.29
+      },
+      "freight": {
+       "fail": 81,
+       "maxGap": 109.24000000000001
+      },
+      "itemsPerOrder": {
+       "fail": 65,
+       "maxGap": 0.25
+      },
+      "reviewed": {
+       "fail": 74,
+       "maxGap": 7
+      },
+      "avgReview": {
+       "fail": 76,
+       "maxGap": 1.0
+      }
+     },
+     "failing": 451,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 72,
+     "alarm": true
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "nul": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 63,
+       "maxGap": 2
+      },
+      "avgReview": {
+       "fail": 63,
+       "maxGap": 1.083333333333333
+      }
+     },
+     "failing": 126,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 10
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0.09307568438003244
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8614,
+      "avgReview": 4.106338518690504
+     }
+    }
+   },
+   "idiv": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 427,
+       "maxGap": 0.9333333333333333
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 427,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 21,
+       "maxGap": 0.19691780821917804
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 21,
+     "alarm": true
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "case": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 1767,
+     "alarm": true
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "round": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 80,
+       "maxGap": 0.020000000000038654
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 80,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0.12000000000080036
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.59,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "float": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 302,
+       "maxGap": 1.2732925824820995e-11
+      },
+      "freight": {
+       "fail": 269,
+       "maxGap": 1.3642420526593924e-12
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 571,
+     "alarm": true
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 2.0372681319713593e-10
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 3.2741809263825417e-11
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.2399999967,
+      "freight": 195579.0200000018,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   }
+  },
+  "all": {
+   "counts": {
+    "legacy": 8614,
+    "fresh": 8981,
+    "alarm": true
+   },
+   "keys": {
+    "missing": 0,
+    "extra": 0,
+    "dupLegacy": 0,
+    "duplicated": 367,
+    "unresolvedLegacy": 0,
+    "unresolvedNew": 1767,
+    "alarm": true
+   },
+   "daily": {
+    "buckets": 598,
+    "metrics": {
+     "orders": {
+      "fail": 232,
+      "maxGap": 13
+     },
+     "itemValue": {
+      "fail": 413,
+      "maxGap": 3373.889999999996
+     },
+     "freight": {
+      "fail": 415,
+      "maxGap": 311.3299999999999
+     },
+     "itemsPerOrder": {
+      "fail": 427,
+      "maxGap": 0.9333333333333333
+     },
+     "reviewed": {
+      "fail": 260,
+      "maxGap": 14
+     },
+     "avgReview": {
+      "fail": 266,
+      "maxGap": 1.733333333333333
+     }
+    },
+    "failing": 2013,
+    "alarm": true
+   },
+   "parity": {
+    "buckets": 21,
+    "metrics": {
+     "orders": {
+      "fail": 11,
+      "maxGap": 71
+     },
+     "itemValue": {
+      "fail": 12,
+      "maxGap": 14309.559999999969
+     },
+     "freight": {
+      "fail": 14,
+      "maxGap": 2602.829999999969
+     },
+     "itemsPerOrder": {
+      "fail": 21,
+      "maxGap": 0.19691780821917804
+     },
+     "reviewed": {
+      "fail": 15,
+      "maxGap": 74
+     },
+     "avgReview": {
+      "fail": 5,
+      "maxGap": 0.21776363863194836
+     }
+    },
+    "failing": 78,
+    "alarm": true
+   },
+   "edge": {
+    "near": 595,
+    "mismatched": 72,
+    "alarm": true
+   },
+   "totals": {
+    "legacy": {
+     "orders": 8614,
+     "itemValue": 1197842.24,
+     "freight": 195579.02,
+     "itemsPerOrder": 1.1426747155792896,
+     "reviewed": 8546,
+     "avgReview": 4.139012403463608
+    },
+    "fresh": {
+     "orders": 8981,
+     "itemValue": 1262425.6399999855,
+     "freight": 206704.26000000202,
+     "itemsPerOrder": 1,
+     "reviewed": 8981,
+     "avgReview": 4.021712504175482
+    }
+   }
+  },
+  "rungs": [
+   {
+    "caught": 1,
+    "missed": 4,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 2,
+    "missed": 3,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 5,
+    "missed": 0,
+    "falseAlarms": 2,
+    "quiet": 1,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "daily"
+      ]
+     },
+     "tz": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "nul": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "daily"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "false alarm",
+      "fired": [
+       "daily"
+      ]
+     },
+     "float": {
+      "verdict": "false alarm",
+      "fired": [
+       "daily"
+      ]
+     }
+    }
+   },
+   {
+    "caught": 3,
+    "missed": 2,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "parity"
+      ]
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 4,
+    "missed": 1,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "caught",
+      "fired": [
+       "counts",
+       "keys",
+       "parity"
+      ]
+     },
+     "tz": {
+      "verdict": "caught",
+      "fired": [
+       "edge"
+      ]
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "caught",
+      "fired": [
+       "parity"
+      ]
+     },
+     "case": {
+      "verdict": "caught",
+      "fired": [
+       "keys"
+      ]
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   }
+  ]
+ },
+ "brk": {
+  "mode": "break",
+  "perDrift": {
+   "none": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "late": {
+    "counts": {
+     "legacy": 8981,
+     "fresh": 8981,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 367,
+     "duplicated": 367,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 621,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8981,
+      "itemValue": 1262425.64,
+      "freight": 206703.66,
+      "itemsPerOrder": 1.1415209887540363,
+      "reviewed": 8901,
+      "avgReview": 4.0578586675654424
+     },
+     "fresh": {
+      "orders": 8981,
+      "itemValue": 1262425.64,
+      "freight": 206703.66,
+      "itemsPerOrder": 1.1415209887540363,
+      "reviewed": 8901,
+      "avgReview": 4.0578586675654424
+     }
+    }
+   },
+   "tz": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "nul": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8614,
+      "avgReview": 4.106338518690504
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8614,
+      "avgReview": 4.106338518690504
+     }
+    }
+   },
+   "idiv": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "case": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 1767,
+     "unresolvedNew": 1767,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.02,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "round": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.59,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.24,
+      "freight": 195579.59,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   },
+   "float": {
+    "counts": {
+     "legacy": 8614,
+     "fresh": 8614,
+     "alarm": false
+    },
+    "keys": {
+     "missing": 0,
+     "extra": 0,
+     "dupLegacy": 0,
+     "duplicated": 0,
+     "unresolvedLegacy": 0,
+     "unresolvedNew": 0,
+     "alarm": false
+    },
+    "daily": {
+     "buckets": 598,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "parity": {
+     "buckets": 21,
+     "metrics": {
+      "orders": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemValue": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "freight": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "itemsPerOrder": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "reviewed": {
+       "fail": 0,
+       "maxGap": 0
+      },
+      "avgReview": {
+       "fail": 0,
+       "maxGap": 0
+      }
+     },
+     "failing": 0,
+     "alarm": false
+    },
+    "edge": {
+     "near": 595,
+     "mismatched": 0,
+     "alarm": false
+    },
+    "totals": {
+     "legacy": {
+      "orders": 8614,
+      "itemValue": 1197842.2399999967,
+      "freight": 195579.0200000018,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     },
+     "fresh": {
+      "orders": 8614,
+      "itemValue": 1197842.2399999967,
+      "freight": 195579.0200000018,
+      "itemsPerOrder": 1.1426747155792896,
+      "reviewed": 8546,
+      "avgReview": 4.139012403463608
+     }
+    }
+   }
+  },
+  "all": {
+   "counts": {
+    "legacy": 8981,
+    "fresh": 8981,
+    "alarm": false
+   },
+   "keys": {
+    "missing": 0,
+    "extra": 0,
+    "dupLegacy": 367,
+    "duplicated": 367,
+    "unresolvedLegacy": 1767,
+    "unresolvedNew": 1767,
+    "alarm": false
+   },
+   "daily": {
+    "buckets": 598,
+    "metrics": {
+     "orders": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "itemValue": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "freight": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "itemsPerOrder": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "reviewed": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "avgReview": {
+      "fail": 0,
+      "maxGap": 0
+     }
+    },
+    "failing": 0,
+    "alarm": false
+   },
+   "parity": {
+    "buckets": 21,
+    "metrics": {
+     "orders": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "itemValue": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "freight": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "itemsPerOrder": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "reviewed": {
+      "fail": 0,
+      "maxGap": 0
+     },
+     "avgReview": {
+      "fail": 0,
+      "maxGap": 0
+     }
+    },
+    "failing": 0,
+    "alarm": false
+   },
+   "edge": {
+    "near": 621,
+    "mismatched": 0,
+    "alarm": false
+   },
+   "totals": {
+    "legacy": {
+     "orders": 8981,
+     "itemValue": 1262425.6399999855,
+     "freight": 206704.26000000202,
+     "itemsPerOrder": 1,
+     "reviewed": 8981,
+     "avgReview": 4.021712504175482
+    },
+    "fresh": {
+     "orders": 8981,
+     "itemValue": 1262425.6399999855,
+     "freight": 206704.26000000202,
+     "itemsPerOrder": 1,
+     "reviewed": 8981,
+     "avgReview": 4.021712504175482
+    }
+   }
+  },
+  "rungs": [
+   {
+    "caught": 0,
+    "missed": 5,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 0,
+    "missed": 5,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 0,
+    "missed": 5,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 0,
+    "missed": 5,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   },
+   {
+    "caught": 0,
+    "missed": 5,
+    "falseAlarms": 0,
+    "quiet": 3,
+    "verdicts": {
+     "none": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "late": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "tz": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "nul": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "idiv": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "case": {
+      "verdict": "missed",
+      "fired": []
+     },
+     "round": {
+      "verdict": "quiet",
+      "fired": []
+     },
+     "float": {
+      "verdict": "quiet",
+      "fired": []
+     }
+    }
+   }
+  ]
+ },
+ "touched": {
+  "late": 367,
+  "tz": 72,
+  "nul": 68,
+  "idiv": 8614,
+  "case": 1767,
+  "round": 90,
+  "float": 8614
+ },
+ "reference": {
+  "orders": 8614,
+  "lines": 9843,
+  "itemValueCents": 119784224,
+  "freightCents": 19557902,
+  "reviewed": 8546,
+  "unreviewed": 68,
+  "reviewMean": 4.139012403463608,
+  "days": 598,
+  "firstDay": "2016-10-04",
+  "lastDay": "2018-08-28",
+  "dstShifted": 72,
+  "multiLineOrders": 904,
+  "exportC": 1767,
+  "eveningOrders": 1380
+ },
+ "lateDays": 30
+}

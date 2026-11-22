@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 2 of 6. Before anyone plans a warehouse move, count what is read, not what exists. Serai's constructed estate has 214 tables and 83 nobody read in 90 days. Give every number a reader and a signer, and retire before you move, because every retired table is one less to translate, reload and prove.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Inventory before plan - learn ship platform migration with phoebe">
+<meta property="og:description" content="Leader session 2 of 6. What you own, who reads it, and what nobody reads: the inventory sheet a leader signs before the plan.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/a2-inventory-before-plan.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Inventory before plan - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Leader session 2 of 6. 214 tables exist, 131 were read in 90 days: plan the move from the reads, and retire the rest first.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 2 · Inventory before plan - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Leader session 2 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Leader session 2 of 6</div>
+    <h1>Inventory <span class="accent">before plan</span></h1>
+    <p class="sub">Every migration plan starts with a list, and most lists start in the wrong place: with what exists. The useful list starts with what is read, by whom, and who will sign that it still says the same thing after the move. Serai Commerce owns 214 tables, and a quarter of a year of query log says 83 of them were not read once. Tonight you build the inventory sheet a leader signs before anyone draws a timeline: one status, one reader, one signer and, for the tables nobody reads, one retire date.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Intermediate</span>
+      <span class="chip audience">Heads of data and platform owners</span>
+      <span class="chip audience">Owners of reports and dashboards</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:5">3-22 · Own, read, retire</span>
+      <span class="a3" style="flex:4">22-42 · Build-along: the inventory sheet</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 gave you the done sheet: every number the business reads, at the grain it is read, with a last column that must say "same" or "explained". Tonight is runbook section 1, the inventory, seen from the chair that signs it. Builder session 1 produces the same inventory with five queries over a query log; you do not need the SQL, only the questions it answers and the judgement it cannot make for you. The running example is a <strong>Constructed Serai Commerce example</strong>: the company, its estate and its query log are constructed teaching numbers, not a benchmark. Serai's schema and data products belong to the <a href="https://phoebefu6.github.io/learn-ship-social-commerce-with-phoebe/">Ship It: Social Commerce course</a>; this session owns only the question of which of them move.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> An inventory sheet for Serai's 14-table slice, ready to sign: every table with a status (move, move as a dependency, or retire candidate), the reader who notices if it breaks, the person who signs its numbers, and a stop date for each retirement. Plus one sentence for the steering meeting: "we plan the move from what is read, and we retire before we move".</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers what you own and what is read</span>
+      <h2>Count the reads, not the tables</h2>
+      <span class="tag concept">7 min live</span>
+    </div>
+    <p class="lede">The size of a migration is not the number of tables in the old warehouse. It is the number of things someone would notice if they broke, plus everything those things are built from. Only a log of reads can tell you that number.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 316" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hand-drawn bars narrowing Serai's constructed estate. 214 tables exist. 131 were read at least once in the last 90 days and 83 were never read. How many are read by people, rather than only by jobs, is not yet counted; in Builder session 1's 14-table slice it is 5 of 14. Of 38 dashboards, 19 had a viewer in 90 days and 19 had none. 61 scheduled jobs also read tables, and a job is not a reader.">
+        <defs>
+          <filter id="a2aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="29" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a2aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#624818" stroke-width="1" opacity=".5"/></pattern>
+        </defs>
+        <style>
+          .a2aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a2aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a2aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a2aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a2aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .a2aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a2aH" x="30" y="26">FROM WHAT EXISTS TO WHAT PEOPLE READ</text>
+        <text class="a2aS" x="330" y="26">Constructed Serai Commerce example · last 90 days of query log</text>
+
+        <g filter="url(#a2aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="190" y="48" width="560" height="34" rx="6" transform="rotate(-0.4 470 65)" fill="url(#a2aHc)"/>
+          <rect x="190" y="104" width="343" height="34" rx="6" transform="rotate(0.4 361 121)" fill="#E3D3B0"/>
+          <rect x="537" y="104" width="213" height="34" rx="6" transform="rotate(-0.5 643 121)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="190" y="160" width="140" height="34" rx="6" transform="rotate(-0.6 260 177)" fill="#9CC3E6" stroke-dasharray="6 4"/>
+          <rect x="190" y="222" width="140" height="34" rx="6" transform="rotate(0.5 260 239)" fill="#E3D3B0"/>
+          <rect x="334" y="222" width="140" height="34" rx="6" transform="rotate(-0.5 404 239)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+        </g>
+
+        <text class="a2aH" x="30" y="62">EXISTS</text>
+        <text class="a2aS" x="30" y="78">tables in the warehouse</text>
+        <text class="a2aV" x="762" y="71">214</text>
+
+        <text class="a2aH" x="30" y="118">READ</text>
+        <text class="a2aS" x="30" y="134">at least once in 90 days</text>
+        <text class="a2aV" x="202" y="127">131</text>
+        <text class="a2aS" x="549" y="126">83 never read in 90 days</text>
+
+        <text class="a2aH" x="30" y="174">READ BY PEOPLE</text>
+        <text class="a2aS" x="30" y="190">dashboards and analysts</text>
+        <text class="a2aB" x="202" y="182">not yet counted</text>
+        <text class="a2aS" x="346" y="182">Builder session 1 splits people from jobs; its 14-table slice: 5 of 14</text>
+
+        <text class="a2aH" x="30" y="236">DASHBOARDS</text>
+        <text class="a2aS" x="30" y="252">38, viewed in 90 days?</text>
+        <text class="a2aL" x="202" y="244">19 with a viewer</text>
+        <text class="a2aS" x="346" y="244">19 no viewer</text>
+        <text class="a2aS" x="490" y="244">61 scheduled jobs also read tables; a job is not a reader</text>
+
+        <text class="a2aN" x="30" y="292">Plan from the bottom rows, not the top one. Every number on this figure is constructed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the estate you plan to move is much smaller than the estate you own, once you count reads</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Serai's estate, counted three ways<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>What you count</th><th>Serai (constructed)</th><th>What it tells the plan</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Tables that exist</strong></td><td>214 tables, 61 scheduled jobs, 38 dashboards</td><td>The ceiling. Planning from it moves every mistake the old warehouse ever made.</td></tr>
+            <tr><td><strong>Tables read in the last 90 days</strong></td><td>131 read at least once; 83 never read</td><td>The first honest cut. The 83 are retire candidates, not yet retirements.</td></tr>
+            <tr><td><strong>Dashboards viewed in the last 90 days</strong></td><td>19 of 38 with no viewer</td><td>A dead dashboard keeps its whole lineage looking "used", because its refresh job reads every table under it.</td></tr>
+          </tbody>
+        </table>
+        <p>These are teaching numbers for the case. Nobody has published a reliable share of unread tables in a typical warehouse, and estates vary enormously, so treat any figure you hear quoted for "most warehouses" with suspicion. Your numbers will differ; the method will not.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A read by a job is not a reader<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The 131 "read" tables include every table a scheduled job touched while building another one. A job reads a staging table every night whether or not anyone looks at what it builds. So a read count says a table is <em>alive</em>, not that it is <em>needed</em>. The question that sizes the move is narrower: is it read by a person or a dashboard, or does it feed something that is?</p>
+        <p>Builder session 1 answers that with one query that separates actors whose name starts with <code>job:</code> from everyone else. On its 14-table slice, 5 tables are read by people, 6 are read only by jobs and all 6 sit upstream of something people read, and 3 are not read at all. As a leader you do not run that query. You ask for its output, and you ask which window it used.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Vendors put the count before the plan.</strong> A 2019 Google Cloud blog on migrating data warehouses to BigQuery lays out its phases as "Prepare and discover", "Assess and plan" and "Execute". Read it as a vendor describing the process around its own product, never as a recommendation of that product. The order is still the right one: you cannot assess, still less plan, a move of things you have not counted, and the query log is the cheapest honest count you have.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers who reads each number and who signs it</span>
+      <h2>A reader and a signer for every number</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">The done sheet from session 1 lists five numbers. Each one comes from a table, is read by someone, and needs one named person who will say "same" or "explained" on cutover day. A number without a signer is an open item before anyone has looked at a diff.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hand-drawn rows tracing each number on Serai's done sheet to the table it comes from, the reader, and the signer. Orders, monthly, from mart.orders_monthly, read in the board pack, signed by the finance director. Item value, monthly, from mart.orders_monthly, read in the finance close through an extract the query log cannot see, signed by the financial controller. Items per order, daily, from mart.orders_daily, read on the ops dashboard, signed by the head of operations. Reviewed orders and average review, monthly, from mart.brand_review, read on the brand review dashboard, signed by the brand lead.">
+        <defs>
+          <filter id="a2bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a2bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a2bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a2bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a2bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a2bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a2bH" x="30" y="26">NUMBERS TO TABLES TO READERS TO SIGNERS</text>
+        <text class="a2bS" x="370" y="26">Constructed Serai Commerce example · roles constructed</text>
+
+        <text class="a2bH" x="30" y="50">NUMBER · GRAIN</text>
+        <text class="a2bH" x="250" y="50">TABLE</text>
+        <text class="a2bH" x="470" y="50">READER</text>
+        <text class="a2bH" x="680" y="50">SIGNER</text>
+
+        <g filter="url(#a2bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="62" width="190" height="30" rx="6" transform="rotate(-0.5 125 77)" fill="#FFFFFF"/>
+          <rect x="250" y="62" width="190" height="30" rx="6" transform="rotate(0.4 345 77)" fill="#F8F2E6"/>
+          <rect x="470" y="62" width="180" height="30" rx="6" transform="rotate(-0.4 560 77)" fill="#FFFFFF"/>
+          <rect x="680" y="62" width="170" height="30" rx="6" transform="rotate(0.5 765 77)" fill="#9CC3E6"/>
+          <path d="M222 77 L246 77" marker-end="url(#a2bAr)"/>
+          <path d="M442 77 L466 77" marker-end="url(#a2bAr)"/>
+          <path d="M652 77 L676 77" marker-end="url(#a2bAr)"/>
+
+          <rect x="30" y="106" width="190" height="30" rx="6" transform="rotate(0.4 125 121)" fill="#FFFFFF"/>
+          <rect x="250" y="106" width="190" height="30" rx="6" transform="rotate(-0.4 345 121)" fill="#F8F2E6"/>
+          <rect x="470" y="106" width="180" height="30" rx="6" transform="rotate(0.5 560 121)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="680" y="106" width="170" height="30" rx="6" transform="rotate(-0.4 765 121)" fill="#9CC3E6"/>
+          <path d="M222 121 L246 121" marker-end="url(#a2bAr)"/>
+          <path d="M442 121 L466 121" marker-end="url(#a2bAr)"/>
+          <path d="M652 121 L676 121" marker-end="url(#a2bAr)"/>
+
+          <rect x="30" y="150" width="190" height="30" rx="6" transform="rotate(-0.4 125 165)" fill="#FFFFFF"/>
+          <rect x="250" y="150" width="190" height="30" rx="6" transform="rotate(0.5 345 165)" fill="#F8F2E6"/>
+          <rect x="470" y="150" width="180" height="30" rx="6" transform="rotate(-0.5 560 165)" fill="#FFFFFF"/>
+          <rect x="680" y="150" width="170" height="30" rx="6" transform="rotate(0.4 765 165)" fill="#9CC3E6"/>
+          <path d="M222 165 L246 165" marker-end="url(#a2bAr)"/>
+          <path d="M442 165 L466 165" marker-end="url(#a2bAr)"/>
+          <path d="M652 165 L676 165" marker-end="url(#a2bAr)"/>
+
+          <rect x="30" y="194" width="190" height="30" rx="6" transform="rotate(0.5 125 209)" fill="#FFFFFF"/>
+          <rect x="250" y="194" width="190" height="30" rx="6" transform="rotate(-0.4 345 209)" fill="#F8F2E6"/>
+          <rect x="470" y="194" width="180" height="30" rx="6" transform="rotate(0.4 560 209)" fill="#FFFFFF"/>
+          <rect x="680" y="194" width="170" height="30" rx="6" transform="rotate(-0.5 765 209)" fill="#9CC3E6"/>
+          <path d="M222 209 L246 209" marker-end="url(#a2bAr)"/>
+          <path d="M442 209 L466 209" marker-end="url(#a2bAr)"/>
+          <path d="M652 209 L676 209" marker-end="url(#a2bAr)"/>
+
+          <rect x="30" y="238" width="190" height="30" rx="6" transform="rotate(-0.4 125 253)" fill="#FFFFFF"/>
+          <rect x="250" y="238" width="190" height="30" rx="6" transform="rotate(0.4 345 253)" fill="#F8F2E6"/>
+          <rect x="470" y="238" width="180" height="30" rx="6" transform="rotate(-0.4 560 253)" fill="#FFFFFF"/>
+          <rect x="680" y="238" width="170" height="30" rx="6" transform="rotate(0.5 765 253)" fill="#9CC3E6"/>
+          <path d="M222 253 L246 253" marker-end="url(#a2bAr)"/>
+          <path d="M442 253 L466 253" marker-end="url(#a2bAr)"/>
+          <path d="M652 253 L676 253" marker-end="url(#a2bAr)"/>
+        </g>
+
+        <text class="a2bL" x="42" y="81">Orders · monthly</text>
+        <text class="a2bS" x="262" y="81">mart.orders_monthly</text>
+        <text class="a2bS" x="482" y="81">board pack</text>
+        <text class="a2bB" x="692" y="81">finance director</text>
+
+        <text class="a2bL" x="42" y="125">Item value · monthly</text>
+        <text class="a2bS" x="262" y="125">mart.orders_monthly</text>
+        <text class="a2bS" x="482" y="125">finance close (extract)</text>
+        <text class="a2bB" x="692" y="125">financial controller</text>
+
+        <text class="a2bL" x="42" y="169">Items per order · daily</text>
+        <text class="a2bS" x="262" y="169">mart.orders_daily</text>
+        <text class="a2bS" x="482" y="169">ops dashboard</text>
+        <text class="a2bB" x="692" y="169">head of operations</text>
+
+        <text class="a2bL" x="42" y="213">Reviewed orders · monthly</text>
+        <text class="a2bS" x="262" y="213">mart.brand_review</text>
+        <text class="a2bS" x="482" y="213">brand review dashboard</text>
+        <text class="a2bB" x="692" y="213">brand lead</text>
+
+        <text class="a2bL" x="42" y="257">Average review · monthly</text>
+        <text class="a2bS" x="262" y="257">mart.brand_review</text>
+        <text class="a2bS" x="482" y="257">brand review dashboard</text>
+        <text class="a2bB" x="692" y="257">brand lead</text>
+
+        <text class="a2bN" x="30" y="292">Dashed: the finance close reads a monthly extract, so the query log never shows that reader.</text>
+        <text class="a2bN" x="30" y="312">The signer is the person who will say "same" or "explained" for that row on cutover day.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - every number needs one named signer, and one reader on Serai's list is invisible to the log</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Reader and signer are different jobs<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The reader</strong> is whoever notices first when the number changes: the operations manager who opens the daily dashboard at nine, the analyst who pulls the scorecard. <strong>The signer</strong> is the person with the authority to accept a difference in writing: the one who can say "57 centavos of freight across 90 orders is a rounding policy we accept" and be held to it. Sometimes they are the same person. Often the reader is a team and the signer is its head.</p>
+        <p>Two rules keep the sheet honest. One signer per number, never a committee, because a committee cannot be asked a question at eleven at night on cutover day. And the signer is named before any parity check runs, because a person chosen after the diff is in tends to be the person who will accept it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The reader the log cannot see<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Serai's done sheet says the finance close reads item value monthly, and the constructed query log in Builder session 1 has no finance reader at all. That is not a mistake in either: on Serai's case the finance team pulls a monthly extract into a spreadsheet, and the log records the export job, not the people who read the file. Partners who receive a nightly file, a quarterly audit pack and any report built outside the warehouse are invisible the same way.</p>
+        <p>So the inventory is built from two directions and they must meet. From the log up: what is read. From the done sheet down: what the business says it reads. Every number on the done sheet must trace to a table in the inventory. Any number that cannot is the most dangerous row on the page, because nobody will check it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Readiness that was reported, not signed.</strong> TSB's own release on the independent review of its 2018 migration notes that the go-live "followed a long period of testing, with reports to the Board signalling readiness." The Bank of England later found TSB "failed to organise and control the IT migration programme adequately." A report that says "ready" is not the same thing as a named person per number saying "same, or explained by this". The inventory is where those names are written down, before there is a report to sign.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers retiring what nobody reads</span>
+      <h2>Retire before you move</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Every table you move costs a translation, a historical reload, a parity proof and a place in the parallel run. Every table you retire before the move costs a conversation and a date. The cheapest table to migrate is the one you switch off first.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 268" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn paths for one table. Moved: inventory, translate, reload, prove parity, parallel run, switch off legacy, six steps across Leader and Builder sessions. Retired: inventory, then step one stop writing and revoke reads with an announced date, reversible in minutes, then step two after a quiet period archive a copy and drop, reversible from the archive. Nothing to translate, reload or prove.">
+        <defs>
+          <filter id="a2cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a2cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a2cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a2cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a2cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a2cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a2cH" x="30" y="26">WHAT ONE TABLE COSTS, MOVED OR RETIRED</text>
+        <text class="a2cS" x="340" y="26">steps, not prices · each moved step is a later session</text>
+
+        <g filter="url(#a2cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="150" y="52" width="100" height="48" rx="8" transform="rotate(-0.8 200 76)" fill="#FFFFFF"/>
+          <rect x="264" y="52" width="100" height="48" rx="8" transform="rotate(0.7 314 76)" fill="#FFFFFF"/>
+          <rect x="378" y="52" width="100" height="48" rx="8" transform="rotate(-0.6 428 76)" fill="#FFFFFF"/>
+          <rect x="492" y="52" width="100" height="48" rx="8" transform="rotate(0.8 542 76)" fill="#FFFFFF"/>
+          <rect x="606" y="52" width="100" height="48" rx="8" transform="rotate(-0.7 656 76)" fill="#FFFFFF"/>
+          <rect x="720" y="52" width="100" height="48" rx="8" transform="rotate(0.6 770 76)" fill="#FFFFFF"/>
+          <path d="M251 76 L262 76" marker-end="url(#a2cAr)"/>
+          <path d="M365 76 L376 76" marker-end="url(#a2cAr)"/>
+          <path d="M479 76 L490 76" marker-end="url(#a2cAr)"/>
+          <path d="M593 76 L604 76" marker-end="url(#a2cAr)"/>
+          <path d="M707 76 L718 76" marker-end="url(#a2cAr)"/>
+
+          <rect x="150" y="146" width="100" height="56" rx="8" transform="rotate(0.7 200 174)" fill="#FFFFFF"/>
+          <rect x="274" y="146" width="200" height="56" rx="8" transform="rotate(-0.5 374 174)" fill="#9CC3E6"/>
+          <rect x="498" y="146" width="200" height="56" rx="8" transform="rotate(0.5 598 174)" fill="#9CC3E6"/>
+          <path d="M251 174 L270 174" marker-end="url(#a2cAr)"/>
+          <path d="M475 174 L494 174" marker-end="url(#a2cAr)"/>
+        </g>
+
+        <text class="a2cH" x="30" y="72">MOVED</text>
+        <text class="a2cS" x="30" y="88">one table</text>
+        <text class="a2cL" x="160" y="74">inventory</text>
+        <text class="a2cS" x="160" y="90">tonight</text>
+        <text class="a2cL" x="274" y="74">translate</text>
+        <text class="a2cS" x="274" y="90">Builder 3</text>
+        <text class="a2cL" x="388" y="74">reload</text>
+        <text class="a2cS" x="388" y="90">Builder 6</text>
+        <text class="a2cL" x="502" y="74">prove parity</text>
+        <text class="a2cS" x="502" y="90">Builder 4, 5</text>
+        <text class="a2cL" x="616" y="74">parallel run</text>
+        <text class="a2cS" x="616" y="90">Builder 7</text>
+        <text class="a2cL" x="730" y="74">switch off</text>
+        <text class="a2cS" x="730" y="90">Leader 6</text>
+
+        <text class="a2cH" x="30" y="170">RETIRED</text>
+        <text class="a2cS" x="30" y="186">one table</text>
+        <text class="a2cL" x="160" y="171">inventory</text>
+        <text class="a2cS" x="160" y="187">tonight</text>
+        <text class="a2cB" x="286" y="166">1 · STOP AND REVOKE</text>
+        <text class="a2cS" x="286" y="182" style="fill:#231C12">stop writes, revoke reads, date</text>
+        <text class="a2cS" x="286" y="196" style="fill:#231C12">reversible in minutes</text>
+        <text class="a2cB" x="510" y="166">2 · ARCHIVE AND DROP</text>
+        <text class="a2cS" x="510" y="182" style="fill:#231C12">after a quiet period</text>
+        <text class="a2cS" x="510" y="196" style="fill:#231C12">reversible from the archive</text>
+        <text class="a2cL" x="716" y="170">nothing to translate,</text>
+        <text class="a2cL" x="716" y="186">reload or prove</text>
+
+        <text class="a2cN" x="30" y="240">Retire first: each retired table takes translate, reload and prove off the plan for good.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a moved table costs five more steps of work; a retired table costs two reversible ones</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Two steps, each one reversible<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Step 1, stop and revoke, with a date.</strong> Stop the job that writes the table, revoke read access, leave the data where it is, and announce the date to everyone who ever read it. If someone shouts, you grant access back in minutes, and you have found a reader the log missed. <strong>Step 2, archive and drop.</strong> After an agreed quiet period with no complaint, copy the table to an archive outside the warehouse and drop it. Undoing that is a restore from the archive: slower, still possible.</p>
+        <p>Do both steps <em>before</em> the move, on the legacy warehouse. A table retired after cutover has already been translated, reloaded and proved for nothing. The length of the quiet period is a judgement nobody has published a number for; Serai uses a constructed 60 days, long enough to cover one monthly close and its reruns, and you should set yours from the slowest reporting cycle you know of.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why "no reads in 90 days" is where the conversation starts<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Ninety days is a window someone chose. It catches the daily and weekly readers and the monthly close; it misses anything read once a quarter, once a year, or once per audit. Serai's three retire candidates in Builder session 1 show the range: <code>mart.seller_scorecard_v1</code> is written every night and read by nothing, replaced by <code>scorecard_v2</code>, so the table and its job retire together; <code>mart.region_sales_2019</code> was last read by an old export job, so the question is where that job sends its file; <code>tmp.orders_backup_2017</code> was read by an analyst in May, so you ask before you archive.</p>
+        <p>A wider window keeps more tables alive and makes the move bigger. A narrower one retires more and risks a quarterly report breaking. Neither is right by default. Pick the window from the slowest reader on your done sheet, write the choice into the inventory, and let each retire candidate's owner overrule it with a reason.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Scope belongs to the next session<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Tonight's statuses say what is read. They do not yet say how each table moves. Session 3 takes every "move" and "move as a dependency" row and decides whether it is lifted as it is, rebuilt for the target, or retired after all, and in which wave. Keep the two decisions apart: a table can be read every day and still deserve a rebuild rather than a straight copy.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A checklist beats a memory.</strong> Google's SRE book describes the launch checklist its launch coordination engineers use and reports that "The checklist proved to be a useful tool for ensuring reproducibly reliable launches." Retirement is a launch in reverse, and the two steps above are its checklist: who was told, which date, who can grant access back, where the archive lives. Write it once in the runbook and run it the same way for every table, so the third retirement is as careful as the first.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>The leader's inventory sheet</h2>
+      <span class="tag demo">★ 20 min · everyone builds</span>
+    </div>
+    <p class="lede">You need the status list from Builder session 1, or from whoever owns your warehouse's query log, and your done sheet from session 1. No list to hand? Build Serai's: 14 tables, of which 5 move, 6 move as a dependency and 3 are retire candidates. The sheet becomes runbook section 1, signed.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's inventory sheet as a hand-drawn grid of 14 tables with status, reader, signer and retire date. Five move: mart.orders_monthly, mart.orders_daily, mart.brand_review, mart.seller_scorecard_v2 and stg.orders, each with its reader and signer. Six move as a dependency: stg.reviews, three raw order exports, raw.reviews and ref.state_region, each named by what it feeds and signed by the data platform lead. Three retire candidates are highlighted: mart.seller_scorecard_v1, no reader, stop 2026-12-01; mart.region_sales_2019, read by an old export job, date set when its owner is found; tmp.orders_backup_2017, read by an analyst in May, stop 2026-12-01.">
+        <defs>
+          <filter id="a2dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a2dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a2dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a2dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a2dB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a2dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a2dH" x="30" y="26">SERAI'S INVENTORY SHEET · RUNBOOK SECTION 1</text>
+        <text class="a2dS" x="400" y="26">14 tables from Builder session 1 · roles and dates constructed</text>
+
+        <g filter="url(#a2dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="40" width="820" height="342" rx="12" transform="rotate(-0.15 440 211)" fill="#FFFFFF"/>
+          <rect x="34" y="316" width="812" height="62" rx="6" fill="#9CC3E6" stroke="none"/>
+          <path d="M30 70 L850 70"/>
+          <path d="M30 182 L850 182"/>
+          <path d="M30 314 L850 314"/>
+          <path d="M260 40 L260 382"/>
+          <path d="M410 40 L410 382"/>
+          <path d="M580 40 L580 382"/>
+          <path d="M720 40 L720 382"/>
+        </g>
+
+        <text class="a2dH" x="44" y="60">TABLE</text>
+        <text class="a2dH" x="272" y="60">STATUS</text>
+        <text class="a2dH" x="422" y="60">READER</text>
+        <text class="a2dH" x="592" y="60">SIGNER</text>
+        <text class="a2dH" x="732" y="60">RETIRE DATE</text>
+
+        <text class="a2dL" x="44" y="88">mart.orders_monthly</text>
+        <text class="a2dS" x="272" y="88">move</text>
+        <text class="a2dS" x="422" y="88">board pack, finance</text>
+        <text class="a2dS" x="592" y="88">finance director</text>
+        <text class="a2dS" x="732" y="88">-</text>
+        <text class="a2dL" x="44" y="110">mart.orders_daily</text>
+        <text class="a2dS" x="272" y="110">move</text>
+        <text class="a2dS" x="422" y="110">ops dashboard</text>
+        <text class="a2dS" x="592" y="110">head of operations</text>
+        <text class="a2dS" x="732" y="110">-</text>
+        <text class="a2dL" x="44" y="132">mart.brand_review</text>
+        <text class="a2dS" x="272" y="132">move</text>
+        <text class="a2dS" x="422" y="132">brand review dashboard</text>
+        <text class="a2dS" x="592" y="132">brand lead</text>
+        <text class="a2dS" x="732" y="132">-</text>
+        <text class="a2dL" x="44" y="154">mart.seller_scorecard_v2</text>
+        <text class="a2dS" x="272" y="154">move</text>
+        <text class="a2dS" x="422" y="154">analyst_1</text>
+        <text class="a2dS" x="592" y="154">analytics lead</text>
+        <text class="a2dS" x="732" y="154">-</text>
+        <text class="a2dL" x="44" y="176">stg.orders</text>
+        <text class="a2dS" x="272" y="176">move</text>
+        <text class="a2dS" x="422" y="176">analyst_2</text>
+        <text class="a2dS" x="592" y="176">analytics lead</text>
+        <text class="a2dS" x="732" y="176">-</text>
+
+        <text class="a2dL" x="44" y="199">stg.reviews</text>
+        <text class="a2dS" x="272" y="199">move as dependency</text>
+        <text class="a2dS" x="422" y="199">feeds brand_review</text>
+        <text class="a2dS" x="592" y="199">data platform lead</text>
+        <text class="a2dS" x="732" y="199">-</text>
+        <text class="a2dL" x="44" y="221">raw.orders_export_a</text>
+        <text class="a2dS" x="272" y="221">move as dependency</text>
+        <text class="a2dS" x="422" y="221">feeds stg.orders</text>
+        <text class="a2dS" x="592" y="221">data platform lead</text>
+        <text class="a2dS" x="732" y="221">-</text>
+        <text class="a2dL" x="44" y="243">raw.orders_export_b</text>
+        <text class="a2dS" x="272" y="243">move as dependency</text>
+        <text class="a2dS" x="422" y="243">feeds stg.orders</text>
+        <text class="a2dS" x="592" y="243">data platform lead</text>
+        <text class="a2dS" x="732" y="243">-</text>
+        <text class="a2dL" x="44" y="265">raw.orders_export_c</text>
+        <text class="a2dS" x="272" y="265">move as dependency</text>
+        <text class="a2dS" x="422" y="265">feeds stg.orders</text>
+        <text class="a2dS" x="592" y="265">data platform lead</text>
+        <text class="a2dS" x="732" y="265">-</text>
+        <text class="a2dL" x="44" y="287">raw.reviews</text>
+        <text class="a2dS" x="272" y="287">move as dependency</text>
+        <text class="a2dS" x="422" y="287">feeds stg.reviews</text>
+        <text class="a2dS" x="592" y="287">data platform lead</text>
+        <text class="a2dS" x="732" y="287">-</text>
+        <text class="a2dL" x="44" y="309">ref.state_region</text>
+        <text class="a2dS" x="272" y="309">move as dependency</text>
+        <text class="a2dS" x="422" y="309">feeds brand_review</text>
+        <text class="a2dS" x="592" y="309">data platform lead</text>
+        <text class="a2dS" x="732" y="309">-</text>
+
+        <text class="a2dL" x="44" y="334">mart.seller_scorecard_v1</text>
+        <text class="a2dB" x="272" y="334">retire candidate</text>
+        <text class="a2dL" x="422" y="334">nobody</text>
+        <text class="a2dL" x="592" y="334">data platform lead</text>
+        <text class="a2dB" x="732" y="334">stop 2026-12-01</text>
+        <text class="a2dL" x="44" y="354">mart.region_sales_2019</text>
+        <text class="a2dB" x="272" y="354">retire candidate</text>
+        <text class="a2dL" x="422" y="354">job:old_export</text>
+        <text class="a2dL" x="592" y="354">owner unknown</text>
+        <text class="a2dB" x="732" y="354">when owner found</text>
+        <text class="a2dL" x="44" y="374">tmp.orders_backup_2017</text>
+        <text class="a2dB" x="272" y="374">retire candidate</text>
+        <text class="a2dL" x="422" y="374">analyst_1, in May</text>
+        <text class="a2dL" x="592" y="374">analytics lead</text>
+        <text class="a2dB" x="732" y="374">stop 2026-12-01</text>
+
+        <text class="a2dN" x="30" y="406">Every row has a signer before the plan starts. "Owner unknown" is an open item, not a blank.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - fourteen rows, one status, one reader, one signer each, and a date or an open item on every retirement</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Start from the status list, not the table list.</strong> Ask the warehouse owner for one row per table with its status and the window used. For Serai, Builder session 1's five queries produce it over a constructed 90-day log ending 2026-11-15.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's statuses, from Builder session 1</span>move (5)                 mart.orders_monthly, mart.orders_daily, mart.brand_review,
+                         mart.seller_scorecard_v2, stg.orders
+move as dependency (6)   stg.reviews, raw.orders_export_a, raw.orders_export_b,
+                         raw.orders_export_c, raw.reviews, ref.state_region
+retire candidate (3)     mart.seller_scorecard_v1, mart.region_sales_2019,
+                         tmp.orders_backup_2017
+window                   90 days, ending 2026-11-15</div>
+      </div>
+      <div class="step">
+        <p><strong>Give every "move" row a reader.</strong> Name the dashboard, report or person, as the log shows it. Then check the done sheet from session 1 against this column: every number on it must land on a table here. Serai's finance close does not appear in the log, so add it by hand to <code>mart.orders_monthly</code> and note "reads an extract".</p>
+      </div>
+      <div class="step">
+        <p><strong>Give every "move as a dependency" row the table it feeds.</strong> Its reader is whatever is downstream. If a job-only table feeds nothing anyone reads, it is not a dependency: move it to the retire column and say why.</p>
+      </div>
+      <div class="step">
+        <p><strong>Name one signer per row.</strong> For numbers people read, the head of the team that reads them. For dependencies, whoever owns the platform, because their sign-off is that the tables feeding someone else's number are complete. Write a role and a name; a team name is not a signer.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's signers (roles constructed)</span>mart.orders_monthly        board pack, finance close (extract)   finance director
+mart.orders_daily          ops dashboard                         head of operations
+mart.brand_review          brand review dashboard                brand lead
+mart.seller_scorecard_v2   analyst_1                             analytics lead
+stg.orders                 analyst_2                             analytics lead
+6 dependency tables        feed the five above                   data platform lead</div>
+      </div>
+      <div class="step">
+        <p><strong>Date every retirement, in two steps.</strong> Stop-and-revoke date, quiet period, archive-and-drop date, and who can grant access back. A retire candidate whose owner is unknown gets "when owner found" and stays an open item.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's retirements (dates constructed)</span>mart.seller_scorecard_v1   stop and revoke 2026-12-01, retire job with it
+                           archive and drop after 60 quiet days
+mart.region_sales_2019     owner of job:old_export to be found first
+                           no date until then: open item
+tmp.orders_backup_2017     ask analyst_1; stop and revoke 2026-12-01
+                           archive and drop after 60 quiet days</div>
+      </div>
+      <div class="step">
+        <p><strong>Write the steering sentence and read it to whoever approves the move.</strong></p>
+        <div class="prompt-box good"><span class="label">★ The steering sentence</span>We plan the move from what is read, not from what exists. Every table on
+the inventory has a status, a reader and a named signer, and every number
+on the done sheet traces to one of them. Retire candidates are stopped and
+revoked on a dated plan before the move begins, and nothing is dropped
+without an archive.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">The inventory that plans the wrong move</span>
+Scope: migrate all 214 tables and 38 dashboards like for like, so that
+nothing is lost. Clean-up of unused objects to follow after go-live.
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 3</h2>
+      <span class="tag exercise">25 min</span>
+    </div>
+    <ol>
+      <li>Ask your warehouse owner for three numbers: tables that exist, tables read at least once in the last 90 days, and dashboards with no viewer in the same window. Write down the window they used.</li>
+      <li>Take every number on your done sheet and trace it to one table. Mark any number you cannot trace: that is a reader the log does not see.</li>
+      <li>Name one signer for each number on the done sheet, as a role and a person. If two people claim a number, decide which one signs and write why.</li>
+      <li>Pick one retire candidate and write its two-step retirement: who is told, the stop-and-revoke date, the quiet period and where the archive goes.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 2 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Serai's warehouse holds 214 tables. Why does the plan start from the 131 read in 90 days, and then from who read them, rather than from the 214?</p>
+      <button class="qopt" type="button">A · Because the other 83 tables are certainly safe to drop</button>
+      <button class="qopt" type="button">B · Because reads are cheaper to count than tables</button>
+      <button class="qopt" type="button">C · Because the move is sized by what someone depends on, and only reads show that; existence alone shows nothing</button>
+      <button class="qopt" type="button">D · Because vendors charge by the number of tables read</button>
+      <p class="qwhy">A table that exists but is never read costs a translation, a reload and a parity proof for no reader. The 83 are retire candidates to confirm with owners, not tables to drop tonight, which is why A is wrong.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · No person or dashboard read <code>ref.state_region</code> in 90 days; only a job did. What does the inventory say?</p>
+      <button class="qopt" type="button">A · Move as a dependency: the job reads it to build mart.brand_review, which the brand review dashboard reads</button>
+      <button class="qopt" type="button">B · Retire candidate: nobody reads it</button>
+      <button class="qopt" type="button">C · Move it first, because reference tables never change</button>
+      <button class="qopt" type="button">D · Leave it on the legacy warehouse and query it across systems</button>
+      <p class="qwhy">A table earns its move through what is downstream of it. Retire it and the brand review dashboard's numbers break on cutover day, which is the failure the inventory exists to prevent.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Why is "no read in the last 90 days" a judgement rather than a fact about a table?</p>
+      <button class="qopt" type="button">A · Because query logs are usually inaccurate</button>
+      <button class="qopt" type="button">B · Because 90 days is the industry standard, but some firms use 60</button>
+      <button class="qopt" type="button">C · Because dashboards are not recorded in query logs</button>
+      <button class="qopt" type="button">D · Because someone chose the window, and it misses anything read quarterly, yearly or outside the warehouse</button>
+      <p class="qwhy">The window is a choice that trades the size of the move against the risk of breaking a slow reader. There is no published standard window, so pick it from the slowest reader you know and let each owner overrule it with a reason.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Inventory from a query log: reads, readers, lineage, retire candidates</span><span class="note">Taught as a method; the 14-table statuses are run in DuckDB in Builder session 1 on a constructed log</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Discovery and assessment before the plan</span><span class="note">Google Cloud blog (2019) on migrating data warehouses, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB's 2018 migration and the 2022 fine</span><span class="note">Bank of England release (2022) and TSB's release on its independent review, read at source; the review's own text is not quoted</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Checklists for repeatable launches</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's estate size, readers, signers, window and dates</span><span class="note">Constructed for the case; no published share of unread tables and no standard window or quiet period exists to cite</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Count reads, not tables</b><span>Serai (constructed): 214 exist, 131 read, 83 never read in 90 days.</span></div>
+      <div class="cheat-item"><b>A job is not a reader</b><span>Job-only tables move only if they feed something people read.</span></div>
+      <div class="cheat-item"><b>One signer per number</b><span>A named person, chosen before any diff, never a committee.</span></div>
+      <div class="cheat-item"><b>Two directions must meet</b><span>Log up, done sheet down. An untraced number is the riskiest row.</span></div>
+      <div class="cheat-item"><b>Retire before you move</b><span>No translate, no reload, no proof. Stop and revoke, then archive and drop.</span></div>
+      <div class="cheat-item"><b>The window is a judgement</b><span>Set it from the slowest reader, write it down, let owners overrule.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You know what you own, who reads it and what retires first. Session 3 decides how everything else moves: lift it as it is, rebuild it for the target, or retire it after all, and in what order, including the contested choice between one big switch and a phased move with a parallel run.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 2 of 6 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a1-why-migrations-break-the-numbers.html">← Prev: Why migrations break the numbers</a> &nbsp;·&nbsp; <a href="a3-lift-rebuild-or-retire.html">Next: Sequence and scope: lift, rebuild or retire →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

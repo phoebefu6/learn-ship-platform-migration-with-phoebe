@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 2 of 10. Turn the lineage edges from the query log into an order of moves: sources and sinks, a recursive walk that gives every table its wave, a cycle guard, and retirements first. Built in DuckDB on Serai Commerce's constructed graph.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The dependency graph and the order of moves - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 2 of 10. Eleven edges, one recursive CTE, and a wave for every table: the order a careful team moves a warehouse in.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b2-the-dependency-graph.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The dependency graph and the order of moves - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 2 of 10. Retire first, then move in waves by depth, each wave proved before the next, in DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 2 · The dependency graph and the order of moves - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 2 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 2 of 10</div>
+    <h1>The dependency graph and <span class="accent">the order of moves</span></h1>
+    <p class="sub">Session 1 gave you eleven lineage edges and a status for every table. Tonight those edges become a plan. A table can only be proved in the new warehouse once everything it is built from is there and proved, so the order of moves is not a preference: it falls out of the graph. You will find the sources and sinks, write a recursive query that gives every table its wave, guard it against cycles, take the retirements out first, and check that no edge points backwards. In DuckDB, on Serai Commerce's constructed graph.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Intermediate</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone sequencing a move</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Graph, depth, waves</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: six queries</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Builder session 1 counted what is read and pulled the lineage out of the query log. Tonight is runbook section 2, <strong>the order of moves</strong>. The running case is a <strong>Constructed Serai Commerce example</strong>: the company, its warehouses and its graph are constructed for teaching, built on the same 14 tables and 11 edges as <a href="b1-inventory-from-the-query-log.html">Builder session 1</a>. The leader track makes the same call at the level of decisions in <a href="a3-lift-rebuild-or-retire.html">Leader session 3</a>; this page is the query that backs it.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 2, the order of moves: three retirements first, then wave 0 with 5 tables, wave 1 with 2, wave 2 with 3 and wave 3 with 1, each wave proved before the next starts. You will have run the recursive query that produced it, the cycle guard that protects it, and a check that all 11 edges point forward.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers nodes, edges, sources and sinks</span>
+      <h2>Read the edges as a graph</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">An edge list is already a graph. Every table is a node; every "read A, write B" query is an edge from A to B. Two counts per node, edges in and edges out, sort every table into a source, a sink or something in between, and that sorting is the first fact a move plan needs.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn flow from Serai's constructed edge list of 11 rows, through a step that counts edges in and edges out for every table, into three bins: 5 sources fed by nothing (the three order exports, raw.reviews and ref.state_region), 3 middle tables (stg.orders, stg.reviews, orders_daily), and 4 sinks that feed nothing (orders_monthly, brand_review and the two seller scorecards). Two tables from session 1 have no edge at all.">
+        <defs>
+          <filter id="b2aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="53" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b2aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b2aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b2aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b2aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b2aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b2aH" x="30" y="26">FROM AN EDGE LIST TO SOURCES, MIDDLES AND SINKS</text>
+        <text class="b2aS" x="430" y="26">Constructed Serai Commerce example · run in DuckDB below</text>
+
+        <g filter="url(#b2aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="250" height="222" rx="10" transform="rotate(-0.6 155 159)" fill="#F8F2E6"/>
+          <rect x="320" y="118" width="170" height="74" rx="10" transform="rotate(0.6 405 155)" fill="#FFFFFF"/>
+          <rect x="540" y="48" width="310" height="60" rx="10" transform="rotate(-0.4 695 78)" fill="#9CC3E6"/>
+          <rect x="540" y="128" width="310" height="60" rx="10" transform="rotate(0.4 695 158)" fill="#FFFFFF"/>
+          <rect x="540" y="208" width="310" height="60" rx="10" transform="rotate(-0.4 695 238)" fill="#FFFFFF"/>
+          <path d="M284 155 L314 155" marker-end="url(#b2aAr)"/>
+          <path d="M494 145 L534 84" marker-end="url(#b2aAr)"/>
+          <path d="M494 155 L534 158" marker-end="url(#b2aAr)"/>
+          <path d="M494 165 L534 232" marker-end="url(#b2aAr)"/>
+        </g>
+
+        <text class="b2aH" x="46" y="74">EDGES · 11 ROWS</text>
+        <text class="b2aS" x="46" y="96">source &gt; target</text>
+        <text class="b2aL" x="46" y="120">orders_export_a &gt; stg.orders</text>
+        <text class="b2aL" x="46" y="142">stg.orders &gt; orders_daily</text>
+        <text class="b2aL" x="46" y="164">orders_daily &gt; orders_monthly</text>
+        <text class="b2aL" x="46" y="186">state_region &gt; brand_review</text>
+        <text class="b2aS" x="46" y="210">and seven more</text>
+        <text class="b2aS" x="46" y="250">the same 11 rows as session 1's Q3</text>
+
+        <text class="b2aH" x="336" y="146">COUNT BOTH WAYS</text>
+        <text class="b2aS" x="336" y="166">fed_by: edges in</text>
+        <text class="b2aS" x="336" y="182">feeds: edges out</text>
+
+        <text class="b2aV" x="556" y="86">5</text>
+        <text class="b2aH" x="584" y="74">SOURCES · FED BY NOTHING</text>
+        <text class="b2aS" x="584" y="94" style="fill:#231C12">three exports, reviews, state_region</text>
+        <text class="b2aV" x="556" y="166">3</text>
+        <text class="b2aH" x="584" y="154">MIDDLE · FED AND FEEDING</text>
+        <text class="b2aS" x="584" y="174">stg.orders, stg.reviews, orders_daily</text>
+        <text class="b2aV" x="556" y="246">4</text>
+        <text class="b2aH" x="584" y="234">SINKS · FEED NOTHING</text>
+        <text class="b2aS" x="584" y="254">the four marts at the end of the line</text>
+
+        <text class="b2aN" x="30" y="296">12 tables appear in an edge. region_sales_2019 and orders_backup_2017 appear in none.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - two counts per table sort the graph into the things you move first and the things you move last</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Sources, sinks, and why direction matters<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A <strong>source</strong> has no edge coming in: nothing inside the warehouse builds it, so it is loaded from outside, here the three marketplace exports, the review feed and a reference table of states and regions. A <strong>sink</strong> has no edge going out: nothing inside the warehouse is built from it, so its only consumers are people and dashboards, or nobody. Everything else is in the middle.</p>
+        <table class="clean">
+          <thead><tr><th>Role</th><th>Serai's tables</th><th>What it means for the move</th></tr></thead>
+          <tbody>
+            <tr><td>Source</td><td>3 exports, <code>raw.reviews</code>, <code>ref.state_region</code></td><td>Can move first: it needs nothing else in the new warehouse to be built</td></tr>
+            <tr><td>Middle</td><td><code>stg.orders</code>, <code>stg.reviews</code>, <code>mart.orders_daily</code></td><td>Moves after its inputs, before its outputs</td></tr>
+            <tr><td>Sink</td><td><code>orders_monthly</code>, <code>brand_review</code>, both scorecards</td><td>Moves last, and is where people notice a wrong number</td></tr>
+          </tbody>
+        </table>
+        <p>Direction is the whole point. <code>stg.orders</code> is fed by three edges and feeds four. Move it before the exports and the new warehouse has nothing to build it from; move it after the marts and the marts have nothing to read.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The two tables with no edge at all<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><code>mart.region_sales_2019</code> and <code>tmp.orders_backup_2017</code> appear in the table list but in no edge: no query in the log both read one table and wrote another while touching them. A query that only reads a table produces no edge, which is why a node list built from edges alone has 12 tables, not 14. Always start the plan from the full table list, the same lesson as session 1's Q2, or the isolated tables silently drop out of the plan instead of being decided.</p>
+        <p>Isolated tables are often exactly the retire candidates. Both of these are. When an isolated table is read by people, it can move in any wave, because nothing depends on it and it depends on nothing in the warehouse.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A phased move means two warehouses running side by side for a while.</strong> Google Cloud's 2019 migration blog describes an iterative move in which "both your data warehouse and BigQuery can be actively used in parallel". Read it as a vendor claim about its own process. The graph is what makes that safe or unsafe: a table moved before its inputs has to be fed across systems, and every cross-system feed is one more thing to build, watch and later switch off.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers depth by recursive walk and cycle detection</span>
+      <h2>A wave is the longest path from a source</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Give every source depth 0. Walk each edge forward, adding 1. A table reachable by several paths keeps its deepest one, and that number is its wave: the earliest point at which every table it reads from has already moved.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 364" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn trace of the recursive walk over Serai's 11 constructed edges. Depth 0, the anchor: 5 rows, the five sources. Depth 1: 5 rows reaching stg.orders three times, stg.reviews, and brand_review through state_region. Depth 2: 13 rows reaching orders_daily, both scorecards and brand_review. Depth 3: 3 rows reaching orders_monthly. Depth 4: no new rows, so the recursion stops. brand_review is seen at depth 1 and depth 2; taking the maximum puts it in wave 2. A cycle guard skips any target already in the path and stops at depth 20.">
+        <defs>
+          <filter id="b2bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="59" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b2bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b2bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b2bB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b2bV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b2bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b2bH" x="30" y="26">THE RECURSIVE WALK, ONE ITERATION AT A TIME</text>
+
+        <g filter="url(#b2bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="600" height="52" rx="10" transform="rotate(-0.3 330 70)" fill="#F8F2E6"/>
+          <rect x="30" y="106" width="600" height="52" rx="10" transform="rotate(0.3 330 132)" fill="#FFFFFF"/>
+          <rect x="30" y="168" width="600" height="52" rx="10" transform="rotate(-0.3 330 194)" fill="#FFFFFF"/>
+          <rect x="30" y="230" width="600" height="52" rx="10" transform="rotate(0.3 330 256)" fill="#FFFFFF"/>
+          <rect x="30" y="294" width="600" height="38" rx="10" transform="rotate(-0.3 330 313)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="664" y="44" width="186" height="176" rx="12" transform="rotate(0.6 757 132)" fill="#9CC3E6"/>
+          <rect x="664" y="236" width="186" height="96" rx="12" transform="rotate(-0.6 757 284)" fill="#FFFFFF"/>
+          <path d="M634 140 L658 140" marker-end="url(#b2bAr)"/>
+          <path d="M634 190 L658 172" marker-end="url(#b2bAr)"/>
+        </g>
+
+        <text class="b2bH" x="46" y="66">DEPTH 0 · ANCHOR · 5 ROWS</text>
+        <text class="b2bS" x="46" y="86">the five sources: three exports, raw.reviews, ref.state_region</text>
+        <text class="b2bH" x="46" y="128">DEPTH 1 · 5 ROWS</text>
+        <text class="b2bS" x="46" y="148">stg.orders (3 paths), stg.reviews, brand_review via state_region</text>
+        <text class="b2bH" x="46" y="190">DEPTH 2 · 13 ROWS</text>
+        <text class="b2bS" x="46" y="210">orders_daily, scorecard_v1, scorecard_v2 (3 each), brand_review (4)</text>
+        <text class="b2bH" x="46" y="252">DEPTH 3 · 3 ROWS</text>
+        <text class="b2bS" x="46" y="272">orders_monthly, once per export path</text>
+        <text class="b2bH" x="46" y="318">DEPTH 4 · NO NEW ROWS, THE RECURSION STOPS</text>
+
+        <text class="b2bH" x="680" y="70">MAX(DEPTH) PER TABLE</text>
+        <text class="b2bS" x="680" y="98" style="fill:#231C12">brand_review is seen</text>
+        <text class="b2bS" x="680" y="116" style="fill:#231C12">at depth 1 and depth 2</text>
+        <text class="b2bV" x="680" y="150">wave = 2</text>
+        <text class="b2bB" x="680" y="180">after all three inputs</text>
+        <text class="b2bB" x="680" y="198">have moved</text>
+
+        <text class="b2bH" x="680" y="262">CYCLE GUARD</text>
+        <text class="b2bS" x="680" y="284">skip a target already</text>
+        <text class="b2bS" x="680" y="302">in the path; stop at</text>
+        <text class="b2bS" x="680" y="320">depth 20 regardless</text>
+
+        <text class="b2bN" x="30" y="354">Each row is one path from a source. A table's wave is its deepest path, never its first.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - 26 path rows in four iterations, folded into one wave per table by taking the maximum depth</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>How a recursive CTE walks a graph<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><code>WITH RECURSIVE</code> has two halves joined by <code>UNION ALL</code>. The <strong>anchor</strong> runs once and produces the starting rows: every source at depth 0, with a path holding just itself. The <strong>recursive half</strong> runs again and again, each time on only the rows the previous iteration produced, joining them to the edges and stepping one table forward. When an iteration produces no rows, the query stops and returns everything it collected.</p>
+        <p>On Serai's graph that is four productive iterations: 5, 5, 13 and 3 rows, 26 in all. Then <code>GROUP BY table_name</code> with <code>max(depth)</code> folds the paths back into one row per table. The walk carries the <code>path</code> as a list so you can see how it got there; that list also powers the cycle guard.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why the deepest path, not the shortest<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><code>mart.brand_review</code> reads <code>ref.state_region</code>, a source, so one path reaches it at depth 1. It also reads <code>stg.orders</code> and <code>stg.reviews</code>, which are themselves at depth 1, so other paths reach it at depth 2. Take the shortest and <code>brand_review</code> lands in wave 1, alongside the staging tables it reads. You would be proving a mart against inputs that have not been proved yet, and any difference could come from either. Take the deepest and it waits for wave 2, when everything under it is settled.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Cycles, and what a cycle tells you<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A cycle is a chain of edges that comes back to where it started: a monthly mart that writes a correction back into staging, say. A graph with a cycle has no valid order, because every table in the loop is waiting for another one. A recursive walk on a cycle never runs out of rows on its own. Two guards stop it: skip any target already in the current path, and cap the depth at a number far larger than any real chain. The build-along plants one bad edge and shows the guard catching it.</p>
+        <p>When you find a real cycle, the query cannot fix it. Someone has to decide which edge is the feedback, often a correction or a snapshot, and move that part of the loop as one unit or break the loop for the duration of the move. Write the decision into the runbook.</p>
+        <p>On a large estate, the number of paths can grow quickly, because every route to a table is a separate row. If the walk gets slow, the same waves come from repeatedly peeling off the tables with no remaining inputs, a method known as Kahn's algorithm; it reaches the same answer with one pass per wave.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Change goes out in a defined order.</strong> Google's SRE book says "Almost all updates to Google's services proceed gradually, according to a defined process". That chapter is about releasing software, not moving data, so it is an analogy, not evidence about warehouses. The habit carries across: the order is written down before the change starts, so that nobody chooses the next step under pressure, and a wave plan computed from the graph is that written order for a migration.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers retirements first and waves proved in order</span>
+      <h2>Retire first, then move in waves</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Take the three retire candidates out of the graph before you compute the waves. Then move wave 0, prove it, and only then start wave 1. The plan is short because the graph is honest.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn columns for Serai's constructed order of moves. Retire first: scorecard_v1, region_sales_2019, orders_backup_2017, revoke then drop. Wave 0: orders_export_a, b and c, raw.reviews, state_region. Wave 1: stg.orders, stg.reviews. Wave 2: orders_daily, brand_review, scorecard_v2. Wave 3: orders_monthly. Under each wave, a prove step must pass before the next column starts.">
+        <defs>
+          <filter id="b2cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b2cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b2cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b2cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b2cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b2cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b2cA" x="30" y="40">RETIRE FIRST · 3</text>
+        <text class="b2cA" x="228" y="40">WAVE 0 · 5</text>
+        <text class="b2cA" x="391" y="40">WAVE 1 · 2</text>
+        <text class="b2cA" x="554" y="40">WAVE 2 · 3</text>
+        <text class="b2cA" x="717" y="40">WAVE 3 · 1</text>
+
+        <g filter="url(#b2cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="170" height="198" rx="10" transform="rotate(-0.5 115 151)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="228" y="52" width="135" height="198" rx="10" transform="rotate(0.4 295 151)" fill="#F8F2E6"/>
+          <rect x="391" y="52" width="135" height="198" rx="10" transform="rotate(-0.4 458 151)" fill="#F8F2E6"/>
+          <rect x="554" y="52" width="135" height="198" rx="10" transform="rotate(0.4 621 151)" fill="#F8F2E6"/>
+          <rect x="717" y="52" width="135" height="198" rx="10" transform="rotate(-0.4 784 151)" fill="#F8F2E6"/>
+
+          <rect x="38" y="64" width="154" height="26" rx="6" transform="rotate(-1.5 115 77)" fill="#FFFFFF"/>
+          <rect x="38" y="98" width="154" height="26" rx="6" transform="rotate(1.2 115 111)" fill="#FFFFFF"/>
+          <rect x="38" y="132" width="154" height="26" rx="6" transform="rotate(-1 115 145)" fill="#FFFFFF"/>
+
+          <rect x="236" y="64" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="236" y="98" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="236" y="132" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="236" y="166" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="236" y="200" width="119" height="26" rx="6" fill="#FFFFFF"/>
+
+          <rect x="399" y="64" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="399" y="98" width="119" height="26" rx="6" fill="#FFFFFF"/>
+
+          <rect x="562" y="64" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="562" y="98" width="119" height="26" rx="6" fill="#FFFFFF"/>
+          <rect x="562" y="132" width="119" height="26" rx="6" fill="#FFFFFF"/>
+
+          <rect x="725" y="64" width="119" height="26" rx="6" fill="#FFFFFF"/>
+
+          <rect x="40" y="264" width="150" height="28" rx="14" fill="#FFFFFF"/>
+          <rect x="238" y="264" width="115" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="401" y="264" width="115" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="564" y="264" width="115" height="28" rx="14" fill="#9CC3E6"/>
+          <rect x="727" y="264" width="115" height="28" rx="14" fill="#9CC3E6"/>
+          <path d="M193 278 L232 278" marker-end="url(#b2cAr)"/>
+          <path d="M356 278 L395 278" marker-end="url(#b2cAr)"/>
+          <path d="M519 278 L558 278" marker-end="url(#b2cAr)"/>
+          <path d="M682 278 L721 278" marker-end="url(#b2cAr)"/>
+        </g>
+
+        <text class="b2cL" x="48" y="81">scorecard_v1</text>
+        <text class="b2cL" x="48" y="115">region_sales_2019</text>
+        <text class="b2cL" x="48" y="149">orders_backup_2017</text>
+
+        <text class="b2cL" x="244" y="81">orders_export_a</text>
+        <text class="b2cL" x="244" y="115">orders_export_b</text>
+        <text class="b2cL" x="244" y="149">orders_export_c</text>
+        <text class="b2cL" x="244" y="183">raw.reviews</text>
+        <text class="b2cL" x="244" y="217">state_region</text>
+
+        <text class="b2cL" x="407" y="81">stg.orders</text>
+        <text class="b2cL" x="407" y="115">stg.reviews</text>
+
+        <text class="b2cL" x="570" y="81">orders_daily</text>
+        <text class="b2cL" x="570" y="115">brand_review</text>
+        <text class="b2cL" x="570" y="149">scorecard_v2</text>
+
+        <text class="b2cL" x="733" y="81">orders_monthly</text>
+
+        <text class="b2cL" x="56" y="282">revoke, then drop</text>
+        <text class="b2cB" x="254" y="282">prove wave 0</text>
+        <text class="b2cB" x="417" y="282">prove wave 1</text>
+        <text class="b2cB" x="580" y="282">prove wave 2</text>
+        <text class="b2cB" x="743" y="282">prove wave 3</text>
+
+        <text class="b2cN" x="30" y="322">A wave starts only when every table it reads from has moved and passed parity.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - retirements leave the graph before the waves are computed, and every wave has a gate</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why retirements go first<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Leave <code>mart.seller_scorecard_v1</code> in the graph and the walk puts it in wave 2 with four tables instead of three: one more table to translate in session 3, reload in session 6 and prove in sessions 4 and 5, for a mart nobody reads. Take it out first and wave 2 shrinks. The other two retire candidates have no edges, so removing them changes no wave, but it does remove them from every later checklist.</p>
+        <p>Retiring first does not mean dropping first. Use the two steps from session 1: stop writing and revoke reads with a date announced, then archive and drop after a quiet period. The first step is enough to take a table out of the move.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Each wave proved before the next<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A wave is done when its tables are loaded in the new warehouse and pass the parity checks you build in sessions 4 and 5 against the legacy copies. Only then does the next wave start reading them. If wave 1 fails parity, the fault is in wave 1's two tables, because wave 0 already passed. Prove all eleven at the end instead and every difference could have come from anywhere upstream.</p>
+        <p>Waves set the order, not the calendar. How long each wave runs in parallel with legacy, and how long the whole parallel run lasts, is contested: no source gives a number. Session 7 takes that up; Serai's four weeks there is constructed.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Waves or one switch: a real disagreement<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A wave plan is a phased move. The alternative is a single switch: build everything in the new warehouse, prove it as a whole, and move every reader on one day. The vendor guides recommend iterating; the case for one switch is that it avoids months of two systems feeding each other. The Bank of England fined TSB "a total of £48,650,000" in 2022 and found it "failed to organise and control the IT migration programme adequately", after a single large switch in 2018. One case is not a base rate, and nobody has published how often either approach fails. Even if your team chooses one switch, the waves still tell you the order to build and prove in before the day comes.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Done is checked per iteration.</strong> Google Cloud's 2019 migration blog says: "At the end of each iteration, validate that the use case was successfully migrated according to your definition of done." Read it as a vendor claim. A wave with a proof gate is that sentence turned into a schedule, and the definition of done is the one the leader track signs in <a href="a1-why-migrations-break-the-numbers.html">Leader session 1</a>.</p>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Two graphs, two owners.</strong> The orchestrator's DAG decides when jobs run each night; the dependency graph on this page decides the order tables move once. They are built from the same edges and answer different questions. Scheduling DAGs belong to the <a href="https://phoebefu6.github.io/learn-data-orchestration-with-phoebe/courses/02-from-cron-to-dag.html">Data Orchestration course, session 2</a>; this page owns only the order of moves.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Six queries, one order of moves</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Paste the setup once, then run the six queries in order. Every output below is what DuckDB printed on this exact graph.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six hand-drawn query boxes, roles, waves, why the maximum, cycle guard, retire then waves, and order check, feeding runbook section 2, the order of moves: retire 3, wave 0 has 5 tables, wave 1 has 2, wave 2 has 3, wave 3 has 1, and 11 of 11 edges point forward.">
+        <defs>
+          <filter id="b2dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b2dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b2dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b2dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b2dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b2dH" x="30" y="26">SIX QUERIES BUILD RUNBOOK SECTION 2</text>
+
+        <g filter="url(#b2dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="260" height="58" rx="10" transform="rotate(-0.6 160 73)" fill="#FFFFFF"/>
+          <rect x="310" y="44" width="260" height="58" rx="10" transform="rotate(0.5 440 73)" fill="#FFFFFF"/>
+          <rect x="590" y="44" width="260" height="58" rx="10" transform="rotate(-0.5 720 73)" fill="#FFFFFF"/>
+          <rect x="30" y="126" width="260" height="58" rx="10" transform="rotate(0.5 160 155)" fill="#FFFFFF"/>
+          <rect x="310" y="126" width="260" height="58" rx="10" transform="rotate(-0.5 440 155)" fill="#FFFFFF"/>
+          <rect x="590" y="126" width="260" height="58" rx="10" transform="rotate(0.6 720 155)" fill="#FFFFFF"/>
+          <path d="M160 104 L160 120" marker-end="url(#b2dAr)"/>
+          <path d="M440 104 L440 120" marker-end="url(#b2dAr)"/>
+          <path d="M720 104 L720 120" marker-end="url(#b2dAr)"/>
+          <path d="M160 186 L160 206" marker-end="url(#b2dAr)"/>
+          <path d="M440 186 L440 206" marker-end="url(#b2dAr)"/>
+          <path d="M720 186 L720 206" marker-end="url(#b2dAr)"/>
+          <rect x="30" y="212" width="820" height="64" rx="12" transform="rotate(-0.2 440 244)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b2dH" x="46" y="68">Q1 ROLES</text>
+        <text class="b2dS" x="46" y="88">sources 5, middle 3, sinks 4</text>
+        <text class="b2dH" x="326" y="68">Q2 WAVES</text>
+        <text class="b2dS" x="326" y="88">recursive walk, max depth</text>
+        <text class="b2dH" x="606" y="68">Q3 WHY THE MAXIMUM</text>
+        <text class="b2dS" x="606" y="88">brand_review at depth 1 and 2</text>
+        <text class="b2dH" x="46" y="150">Q4 CYCLE GUARD</text>
+        <text class="b2dS" x="46" y="170">plant one bad edge, catch it</text>
+        <text class="b2dH" x="326" y="150">Q5 RETIRE, THEN WAVES</text>
+        <text class="b2dS" x="326" y="170">the plan, in order</text>
+        <text class="b2dH" x="606" y="150">Q6 ORDER CHECK</text>
+        <text class="b2dS" x="606" y="170">11 of 11 edges point forward</text>
+
+        <text class="b2dH" x="50" y="238">RUNBOOK SECTION 2, THE ORDER OF MOVES</text>
+        <text class="b2dV" x="50" y="264">retire 3 · wave 0: 5 · wave 1: 2 · wave 2: 3 · wave 3: 1</text>
+
+        <text class="b2dN" x="30" y="300">Every wave traces back to a query you ran. Nobody's sense of what feels upstream goes in the runbook.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - from eleven edges to a numbered plan, with a check that the plan never points backwards</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the graph.</strong> The 11 edges are exactly what session 1's Q3 returns on the constructed log; if you still have that session open, <code>CREATE TABLE edges AS</code> its Q3 gives the same rows. The <code>retire</code> table holds session 1's three retire candidates.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE edges AS SELECT * FROM (VALUES
+ ('raw.orders_export_a','stg.orders'),
+ ('raw.orders_export_b','stg.orders'),
+ ('raw.orders_export_c','stg.orders'),
+ ('raw.reviews','stg.reviews'),
+ ('stg.orders','mart.orders_daily'),
+ ('mart.orders_daily','mart.orders_monthly'),
+ ('stg.orders','mart.brand_review'),
+ ('stg.reviews','mart.brand_review'),
+ ('ref.state_region','mart.brand_review'),
+ ('stg.orders','mart.seller_scorecard_v2'),
+ ('stg.orders','mart.seller_scorecard_v1')
+) e(source, target);
+
+CREATE OR REPLACE TABLE retire AS SELECT * FROM (VALUES
+ ('mart.seller_scorecard_v1'),('mart.region_sales_2019'),('tmp.orders_backup_2017')
+) r(table_name);</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, sources, middles and sinks.</strong> Count edges in and out for every node. Twelve rows: five sources, three in the middle, four sinks.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · roles</span>WITH nodes AS (SELECT source AS n FROM edges UNION SELECT target FROM edges)
+SELECT n AS table_name,
+       (SELECT count(*) FROM edges WHERE target = n) AS fed_by,
+       (SELECT count(*) FROM edges WHERE source = n) AS feeds,
+       CASE WHEN (SELECT count(*) FROM edges WHERE target = n) = 0 THEN 'source'
+            WHEN (SELECT count(*) FROM edges WHERE source = n) = 0 THEN 'sink'
+            ELSE 'middle' END AS role
+FROM nodes
+ORDER BY role DESC, table_name;
+-- source: the 3 exports, raw.reviews, ref.state_region (fed_by 0, feeds 1)
+-- sink:   mart.brand_review 3 | 0, orders_monthly 1 | 0, scorecard_v1 1 | 0, scorecard_v2 1 | 0
+-- middle: mart.orders_daily 1 | 1, stg.orders 3 | 4, stg.reviews 1 | 1   (12 rows)</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, the wave of every table.</strong> The anchor picks the sources; the recursive half steps one edge forward and refuses to revisit a table already in the path. <code>paths_seen</code> shows how many routes reach each table.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · recursive walk</span>WITH RECURSIVE walk(table_name, depth, path) AS (
+  SELECT source, 0, [source]
+  FROM edges
+  WHERE source NOT IN (SELECT target FROM edges)
+  UNION ALL
+  SELECT e.target, w.depth + 1, list_append(w.path, e.target)
+  FROM walk w
+  JOIN edges e ON e.source = w.table_name
+  WHERE NOT list_contains(w.path, e.target)
+    AND w.depth &lt; 20
+)
+SELECT table_name, max(depth) AS wave, count(*) AS paths_seen
+FROM walk
+GROUP BY table_name
+ORDER BY wave, table_name;
+-- wave 0: the 5 sources, 1 path each
+-- wave 1: stg.orders 3, stg.reviews 1
+-- wave 2: mart.brand_review 5, orders_daily 3, scorecard_v1 3, scorecard_v2 3
+-- wave 3: mart.orders_monthly 3   (12 rows)</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, why the maximum.</strong> List every path that reaches <code>mart.brand_review</code>. One reaches it at depth 1; four at depth 2. The maximum is the wave.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · every path to one table</span>WITH RECURSIVE walk(table_name, depth, path) AS (
+  SELECT source, 0, [source]
+  FROM edges
+  WHERE source NOT IN (SELECT target FROM edges)
+  UNION ALL
+  SELECT e.target, w.depth + 1, list_append(w.path, e.target)
+  FROM walk w
+  JOIN edges e ON e.source = w.table_name
+  WHERE NOT list_contains(w.path, e.target) AND w.depth &lt; 20
+)
+SELECT depth, array_to_string(path, ' &gt; ') AS path
+FROM walk
+WHERE table_name = 'mart.brand_review'
+ORDER BY depth, path;
+-- 1 | ref.state_region &gt; mart.brand_review
+-- 2 | raw.orders_export_a &gt; stg.orders &gt; mart.brand_review
+-- 2 | raw.orders_export_b &gt; stg.orders &gt; mart.brand_review
+-- 2 | raw.orders_export_c &gt; stg.orders &gt; mart.brand_review
+-- 2 | raw.reviews &gt; stg.reviews &gt; mart.brand_review</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, the cycle guard catching a bad edge.</strong> Plant a constructed edge from the monthly mart back into staging, walk again with a <code>cycle</code> flag that marks a step onto a table already in the path, and list the loops. Then delete the bad edge.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · plant, detect, remove</span>INSERT INTO edges VALUES ('mart.orders_monthly', 'stg.orders');
+
+WITH RECURSIVE walk(table_name, depth, path, cycle) AS (
+  SELECT source, 0, [source], false
+  FROM edges
+  WHERE source NOT IN (SELECT target FROM edges)
+  UNION ALL
+  SELECT e.target, w.depth + 1, list_append(w.path, e.target),
+         list_contains(w.path, e.target)
+  FROM walk w
+  JOIN edges e ON e.source = w.table_name
+  WHERE NOT w.cycle AND w.depth &lt; 20
+)
+SELECT array_to_string(path, ' &gt; ') AS cycle_path
+FROM walk
+WHERE cycle
+ORDER BY cycle_path;
+-- raw.orders_export_a &gt; stg.orders &gt; mart.orders_daily &gt; mart.orders_monthly &gt; stg.orders
+-- raw.orders_export_b &gt; stg.orders &gt; mart.orders_daily &gt; mart.orders_monthly &gt; stg.orders
+-- raw.orders_export_c &gt; stg.orders &gt; mart.orders_daily &gt; mart.orders_monthly &gt; stg.orders
+
+DELETE FROM edges WHERE source = 'mart.orders_monthly' AND target = 'stg.orders';</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, retire first, then the waves.</strong> Drop every edge that touches a retire candidate, walk what is left, and roll the result up. This is runbook section 2.</p>
+        <div class="prompt-box good"><span class="label">★ Q5 · the order of moves</span>WITH RECURSIVE live AS (
+  SELECT * FROM edges
+  WHERE source NOT IN (SELECT table_name FROM retire)
+    AND target NOT IN (SELECT table_name FROM retire)
+),
+walk(table_name, depth, path) AS (
+  SELECT source, 0, [source]
+  FROM live
+  WHERE source NOT IN (SELECT target FROM live)
+  UNION ALL
+  SELECT e.target, w.depth + 1, list_append(w.path, e.target)
+  FROM walk w
+  JOIN live e ON e.source = w.table_name
+  WHERE NOT list_contains(w.path, e.target) AND w.depth &lt; 20
+),
+waves AS (SELECT table_name, max(depth) AS wave FROM walk GROUP BY table_name),
+plan AS (
+  SELECT 'retire first' AS step, count(*) AS tables,
+         string_agg(table_name, ', ' ORDER BY table_name) AS which
+  FROM retire
+  UNION ALL
+  SELECT 'wave ' || wave, count(*), string_agg(table_name, ', ' ORDER BY table_name)
+  FROM waves
+  GROUP BY wave
+)
+SELECT * FROM plan
+ORDER BY step &lt;&gt; 'retire first', step;
+-- retire first | 3 | mart.region_sales_2019, mart.seller_scorecard_v1, tmp.orders_backup_2017
+-- wave 0       | 5 | raw.orders_export_a, raw.orders_export_b, raw.orders_export_c, raw.reviews, ref.state_region
+-- wave 1       | 2 | stg.orders, stg.reviews
+-- wave 2       | 3 | mart.brand_review, mart.orders_daily, mart.seller_scorecard_v2
+-- wave 3       | 1 | mart.orders_monthly</div>
+      </div>
+      <div class="step">
+        <p><strong>Q6, check the order.</strong> Join every edge to the waves at both ends. A correct plan has every edge going from a lower wave to a higher one; a single backward or flat edge means something moves before its input.</p>
+        <div class="prompt-box good"><span class="label">★ Q6 · no edge points backwards</span>WITH RECURSIVE walk(table_name, depth, path) AS (
+  SELECT source, 0, [source]
+  FROM edges
+  WHERE source NOT IN (SELECT target FROM edges)
+  UNION ALL
+  SELECT e.target, w.depth + 1, list_append(w.path, e.target)
+  FROM walk w
+  JOIN edges e ON e.source = w.table_name
+  WHERE NOT list_contains(w.path, e.target) AND w.depth &lt; 20
+),
+waves AS (SELECT table_name, max(depth) AS wave FROM walk GROUP BY table_name)
+SELECT count(*) AS edges,
+       count(*) FILTER (WHERE s.wave &lt; t.wave) AS forward,
+       count(*) FILTER (WHERE s.wave &gt;= t.wave) AS backward_or_flat
+FROM edges e
+JOIN waves s ON s.table_name = e.source
+JOIN waves t ON t.table_name = e.target;
+-- edges 11 | forward 11 | backward_or_flat 0</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Note the ORDER BY in Q5.</strong> DuckDB refused <code>ORDER BY step &lt;&gt; 'retire first', step</code> written directly after a <code>UNION ALL</code>, because an expression there must appear in the select list. Wrapping the union in a CTE named <code>plan</code> and sorting the outer <code>SELECT</code> fixes it. The binder error is worth seeing once; other engines may phrase or enforce the rule differently, so check yours.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 3</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Run session 1's Q3 on a week of your own query history to get your edges, load them into <code>edges</code>, and run Q1. Write down how many sources, middles and sinks you have. Your numbers will differ.</li>
+      <li>Run Q4's walk on your own edges. If it finds a cycle, write down which edge you believe is the feedback, and who would have to agree.</li>
+      <li>In Q6's <code>waves</code> CTE, change <code>max(depth)</code> to <code>min(depth)</code> and run it on tonight's graph. Find the edges that stop pointing forward, and write down why.</li>
+      <li>Add your own retire candidates to <code>retire</code>, run Q5, and count how many tables each retirement removes from the later waves.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 2 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · <code>mart.brand_review</code> is reached at depth 1 through <code>ref.state_region</code> and at depth 2 through both staging tables. Which wave does it belong in?</p>
+      <button class="qopt" type="button">A · Wave 1, because the first path that reaches it is the one that counts</button>
+      <button class="qopt" type="button">B · Wave 2, because it has to wait until every table it reads has moved and been proved</button>
+      <button class="qopt" type="button">C · Wave 0, because it reads a source directly</button>
+      <button class="qopt" type="button">D · Wave 3, because marts always move last</button>
+      <p class="qwhy">A wave is the longest path from a source. With the shortest path, brand_review would move alongside the staging tables it reads, and a difference in it could come from either side.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · What does <code>NOT list_contains(w.path, e.target)</code> do in the recursive half of Q2?</p>
+      <button class="qopt" type="button">A · It removes duplicate edges from the edge list</button>
+      <button class="qopt" type="button">B · It makes the walk return only the shortest path</button>
+      <button class="qopt" type="button">C · It skips tables that are retire candidates</button>
+      <button class="qopt" type="button">D · It stops a path from stepping onto a table it has already visited, so a cycle cannot make the walk loop forever</button>
+      <p class="qwhy">The path list is the walk's memory of where it has been. Together with the depth cap it guards against cycles; Q4 flips the same test into a flag so the loop is reported instead of silently cut.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Why take <code>mart.seller_scorecard_v1</code> out of the graph before computing the waves?</p>
+      <button class="qopt" type="button">A · Left in, it lands in wave 2 as one more table to translate, reload and prove, for a mart nobody reads</button>
+      <button class="qopt" type="button">B · A recursive CTE cannot walk through a table with no reader</button>
+      <button class="qopt" type="button">C · It creates a cycle with scorecard_v2</button>
+      <button class="qopt" type="button">D · Retired tables must always be moved first so they can be archived in the new warehouse</button>
+      <p class="qwhy">Every retirement shrinks every later step. scorecard_v1 is a sink with no reader, so removing it changes no other table's wave and saves its whole share of the work.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Dependency graph, waves by longest path, cycle detection</span><span class="note">Taught as a method; every output run in DuckDB on the constructed graph above</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Iterative migration and validation per iteration</span><span class="note">Google Cloud 2019 migration blog, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Change in a defined order</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", read at source; used as an analogy from software releases</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The cost of a badly controlled migration</span><span class="note">Bank of England on the TSB fine, 2022, read at source; one case, not a base rate</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Waves versus one switch</span><span class="note">Contested; both sides taught, no source settles it</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Scheduling DAGs and orchestration</span><span class="note">Owned by the Data Orchestration course; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Edges in, edges out</b><span>No edge in: source. No edge out: sink. Start from the full table list.</span></div>
+      <div class="cheat-item"><b>Wave = longest path</b><span>max(depth) from any source, never the first path found.</span></div>
+      <div class="cheat-item"><b>Anchor, then step</b><span>WITH RECURSIVE: sources at depth 0, UNION ALL one edge forward.</span></div>
+      <div class="cheat-item"><b>Guard every walk</b><span>Skip a target already in the path; cap the depth.</span></div>
+      <div class="cheat-item"><b>Retire, then compute</b><span>Remove retire candidates before the waves, not after.</span></div>
+      <div class="cheat-item"><b>Prove, then advance</b><span>A wave starts when every input has moved and passed parity.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You know what moves and in which order. Session 3 starts on wave 0's SQL: the dialect gaps in division, NULL, time zones and collation that change a number without raising an error.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 2 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b1-inventory-from-the-query-log.html">← Prev: Inventory from the query log</a> &nbsp;·&nbsp; <a href="b3-translate-the-sql.html">Next: Translate the SQL →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 4 of 10. Row and key parity between two warehouses: counts catch 1 of 5 planted defects, keys compared both ways catch 2, and three defects keep every key. Built in DuckDB on a constructed Serai Commerce pair with a duplicate, a missing key and a lower-cased key.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Row and key parity - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 4 of 10. Counts, then keys both ways: missing, extra, duplicated and unresolved, each found with one SQL query.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b4-row-and-key-parity.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Row and key parity - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 4 of 10. 12 rows on each side and still three faults: why a count is not parity, in DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 4 · Row and key parity - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 4 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 4 of 10</div>
+    <h1>Row and <span class="accent">key parity</span></h1>
+    <p class="sub">The first thing anyone checks after a load is the row count, and the first thing that lies is the row count. Tonight you check that the rows arrived the way a careful team does: counts first, then every key compared in both directions, then the copies per key, then the foreign keys that have to resolve on the other side. In DuckDB, on a small constructed pair where three faults are planted and the counts still agree.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Intermediate</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone who has to prove a load</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Counts, keys, blind spots</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: plant and find</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 counted what Serai reads, session 2 put the moves in order and session 3 made the SQL mean the same thing on both engines. Now the first wave has loaded, and the question changes from "will it run" to "did every row arrive, once, and still join". That is rungs 0 and 1 of the ladder that <a href="b10-the-parity-bench.html">Builder session 10's parity bench</a> scores: row counts, then keys. The running case is a <strong>Constructed Serai Commerce example</strong>: tonight's twelve-order pair is constructed, and the bench numbers quoted on this page come from the same 8,614 real Olist orders, derived and masked, with each drift planted alone. Checks on real rows inside one system belong to the <a href="https://phoebefu6.github.io/learn-testing-data-ml-code-with-phoebe/courses/03-data-checks.html">Testing Data and ML Code course's data checks session</a>; this side owns parity between two systems that should hold the same rows.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The first half of runbook section 4, the parity suite: one report row per table with rows on each side, keys missing, keys extra, duplicated keys on each side and unresolved foreign keys on each side. You will have run it on a pair where the counts say 12 and 12 and the report still finds three faults, and you will know which three bench defects it can never see.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers row counts between two systems</span>
+      <h2>One number per side</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A count is the cheapest comparison there is: one number from each warehouse. When the two differ, something is wrong, no argument. When they agree, almost nothing is proved.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 354" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn table of the seven drifts on the parity bench, each planted alone in the new warehouse, against the row count it produces. Late rows appended twice: 8,981 rows against 8,614, the count differs and the defect is caught. Fixed offset, missing review as 0, integer division and the case-sensitive join: 8,614 rows, equal, missed. Freight split per line and floating-point money, both accepted differences: 8,614 rows, equal and quiet. Rung 0 catches 1 of 5 defects, misses 4, with 0 false alarms.">
+        <defs>
+          <filter id="b4aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="53" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b4aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b4aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b4aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b4aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b4aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b4aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b4aR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b4aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b4aH" x="30" y="26">WHICH DRIFTS CHANGE A ROW COUNT</text>
+        <text class="b4aS" x="330" y="26">rung 0 on the bench · each drift planted alone · legacy holds 8,614 rows</text>
+
+        <text class="b4aA" x="46" y="56">drift planted in the new warehouse</text>
+        <text class="b4aA" x="520" y="56">rows in new</text>
+        <text class="b4aA" x="680" y="56">rung 0 says</text>
+
+        <g filter="url(#b4aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="66" width="820" height="28" rx="6" transform="rotate(-0.3 440 80)" fill="#9CC3E6"/>
+          <rect x="30" y="102" width="820" height="28" rx="6" transform="rotate(0.2 440 116)" fill="#FFFFFF"/>
+          <rect x="30" y="138" width="820" height="28" rx="6" transform="rotate(-0.2 440 152)" fill="#FFFFFF"/>
+          <rect x="30" y="174" width="820" height="28" rx="6" transform="rotate(0.3 440 188)" fill="#FFFFFF"/>
+          <rect x="30" y="210" width="820" height="28" rx="6" transform="rotate(-0.2 440 224)" fill="#FFFFFF"/>
+          <rect x="30" y="246" width="820" height="28" rx="6" transform="rotate(0.2 440 260)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+          <rect x="30" y="282" width="820" height="28" rx="6" transform="rotate(-0.3 440 296)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+        </g>
+
+        <text class="b4aL" x="46" y="85">Late rows appended twice</text>
+        <text class="b4aV" x="520" y="86">8,981</text>
+        <text class="b4aB" x="680" y="85">count differs: caught</text>
+
+        <text class="b4aL" x="46" y="121">Fixed -03:00 offset ignores daylight saving</text>
+        <text class="b4aL" x="520" y="121">8,614</text>
+        <text class="b4aR" x="680" y="121">equal: missed</text>
+
+        <text class="b4aL" x="46" y="157">Missing review score loaded as 0</text>
+        <text class="b4aL" x="520" y="157">8,614</text>
+        <text class="b4aR" x="680" y="157">equal: missed</text>
+
+        <text class="b4aL" x="46" y="193">Items per order by integer division</text>
+        <text class="b4aL" x="520" y="193">8,614</text>
+        <text class="b4aR" x="680" y="193">equal: missed</text>
+
+        <text class="b4aL" x="46" y="229">Case-sensitive customer-key join</text>
+        <text class="b4aL" x="520" y="229">8,614</text>
+        <text class="b4aR" x="680" y="229">equal: missed</text>
+
+        <text class="b4aL" x="46" y="265">Freight split per line (accepted difference)</text>
+        <text class="b4aL" x="520" y="265">8,614</text>
+        <text class="b4aS" x="680" y="265">equal: quiet, as it should be</text>
+
+        <text class="b4aL" x="46" y="301">Money summed as floating point (accepted)</text>
+        <text class="b4aL" x="520" y="301">8,614</text>
+        <text class="b4aS" x="680" y="301">equal: quiet, as it should be</text>
+
+        <text class="b4aN" x="30" y="336">1 of 5 defects caught, 4 missed, 0 false alarms: every drift but the late rows keeps 8,614 rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - only a drift that adds or loses rows can move a count, and four of the five defects do neither</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What a count can and cannot say<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>On the bench, the late feed appends 367 orders a second time and the count moves from 8,614 to 8,981. That is the one defect a count is built for: rows added or lost. The other four defects change a value, a day or a join, and leave every row in place, so the count is exactly equal and rung 0 scores 1 of 5.</p>
+        <p>A count also cannot tell you which rows. Lose one order and duplicate another and the totals agree. The bench plants each drift alone, so it never shows two faults cancelling; real loads do, and tonight's build-along is built that way on purpose. Read an equal count as "not obviously broken", never as "the same".</p>
+        <table class="clean">
+          <thead><tr><th>Count result</th><th>What it proves</th><th>What it does not prove</th></tr></thead>
+          <tbody>
+            <tr><td>Different</td><td>Rows were added or lost on one side</td><td>Which rows, or why</td></tr>
+            <tr><td>Equal</td><td>No net change in the number of rows</td><td>Same keys, same copies per key, same values</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Count the same thing on both sides<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most count mismatches on a first run are definition mismatches, not load faults. The legacy count filters delivered orders and the new one does not; one side excludes soft-deleted rows; a test row lives only in the new warehouse; the window ends at midnight UTC on one side and local midnight on the other. Write the count as SQL with its filter and window, run the identical text on both sides, and put that text in the runbook beside the result.</p>
+        <p>Count per table first, then per partition you will reload by, usually a month. A per-month count tells you where the difference is, which matters when Builder session 6 reloads history one window at a time. Counting per day already starts the daily comparison that Builder session 5 runs on every metric.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Readiness is only as good as what the tests could see.</strong> TSB's own release on the independent review of its 2018 migration says go-live "followed a long period of testing, with reports to the Board signalling readiness", and that the review raised "questions around how testing was carried out". In December 2022 the Bank of England fined TSB "a total of £48,650,000" and found it "failed to organise and control the IT migration programme adequately." Nothing here says which checks TSB ran. The lesson is the general one: a green report is a statement about the checks under it, so write down what each check can and cannot see.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers keys both ways, duplicates and foreign keys</span>
+      <h2>Keys, compared in both directions</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A key comparison answers the questions a count cannot: which keys are missing in new, which are extra in new, and which arrived more than once. One full outer join on the key sorts every row into one of four buckets.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn full outer join on order_id. Legacy holds keys o7, o8, o9 and o12; new holds o7, o8, o12 and o12 again. The join sorts them into four buckets: matched, o7 and o8; legacy only, o9, missing in new; new only, none here, which would be extra rows; duplicated, o12, with two copies in new and one in legacy. On the bench, rung 1 catches 2 of 5 defects with 0 false alarms: the late rows show as 367 duplicated keys, and the case-sensitive join leaves 1,767 customer keys unresolved in new and 0 in legacy, with no row lost.">
+        <defs>
+          <filter id="b4bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="59" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b4bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b4bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b4bL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b4bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b4bB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b4bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b4bH" x="30" y="26">A FULL OUTER JOIN ON THE KEY SORTS EVERY ROW</text>
+        <text class="b4bS" x="400" y="26">four keys from the build-along below, constructed</text>
+
+        <g filter="url(#b4bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="180" height="196" rx="10" transform="rotate(-0.5 120 144)" fill="#F8F2E6"/>
+          <rect x="50" y="84" width="120" height="26" rx="6" transform="rotate(1.5 110 97)" fill="#FFFFFF"/>
+          <rect x="50" y="120" width="120" height="26" rx="6" transform="rotate(-1.2 110 133)" fill="#FFFFFF"/>
+          <rect x="50" y="156" width="120" height="26" rx="6" transform="rotate(1 110 169)" fill="#FFFFFF"/>
+          <rect x="50" y="192" width="120" height="26" rx="6" transform="rotate(-1.5 110 205)" fill="#FFFFFF"/>
+
+          <rect x="670" y="46" width="180" height="196" rx="10" transform="rotate(0.5 760 144)" fill="#F8F2E6"/>
+          <rect x="690" y="84" width="120" height="26" rx="6" transform="rotate(-1.4 750 97)" fill="#FFFFFF"/>
+          <rect x="690" y="120" width="120" height="26" rx="6" transform="rotate(1.2 750 133)" fill="#FFFFFF"/>
+          <rect x="690" y="156" width="120" height="26" rx="6" transform="rotate(-1 750 169)" fill="#FFFFFF"/>
+          <rect x="690" y="192" width="120" height="26" rx="6" transform="rotate(1.6 750 205)" fill="#9CC3E6"/>
+
+          <rect x="270" y="46" width="340" height="40" rx="8" transform="rotate(-0.3 440 66)" fill="#FFFFFF"/>
+          <path d="M214 66 L264 66" marker-end="url(#b4bAr)"/>
+          <path d="M666 66 L616 66" marker-end="url(#b4bAr)"/>
+
+          <rect x="270" y="100" width="340" height="30" rx="6" transform="rotate(0.3 440 115)" fill="#FFFFFF"/>
+          <rect x="270" y="138" width="340" height="30" rx="6" transform="rotate(-0.3 440 153)" fill="#FFFFFF"/>
+          <rect x="270" y="176" width="340" height="30" rx="6" transform="rotate(0.3 440 191)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="270" y="214" width="340" height="30" rx="6" transform="rotate(-0.3 440 229)" fill="#9CC3E6"/>
+
+          <rect x="30" y="262" width="820" height="56" rx="10" transform="rotate(-0.2 440 290)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="b4bH" x="46" y="70">LEGACY</text>
+        <text class="b4bL" x="64" y="102">o7</text>
+        <text class="b4bL" x="64" y="138">o8</text>
+        <text class="b4bL" x="64" y="174">o9</text>
+        <text class="b4bL" x="64" y="210">o12</text>
+
+        <text class="b4bH" x="686" y="70">NEW</text>
+        <text class="b4bL" x="704" y="102">o7</text>
+        <text class="b4bL" x="704" y="138">o8</text>
+        <text class="b4bL" x="704" y="174">o12</text>
+        <text class="b4bB" x="704" y="210">o12 again</text>
+
+        <text class="b4bH" x="290" y="71">FULL OUTER JOIN ON order_id</text>
+
+        <text class="b4bL" x="286" y="120">matched</text>
+        <text class="b4bS" x="390" y="120">o7, o8: same copies both sides</text>
+        <text class="b4bL" x="286" y="158">legacy only</text>
+        <text class="b4bS" x="390" y="158">o9: missing in new</text>
+        <text class="b4bL" x="286" y="196">new only</text>
+        <text class="b4bS" x="390" y="196">none here: extra rows in new</text>
+        <text class="b4bB" x="286" y="234">duplicated</text>
+        <text class="b4bB" x="390" y="234">o12: 2 copies new, 1 legacy</text>
+
+        <text class="b4bH" x="46" y="284">ON THE BENCH, RUNG 1: 2 OF 5 DEFECTS CAUGHT, 0 FALSE ALARMS</text>
+        <text class="b4bS" x="46" y="306">late rows: 367 duplicated keys · case-sensitive join: 1,767 customer keys unresolved in new, 0 in legacy, no row lost</text>
+
+        <text class="b4bN" x="30" y="344">A left join finds only what is missing. Extra keys and copies per key need the full outer join.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - one join, four buckets, and the duplicate that a count would have hidden</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Four buckets from one join<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Group each side by its key first, so each key carries its number of copies, then full outer join the two grouped sides on the key. A key with no partner in new is <strong>missing</strong>; a key with no partner in legacy is <strong>extra</strong>; a key on both sides with a different number of copies is <strong>duplicated</strong> (or deduplicated, if legacy had the copies). Everything else is matched.</p>
+        <p>"Both directions" is the part people skip. A <code>LEFT JOIN</code> from legacy to new finds the missing keys and is blind to extras; a test row, a replayed batch or a stray partition only shows up from the other side. On the bench the late feed is the duplicated bucket: 367 duplicated keys, which is exactly the 8,981 minus 8,614 that the count saw, now with names attached.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The keys you join on, not just the key you load<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The case-sensitive drift adds no row and loses no row. Every order key matches. What breaks is the customer key: Export C writes its keys in lower case, the new warehouse joins case-sensitively, and on the bench 1,767 customer keys no longer resolve in new against 0 in legacy. No count and no order-key diff can see it. A foreign-key check can: for each side, count the rows whose customer key finds no customer.</p>
+        <p>Run it on both sides and compare, never on new alone. A legacy that already had unresolved keys is a fact to record, not a migration fault; the fault is the difference. This is the check that proves rule R4 from <a href="b3-translate-the-sql.html">Builder session 3</a> held on real rows.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>When a table has no key<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>AWS's Database Migration Service documentation, a vendor claim about its own product, says its validation "compares each row in the source with its corresponding row at the target, verifies the rows contain the same data, and reports any mismatches", and that "Data validation requires that the table has a primary key or unique index." Any key comparison has the same requirement. Event logs, append-only facts and old reporting extracts often have none.</p>
+        <p>Three honest options, in order of preference: find the natural key the business uses (order id plus line number), declare a composite key and first prove it is unique on legacy, or fall back to comparing aggregates per partition and write down that this table has no key-level check. Never invent a key from a row number: two loads number the same rows differently.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Two copies, different writes.</strong> GitHub's analysis of its 21 October 2018 incident describes connectivity "restored in 43 seconds", after which a database "contained writes that were not present in the other data center". The site ran with "degraded service for 24 hours and 11 minutes", and the team chose to "prioritize data integrity over site usability and time to recovery". A count would have said the two sides were close. Only a comparison by key says which rows each side holds.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers what keys cannot see</span>
+      <h2>Same keys, different numbers</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Rung 1 is clean when every key is present once on each side and every foreign key resolves. Three of the bench's five defects pass that test with every key intact, because they change a value or a day, not a row.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn comparison of one key and three values, from Builder session 3's six-order export. Order key o1 is o1 on both sides: keys equal, rung 1 passes. o1's order day is 2017-01-15 in legacy and 2017-01-14 in new under a fixed offset: missed. o3's review score is NULL in legacy and 0 in new: missed. Items per order over the six orders is 1.5 in legacy and 1 in new: missed. On the bench rung 1 misses the same three defects; the daily check of Builder session 5 finds them on 74, 63 and 427 days.">
+        <defs>
+          <filter id="b4cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b4cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b4cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b4cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b4cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b4cV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b4cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b4cR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b4cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b4cH" x="30" y="26">KEYS MATCH, VALUES DO NOT</text>
+        <text class="b4cS" x="300" y="26">values printed by Builder session 3's six-order export, constructed</text>
+
+        <text class="b4cA" x="46" y="56">what is compared</text>
+        <text class="b4cA" x="360" y="56">legacy</text>
+        <text class="b4cA" x="500" y="56">new</text>
+        <text class="b4cA" x="660" y="56">rung 1 says</text>
+
+        <g filter="url(#b4cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="66" width="820" height="34" rx="6" transform="rotate(-0.2 440 83)" fill="#FFFFFF"/>
+          <rect x="30" y="108" width="820" height="34" rx="6" transform="rotate(0.2 440 125)" fill="#FFFFFF"/>
+          <rect x="30" y="150" width="820" height="34" rx="6" transform="rotate(-0.2 440 167)" fill="#FFFFFF"/>
+          <rect x="30" y="192" width="820" height="34" rx="6" transform="rotate(0.2 440 209)" fill="#FFFFFF"/>
+          <rect x="650" y="71" width="180" height="24" rx="12" fill="#9CC3E6"/>
+          <rect x="650" y="113" width="180" height="24" rx="12" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="650" y="155" width="180" height="24" rx="12" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="650" y="197" width="180" height="24" rx="12" fill="#FEF2F2" stroke="#991B1B"/>
+        </g>
+
+        <text class="b4cL" x="46" y="87">order key</text>
+        <text class="b4cV" x="360" y="89">o1</text>
+        <text class="b4cV" x="500" y="89">o1</text>
+        <text class="b4cB" x="664" y="87">keys equal: pass</text>
+
+        <text class="b4cL" x="46" y="129">o1 order day, fixed offset in new</text>
+        <text class="b4cV" x="360" y="131">2017-01-15</text>
+        <text class="b4cV" x="500" y="131">2017-01-14</text>
+        <text class="b4cR" x="664" y="129">missed</text>
+
+        <text class="b4cL" x="46" y="171">o3 review score, empty loaded as 0</text>
+        <text class="b4cV" x="360" y="173">NULL</text>
+        <text class="b4cV" x="500" y="173">0</text>
+        <text class="b4cR" x="664" y="171">missed</text>
+
+        <text class="b4cL" x="46" y="213">items per order, all six orders</text>
+        <text class="b4cV" x="360" y="215">1.5</text>
+        <text class="b4cV" x="500" y="215">1</text>
+        <text class="b4cR" x="664" y="213">missed</text>
+
+        <text class="b4cN" x="30" y="254">On the bench rung 1 misses the same three: fixed offset, review as 0, integer division.</text>
+        <text class="b4cN" x="30" y="276">Builder session 5 compares the values: the daily check finds them on 74, 63 and 427 days.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a key check proves the rows are there, never that they say the same thing</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Three defects that keep every key<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The fixed -03:00 offset moves 72 orders to the day before; their keys are untouched. The missing review loaded as 0 turns 68 NULLs into zeros; same 8,614 orders. Integer division changes a metric, items per order, from 1.1427 to 1, without touching a row. All three sail through counts and keys, which is why rung 1 scores 2 of 5 with 3 missed, and why the suite cannot stop here.</p>
+        <p>Builder session 5 climbs the next rung: six metrics compared every day, exactly, then at the monthly grain against Serai's signed bar. Keep tonight's report anyway. When an aggregate moves, the key report tells you in seconds whether rows are the reason.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Comparing values per key: row hashing<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Between keys and aggregates sits a third option: hash each row's values on both sides and compare the hashes per key. Google's open-source Data Validation Tool lists row validation with SHA256 hashing beside column validation (count, sum, avg, min, max, stddev, group by), schema validation and custom-query validation. reladiff describes itself as "a fork of an archived project called data-diff" that uses "a divide-and-conquer algorithm, based on matching hashes, to efficiently identify modified segments"; the original data-diff repository was archived in May 2024. These are tool descriptions, fast-moving; re-verify before you rely on one.</p>
+        <p>Whether row hashing or aggregates is "enough" is genuinely contested. A hash finds the one changed row an aggregate can average away, and it needs a key and a careful definition of each value, because an exact hash also flags differences you have agreed to accept, such as floating-point sums, unless you round before hashing. Aggregates need no key and compare at the grain people read, and can let a single row slip. Which cost is worse, a missed row or a pile of alarms, is a business call for the bar's signer, not a tool setting.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The validation tools offer both, side by side.</strong> AWS DMS goes row by row and needs a key; Google's Data Validation Tool offers column aggregates and row hashes side by side. Read both as vendor claims about their own products. Neither decides which differences block a cutover. The tool reports differences; a person signs which ones matter, and that signature is runbook section 4.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Plant three faults, then find them</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Constructed Serai Commerce example: twelve orders in legacy, extending the six from Builder session 3's export, and a new side with three planted faults. Paste the setup once, then run the queries in order. Every output below is what DuckDB 1.5.3 printed on this exact pair.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn pair of key rows. Legacy holds orders o1 to o12, once each. New holds o1 to o8, then a gap where o9 should be, then o10, o11, and o12 twice; o3 and o5 carry the lower-case customer keys c1a7 and b22f. Four query boxes read the pair: Q1 counts 12 rows on each side; Q2 finds 1 key missing and 1 duplicated; Q3 names o12 with 2 copies; Q4 finds 0 unresolved customer keys in legacy and 2 in new. Q5 rolls them into one report row.">
+        <defs>
+          <filter id="b4dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b4dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b4dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b4dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b4dB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b4dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b4dR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b4dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b4dH" x="30" y="26">THE PLANTED PAIR, AND WHAT EACH QUERY SEES</text>
+
+        <text class="b4dH" x="30" y="70">LEGACY</text>
+        <text class="b4dH" x="30" y="120">NEW</text>
+
+        <g filter="url(#b4dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="150" y="52" width="46" height="26" rx="5" transform="rotate(-2 173 65)" fill="#FFFFFF"/>
+          <rect x="202" y="52" width="46" height="26" rx="5" transform="rotate(1.5 225 65)" fill="#FFFFFF"/>
+          <rect x="254" y="52" width="46" height="26" rx="5" transform="rotate(-1 277 65)" fill="#FFFFFF"/>
+          <rect x="306" y="52" width="46" height="26" rx="5" transform="rotate(2 329 65)" fill="#FFFFFF"/>
+          <rect x="358" y="52" width="46" height="26" rx="5" transform="rotate(-1.5 381 65)" fill="#FFFFFF"/>
+          <rect x="410" y="52" width="46" height="26" rx="5" transform="rotate(1 433 65)" fill="#FFFFFF"/>
+          <rect x="462" y="52" width="46" height="26" rx="5" transform="rotate(-2 485 65)" fill="#FFFFFF"/>
+          <rect x="514" y="52" width="46" height="26" rx="5" transform="rotate(1.5 537 65)" fill="#FFFFFF"/>
+          <rect x="566" y="52" width="46" height="26" rx="5" transform="rotate(-1 589 65)" fill="#FFFFFF"/>
+          <rect x="618" y="52" width="46" height="26" rx="5" transform="rotate(2 641 65)" fill="#FFFFFF"/>
+          <rect x="670" y="52" width="46" height="26" rx="5" transform="rotate(-1.5 693 65)" fill="#FFFFFF"/>
+          <rect x="722" y="52" width="46" height="26" rx="5" transform="rotate(1 745 65)" fill="#FFFFFF"/>
+
+          <rect x="150" y="102" width="46" height="26" rx="5" transform="rotate(1.5 173 115)" fill="#FFFFFF"/>
+          <rect x="202" y="102" width="46" height="26" rx="5" transform="rotate(-1 225 115)" fill="#FFFFFF"/>
+          <rect x="254" y="102" width="46" height="26" rx="5" transform="rotate(2 277 115)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="306" y="102" width="46" height="26" rx="5" transform="rotate(-1.5 329 115)" fill="#FFFFFF"/>
+          <rect x="358" y="102" width="46" height="26" rx="5" transform="rotate(1 381 115)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="410" y="102" width="46" height="26" rx="5" transform="rotate(-2 433 115)" fill="#FFFFFF"/>
+          <rect x="462" y="102" width="46" height="26" rx="5" transform="rotate(1.5 485 115)" fill="#FFFFFF"/>
+          <rect x="514" y="102" width="46" height="26" rx="5" transform="rotate(-1 537 115)" fill="#FFFFFF"/>
+          <rect x="566" y="102" width="46" height="26" rx="5" transform="rotate(1 589 115)" fill="#FEF2F2" stroke="#991B1B" stroke-dasharray="5 4"/>
+          <rect x="618" y="102" width="46" height="26" rx="5" transform="rotate(-1.5 641 115)" fill="#FFFFFF"/>
+          <rect x="670" y="102" width="46" height="26" rx="5" transform="rotate(2 693 115)" fill="#FFFFFF"/>
+          <rect x="722" y="102" width="46" height="26" rx="5" transform="rotate(-1 745 115)" fill="#FFFFFF"/>
+          <rect x="774" y="102" width="46" height="26" rx="5" transform="rotate(1.5 797 115)" fill="#9CC3E6"/>
+
+          <rect x="30" y="176" width="190" height="66" rx="10" transform="rotate(-0.8 125 209)" fill="#FFFFFF"/>
+          <rect x="240" y="176" width="190" height="66" rx="10" transform="rotate(0.6 335 209)" fill="#FFFFFF"/>
+          <rect x="450" y="176" width="190" height="66" rx="10" transform="rotate(-0.6 545 209)" fill="#FFFFFF"/>
+          <rect x="660" y="176" width="190" height="66" rx="10" transform="rotate(0.8 755 209)" fill="#FFFFFF"/>
+          <rect x="30" y="256" width="820" height="44" rx="10" transform="rotate(-0.2 440 278)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b4dL" x="162" y="69">o1</text>
+        <text class="b4dL" x="214" y="69">o2</text>
+        <text class="b4dL" x="266" y="69">o3</text>
+        <text class="b4dL" x="318" y="69">o4</text>
+        <text class="b4dL" x="370" y="69">o5</text>
+        <text class="b4dL" x="422" y="69">o6</text>
+        <text class="b4dL" x="474" y="69">o7</text>
+        <text class="b4dL" x="526" y="69">o8</text>
+        <text class="b4dL" x="578" y="69">o9</text>
+        <text class="b4dL" x="628" y="69">o10</text>
+        <text class="b4dL" x="680" y="69">o11</text>
+        <text class="b4dL" x="732" y="69">o12</text>
+
+        <text class="b4dL" x="162" y="119">o1</text>
+        <text class="b4dL" x="214" y="119">o2</text>
+        <text class="b4dL" x="266" y="119">o3</text>
+        <text class="b4dL" x="318" y="119">o4</text>
+        <text class="b4dL" x="370" y="119">o5</text>
+        <text class="b4dL" x="422" y="119">o6</text>
+        <text class="b4dL" x="474" y="119">o7</text>
+        <text class="b4dL" x="526" y="119">o8</text>
+        <text class="b4dR" x="574" y="119">gone</text>
+        <text class="b4dL" x="628" y="119">o10</text>
+        <text class="b4dL" x="680" y="119">o11</text>
+        <text class="b4dL" x="732" y="119">o12</text>
+        <text class="b4dB" x="784" y="119">o12</text>
+
+        <text class="b4dR" x="258" y="148">c1a7</text>
+        <text class="b4dR" x="362" y="148">b22f</text>
+        <text class="b4dS" x="430" y="148">lower-case customer keys</text>
+        <text class="b4dS" x="666" y="148">appended twice</text>
+
+        <text class="b4dH" x="46" y="200">Q1 COUNT</text>
+        <text class="b4dV" x="46" y="226">12 and 12</text>
+        <text class="b4dH" x="256" y="200">Q2 KEYS BOTH WAYS</text>
+        <text class="b4dV" x="256" y="226">1 missing</text>
+        <text class="b4dH" x="466" y="200">Q3 DUPLICATES</text>
+        <text class="b4dV" x="466" y="226">o12, 2 copies</text>
+        <text class="b4dH" x="676" y="200">Q4 CUSTOMER KEYS</text>
+        <text class="b4dV" x="676" y="226">0 and 2</text>
+
+        <text class="b4dB" x="50" y="283">Q5 REPORT ROW · rows 12 | 12 · missing 1 · extra 0 · duplicated 0 | 1 · unresolved 0 | 2</text>
+
+        <text class="b4dN" x="30" y="324">The count agrees because one key went missing and another arrived twice. The keys disagree three ways.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three planted faults, an equal count, and the four queries that name each one</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed pair.</strong> Legacy has twelve orders, each once, with customer keys stored in upper case. New has the same orders with three faults planted: o9 never arrived, o12 was appended twice by a late feed, and o3 and o5 kept the lower-case customer keys their marketplace export writes.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE customers AS
+SELECT * FROM (VALUES ('C1A7'),('B22F'),('9E0D'),('4F11'),('A3C2'),('7D90')) c(customer_key);
+
+CREATE OR REPLACE TABLE legacy_orders AS
+SELECT order_id, customer_key, CAST(order_day AS DATE) AS order_day, item_value FROM (VALUES
+ ('o1','C1A7','2017-01-15',120.50),('o2','B22F','2017-01-15', 59.90),
+ ('o3','C1A7','2017-01-15', 35.00),('o4','9E0D','2017-07-09',210.00),
+ ('o5','B22F','2017-07-10', 44.00),('o6','9E0D','2017-07-11', 18.00),
+ ('o7','4F11','2017-07-11', 72.40),('o8','A3C2','2017-07-12', 99.00),
+ ('o9','7D90','2017-07-12', 15.50),('o10','4F11','2017-07-13', 64.00),
+ ('o11','A3C2','2017-07-13', 28.90),('o12','7D90','2017-07-14',130.00)
+) t(order_id, customer_key, order_day, item_value);
+
+CREATE OR REPLACE TABLE new_orders AS
+SELECT order_id, customer_key, CAST(order_day AS DATE) AS order_day, item_value FROM (VALUES
+ ('o1','C1A7','2017-01-15',120.50),('o2','B22F','2017-01-15', 59.90),
+ ('o3','c1a7','2017-01-15', 35.00),('o4','9E0D','2017-07-09',210.00),
+ ('o5','b22f','2017-07-10', 44.00),('o6','9E0D','2017-07-11', 18.00),
+ ('o7','4F11','2017-07-11', 72.40),('o8','A3C2','2017-07-12', 99.00),
+ ('o10','4F11','2017-07-13', 64.00),('o11','A3C2','2017-07-13', 28.90),
+ ('o12','7D90','2017-07-14',130.00),('o12','7D90','2017-07-14',130.00)
+) t(order_id, customer_key, order_day, item_value);</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, rung 0: one count per side.</strong> Twelve and twelve. If this were the whole suite, the load would be signed off tonight.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · row counts</span>SELECT (SELECT count(*) FROM legacy_orders) AS legacy_rows,
+       (SELECT count(*) FROM new_orders)    AS new_rows;
+-- legacy_rows 12 | new_rows 12</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, keys both ways.</strong> Group each side by key so every key carries its copies, then full outer join. o9 is missing in new, o12 is duplicated, no key is extra, and ten keys match.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · four buckets</span>WITH l AS (SELECT order_id, count(*) AS n FROM legacy_orders GROUP BY order_id),
+     r AS (SELECT order_id, count(*) AS n FROM new_orders    GROUP BY order_id)
+SELECT CASE WHEN r.order_id IS NULL THEN 'legacy only'
+            WHEN l.order_id IS NULL THEN 'new only'
+            WHEN l.n &lt;&gt; r.n         THEN 'duplicated'
+            ELSE 'matched' END AS bucket,
+       count(*) AS order_keys,
+       string_agg(coalesce(l.order_id, r.order_id), ', '
+                  ORDER BY coalesce(l.order_id, r.order_id)) AS which
+FROM l FULL OUTER JOIN r ON l.order_id = r.order_id
+GROUP BY bucket
+ORDER BY bucket;
+-- duplicated  | 1  | o12
+-- legacy only | 1  | o9
+-- matched     | 10 | o1, o10, o11, o2, o3, o4, o5, o6, o7, o8</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, the duplicates by name.</strong> On a real table this list is what you hand the reload owner: which keys, how many copies. On the bench it is 367 keys long.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · keys with more than one copy</span>SELECT order_id, count(*) AS copies
+FROM new_orders
+GROUP BY order_id
+HAVING count(*) &gt; 1;
+-- o12 | 2</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, customer keys on both sides.</strong> Every order key matched in Q2 for o3 and o5, and still their customers do not resolve in new. Run the same check on legacy, then list the new rows and test whether upper case would resolve them.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · unresolved foreign keys</span>SELECT 'legacy' AS side, count(*) FILTER (WHERE c.customer_key IS NULL) AS unresolved
+FROM legacy_orders o LEFT JOIN customers c ON c.customer_key = o.customer_key
+UNION ALL
+SELECT 'new', count(*) FILTER (WHERE c.customer_key IS NULL)
+FROM new_orders o LEFT JOIN customers c ON c.customer_key = o.customer_key;
+-- legacy | 0
+-- new    | 2
+
+SELECT o.order_id, o.customer_key,
+       upper(o.customer_key) IN (SELECT customer_key FROM customers) AS resolves_if_upper
+FROM new_orders o
+LEFT JOIN customers c ON c.customer_key = o.customer_key
+WHERE c.customer_key IS NULL
+ORDER BY o.order_id;
+-- o3 | c1a7 | true
+-- o5 | b22f | true</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, one report row: runbook section 4, rungs 0 and 1.</strong> Every number side by side, so nobody has to read four outputs to know whether the table passed. A clean table prints equal rows, zeros for missing and extra, and the same duplicated and unresolved numbers on both sides.</p>
+        <div class="prompt-box good"><span class="label">★ Q5 · the key report row</span>WITH l AS (SELECT order_id, count(*) AS n FROM legacy_orders GROUP BY order_id),
+     r AS (SELECT order_id, count(*) AS n FROM new_orders    GROUP BY order_id),
+     u AS (SELECT 'legacy' AS side, o.customer_key FROM legacy_orders o
+             LEFT JOIN customers c USING (customer_key) WHERE c.customer_key IS NULL
+           UNION ALL
+           SELECT 'new', o.customer_key FROM new_orders o
+             LEFT JOIN customers c USING (customer_key) WHERE c.customer_key IS NULL)
+SELECT (SELECT sum(n) FROM l)                          AS legacy_rows,
+       (SELECT sum(n) FROM r)                          AS new_rows,
+       count(*) FILTER (WHERE r.order_id IS NULL)      AS missing_keys,
+       count(*) FILTER (WHERE l.order_id IS NULL)      AS extra_keys,
+       count(*) FILTER (WHERE l.n &gt; 1)                 AS dup_legacy,
+       count(*) FILTER (WHERE r.n &gt; 1)                 AS dup_new,
+       (SELECT count(*) FROM u WHERE side = 'legacy')  AS unresolved_legacy,
+       (SELECT count(*) FROM u WHERE side = 'new')     AS unresolved_new
+FROM l FULL OUTER JOIN r ON l.order_id = r.order_id;
+-- legacy_rows 12 | new_rows 12 | missing_keys 1 | extra_keys 0
+-- dup_legacy 0 | dup_new 1 | unresolved_legacy 0 | unresolved_new 2</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>The count agreed because two faults cancelled.</strong> One key lost and one key doubled leave twelve rows on each side. The bench plants every drift alone, so it never shows this; a real load can carry several faults at once, which is the strongest reason the suite never stops at rung 0. Also note what Q5 did not flag: o1's day and o3's review are identical here because nothing was planted in them. Builder session 5 plants that kind of drift and compares values.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 5</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Add an extra key to tonight's pair (insert an <code>o13</code> into <code>new_orders</code> only), rerun Q2 and Q5, and check that it lands in the "new only" bucket and in <code>extra_keys</code>.</li>
+      <li>Delete the second copy of o12 from <code>new_orders</code> and rerun Q1. Write one sentence on why the count now differs although one fault was fixed.</li>
+      <li>Pick one table in your own estate and write down its key. If it has none, choose one of the three options from Part 2 and say why. Your numbers will differ.</li>
+      <li>List every foreign key that table depends on and say, for each, which side's lookup table you would resolve it against during the parallel run.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 4 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Tonight's pair shows 12 rows on each side. What does the equal count prove?</p>
+      <button class="qopt" type="button">A · Every order arrived exactly once</button>
+      <button class="qopt" type="button">B · Only that there is no net change in the number of rows: a missing key and a duplicated key cancel</button>
+      <button class="qopt" type="button">C · The values match, because the rows match</button>
+      <button class="qopt" type="button">D · The foreign keys resolve on both sides</button>
+      <p class="qwhy">o9 went missing and o12 arrived twice, so the totals agree. A count proves a difference when it differs and almost nothing when it agrees.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · On the bench, the case-sensitive join adds no row and loses no row. How does rung 1 still catch it?</p>
+      <button class="qopt" type="button">A · The order-key diff finds 1,767 missing order keys</button>
+      <button class="qopt" type="button">B · The row count moves by 1,767</button>
+      <button class="qopt" type="button">C · It does not: only the daily aggregates catch it</button>
+      <button class="qopt" type="button">D · A foreign-key check on both sides: 1,767 customer keys unresolved in new against 0 in legacy</button>
+      <p class="qwhy">Every order key matches. The fault is in the keys you join on, so the check resolves customer keys on each side and compares the two numbers.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Which planted defect passes both rung 0 and rung 1?</p>
+      <button class="qopt" type="button">A · Missing review score loaded as 0: same rows, same keys, a different value</button>
+      <button class="qopt" type="button">B · Late rows appended twice</button>
+      <button class="qopt" type="button">C · Case-sensitive customer-key join</button>
+      <button class="qopt" type="button">D · None: rung 1 catches 5 of 5</button>
+      <p class="qwhy">Rung 1 catches 2 of 5, the late rows and the case-sensitive join. The review-as-0 drift, the fixed offset and integer division keep every key and change a value, a day or a metric.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Row counts and key diffs between two systems</span><span class="note">Taught as a method; every output run in DuckDB 1.5.3 on the constructed pair above; bench figures from the parity bench's measured ladder</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Key-based validation needs a key</span><span class="note">AWS DMS data validation docs, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Row hashing and aggregate validation tools</span><span class="note">Google Data Validation Tool README, reladiff and the archived data-diff repository, read at source; re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB 2018 and GitHub 2018 as real-world stories</span><span class="note">Bank of England release, TSB's release on the review, GitHub's post-incident analysis, read at source; the review report itself was not read</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Row hashing versus aggregates as "enough"</span><span class="note">Contested; taught as a trade the bar's signer makes, not resolved</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Data checks on real rows inside one system</span><span class="note">Owned by the Testing Data and ML Code course's data checks session; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 4 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>A count proves a difference</b><span>Equal counts prove almost nothing; faults can cancel.</span></div>
+      <div class="cheat-item"><b>Same count, same SQL</b><span>Identical filter and window on both sides, text in the runbook.</span></div>
+      <div class="cheat-item"><b>Group, then full outer join</b><span>Missing, extra, duplicated, matched, from one join on the key.</span></div>
+      <div class="cheat-item"><b>Check the keys you join on</b><span>Unresolved foreign keys, counted on both sides and compared.</span></div>
+      <div class="cheat-item"><b>No key, say so</b><span>Natural key, proven composite key, or aggregates with a note.</span></div>
+      <div class="cheat-item"><b>Rungs 0 and 1: 2 of 5</b><span>Values, days and metrics pass every key check.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>Every row is there, once, and joins. Session 5 asks whether the rows still say the same thing: six metrics every day, exactly, then at the monthly grain against a bar someone signs, and why floating-point money and per-line rounding have to be accepted in writing.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 4 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b3-translate-the-sql.html">← Prev: Translate the SQL</a> &nbsp;·&nbsp; <a href="b5-aggregate-parity.html">Next: Aggregate parity at the grain people read →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

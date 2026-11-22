@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 9 of 10. The week after cutover: a fixed time-zone offset that moves 72 orders to the day before and changes 74 daily numbers but no monthly one, the edge check that finds it, the late feed and the cache that outlive the switch, and the written condition that ends the watch. Built in DuckDB.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The week after: drift that hides - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 9 of 10. Find the drift a monthly parity bar cannot see: an edge check on the hour either side of local midnight, run in DuckDB.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b9-drift-that-hides.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The week after: drift that hides - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 9 of 10. 72 orders, 74 days, 0 months: the edge check, the late feed, the stale extract and when the watch ends.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 9 · The week after: drift that hides - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 9 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 9 of 10</div>
+    <h1>The week after: <span class="accent">drift that hides</span></h1>
+    <p class="sub">Readers moved, the rollback trigger stayed quiet, and the monthly numbers match. Some drift lives exactly where that evidence does not look: an hour either side of midnight, in summers that ended years ago, in a feed that keeps arriving after the switch, in an extract that kept its own copy. Tonight you build the checks that find it, in DuckDB, and write runbook section 8: the watch, and the condition that ends it.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Advanced</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Whoever is on call the week after a cutover</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Time-zone edges, the edge check, late rows and caches</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: two conversions, one edge check</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 8 rehearsed the cutover and made the rollback a pointer swap. Tonight is the stretch after it, runbook section 8, from the builder's side. <a href="b3-translate-the-sql.html">Builder session 3</a> already wrote the rule that keeps a fixed offset out of a translation; this page assumes the rule was missed somewhere and asks how you would find out. The leader's side, the watch list and the decommission log, is <a href="a6-the-week-after-and-switching-off.html">Leader session 6</a>; tonight supplies the queries behind its first two watch items. The running case is a <strong>Constructed Serai Commerce example</strong>: the warehouses, tonight's eight orders and every policy are constructed; the drift counts quoted below come from 8,614 real Olist orders, measured in <a href="b10-the-parity-bench.html">Builder session 10</a>. Designing lasting monitors on single tables belongs to the <a href="https://phoebefu6.github.io/learn-data-observability-with-phoebe/">Learn Data Observability course</a>; this page owns only the comparison between the two warehouses after cutover.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 8, the builder's half: an edge check that compares the local day both warehouses give every order placed within an hour of local midnight, a version of it that still works after legacy is switched off, a nightly duplicated-key check for the late feed, a named list of every cache and extract, and the written condition that ends the watch. You will have run every query in DuckDB and seen a fixed offset change 4 of 7 days and 0 of 3 months on eight constructed orders.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers time-zone edges after cutover</span>
+      <h2>A fixed offset moves the day, not the month</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The fixed-offset drift touches a tiny corner of the data: orders placed in the first hour of the local day, during the two Brazilian summers in the sample. Everywhere else the two conversions agree, which is why it survives every check that reads in bulk.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 344" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn map of the sample, days from October 2016 to August 2018 across, hour of the local day down, split into three rows: hour 00, hours 01 to 22, hour 23. Two summer-time windows, 2016-10-16 to 2017-02-18 and 2017-10-15 to 2018-02-17, are shaded. Only where the hour-00 row crosses those windows do a named zone and a fixed minus 3 hour offset disagree: 72 orders move to the day before. The edge check reads both the hour-00 and hour-23 rows across all days, 595 orders, and finds 72 of them on another day. 74 daily numbers change, 0 monthly numbers change.">
+        <defs>
+          <filter id="b9aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="91" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b9aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b9aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b9aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b9aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b9aB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b9aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b9aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b9aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b9aH" x="30" y="26">WHERE THE FIXED-OFFSET DRIFT LIVES</text>
+        <text class="b9aS" x="330" y="26">598 order days by hour of the local day · measured on 8,614 orders</text>
+
+        <g filter="url(#b9aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="100" y="70" width="500" height="180" rx="4" fill="#FFFFFF"/>
+          <rect x="109" y="70" width="90" height="180" fill="#F8F2E6" stroke="#D6CDBE"/>
+          <rect x="371" y="70" width="90" height="180" fill="#F8F2E6" stroke="#D6CDBE"/>
+          <path d="M100 70 L600 70 L600 110 L100 110 Z" stroke-dasharray="6 4"/>
+          <path d="M100 210 L600 210 L600 250 L100 250 Z" stroke-dasharray="6 4"/>
+          <rect x="109" y="70" width="90" height="40" fill="#9CC3E6" transform="rotate(-0.6 154 90)"/>
+          <rect x="371" y="70" width="90" height="40" fill="#9CC3E6" transform="rotate(0.6 416 90)"/>
+          <path d="M463 90 L612 100" marker-end="url(#b9aAr)"/>
+        </g>
+
+        <text class="b9aA" x="110" y="60">summer 2016-17</text>
+        <text class="b9aA" x="372" y="60">summer 2017-18</text>
+        <text class="b9aA" x="34" y="94">hour 00</text>
+        <text class="b9aA" x="34" y="164">01 to 22</text>
+        <text class="b9aA" x="34" y="234">hour 23</text>
+        <text class="b9aS" x="100" y="268">Oct 2016</text>
+        <text class="b9aS" x="600" y="268" text-anchor="end">Aug 2018</text>
+
+        <text class="b9aB" x="622" y="90">72 orders move a day</text>
+        <text class="b9aS" x="622" y="108">00:00 to 00:59 local, summer</text>
+        <text class="b9aS" x="622" y="124">time: -03:00 lands them on</text>
+        <text class="b9aS" x="622" y="140">23:xx the day before</text>
+        <text class="b9aL" x="622" y="206">dashed rows: 595 orders</text>
+        <text class="b9aS" x="622" y="222">within an hour of midnight;</text>
+        <text class="b9aS" x="622" y="238">the edge check reads them all</text>
+
+        <text class="b9aV" x="30" y="300">74 daily numbers change · 0 monthly numbers change · totals unchanged</text>
+        <text class="b9aN" x="30" y="330">The blue cells are the only places the two conversions disagree. No shifted order crosses a month end in this sample.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - two small cells of history hold the whole drift, so any check that sums them away sees nothing</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>72 orders, 74 days, 0 months<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The drift as the bench plants it: a report layer turns the stored UTC instant into a local day by subtracting a fixed three hours. In Brazilian summer time the true offset was two hours, so an order placed at 00:30 local lands at 23:30 the day before. On Serai's sample that happens to 72 orders, all placed between 00:00 and 00:59 civil time inside the two windows, 2016-10-16 to 2017-02-18 and 2017-10-15 to 2018-02-17.</p>
+        <table class="clean">
+          <thead><tr><th>Check</th><th>What the fixed offset does to it</th></tr></thead>
+          <tbody>
+            <tr><td>Row counts</td><td>Nothing: 8,614 rows both sides</td></tr>
+            <tr><td>Keys</td><td>Nothing: the same keys, none missing or extra</td></tr>
+            <tr><td>Daily, exact</td><td>Orders differ on 74 of 598 days; item value on 81</td></tr>
+            <tr><td>Monthly, signed bar</td><td>0 of 21 months fail: no shifted order crosses a month end</td></tr>
+            <tr><td>Whole-sample totals</td><td>Unchanged</td></tr>
+          </tbody>
+        </table>
+        <p>Why 81 days for item value and only 74 for orders? Each moved order takes one from the day it left and adds one to the day before. When one order leaves a day and another arrives from the next, the count for that day is unchanged but its money is not, because the two orders are worth different amounts. You will see that cancellation happen to one day in tonight's build-along.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why it can appear after cutover<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The parity suite proved the tables and reports it compared, and Serai's rung-4 suite would have caught this drift on any of them. The week after is different because conversions keep being written: a team rebuilds a year-on-year chart on the new warehouse, a report nobody listed gets ported in a hurry, an analyst writes a fresh query against the reloaded history. Each one picks its own way to turn an instant into a day, and none of them was in the suite. If one of them hard-codes -03:00, its monthly numbers match legacy and its daily numbers do not, and the first person to notice is whoever reads it by day.</p>
+        <p>New orders do not help you find it. Every order placed since Brazil stopped observing summer time converts the same way under both rules, so a week of clean new data says nothing about the reloaded history underneath it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The month end that saved Serai, by luck<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>"0 months" is a fact about this sample, not about the drift. An order placed at 00:20 local on the first day of a month in summer time moves to the last day of the month before, and then a monthly number moves too. Serai's 72 shifted orders simply contain no such case. Do not carry "a fixed offset never moves a month" into your own estate; homework 2 plants the case and lets you watch the monthly line change.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The rule changed, and the history kept the old one.</strong> The IANA time zone database's release 2019b records that "Brazil no longer observes DST." Any pipeline written since can hard-code -03:00 and pass every test on recent data. A migration is precisely the moment old data gets reloaded through new code, so it is precisely the moment that hard-coding meets the summers of 2016-17 and 2017-18. The same is true of any country whose rules have changed: the tz database keeps the history so that your SQL does not have to.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the time-zone edge check</span>
+      <h2>Check the hour either side of midnight</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The edge check is narrow on purpose. It takes only the orders placed within an hour of local midnight, asks both warehouses which day each one belongs to, and alarms if any answer differs. On Serai's sample that is 595 orders, and 72 of them disagree.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn edge check. Legacy's order day for three near-midnight orders, o1 at 00:30 on 2017-01-14, o2 at 23:40 on 2017-01-13, o4 at 00:05 on 2017-01-15, and new's stored day for the same orders, 2017-01-13, 2017-01-13 and 2017-01-14, are joined on order_id, keeping only orders placed 23:00 to 00:59 local. On the bench the check compares 595 orders and finds 72 on another day. Rung 3, the signed monthly bar, catches 4 of 5 defects and misses the fixed offset; rung 4 adds the edge check and catches 5 of 5 with 0 false alarms.">
+        <defs>
+          <filter id="b9bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="93" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b9bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b9bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b9bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b9bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b9bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b9bV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b9bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b9bH" x="30" y="26">THE EDGE CHECK: SAME ORDER, SAME DAY?</text>
+        <text class="b9bS" x="330" y="26">left: three rows from tonight's build-along · right: the bench</text>
+
+        <g filter="url(#b9bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="230" height="110" rx="10" transform="rotate(-0.5 145 105)" fill="#F8F2E6"/>
+          <rect x="30" y="180" width="230" height="110" rx="10" transform="rotate(0.5 145 235)" fill="#FFFFFF"/>
+          <rect x="310" y="110" width="200" height="86" rx="10" transform="rotate(0.4 410 153)" fill="#FFFFFF"/>
+          <rect x="570" y="56" width="280" height="88" rx="10" transform="rotate(-0.4 710 100)" fill="#9CC3E6"/>
+          <rect x="570" y="166" width="280" height="124" rx="10" transform="rotate(0.3 710 228)" fill="#FFFFFF"/>
+          <path d="M262 108 L306 138" marker-end="url(#b9bAr)"/>
+          <path d="M262 232 L306 172" marker-end="url(#b9bAr)"/>
+          <path d="M512 150 L566 112" marker-end="url(#b9bAr)"/>
+        </g>
+
+        <text class="b9bH" x="46" y="76">LEGACY · DAY BY NAMED ZONE</text>
+        <text class="b9bL" x="46" y="100">o1 · 00:30 · 2017-01-14</text>
+        <text class="b9bL" x="46" y="120">o2 · 23:40 · 2017-01-13</text>
+        <text class="b9bL" x="46" y="140">o4 · 00:05 · 2017-01-15</text>
+
+        <text class="b9bH" x="46" y="206">NEW · STORED DAY</text>
+        <text class="b9bB" x="46" y="230">o1 · 2017-01-13 · differs</text>
+        <text class="b9bL" x="46" y="250">o2 · 2017-01-13 · same</text>
+        <text class="b9bB" x="46" y="270">o4 · 2017-01-14 · differs</text>
+
+        <text class="b9bH" x="326" y="138">JOIN ON order_id</text>
+        <text class="b9bS" x="326" y="158">keep 23:00 to 00:59 local</text>
+        <text class="b9bS" x="326" y="176">compare the two days</text>
+
+        <text class="b9bH" x="588" y="82">EDGE CHECK ON 8,614 ORDERS</text>
+        <text class="b9bV" x="588" y="108">72 of 595</text>
+        <text class="b9bL" x="588" y="128">near-midnight orders on another day</text>
+
+        <text class="b9bH" x="588" y="192">WHAT EACH RUNG SEES</text>
+        <text class="b9bL" x="588" y="216">rung 3 · signed bar, monthly</text>
+        <text class="b9bS" x="588" y="232">4 of 5 caught · fixed offset missed</text>
+        <text class="b9bL" x="588" y="258">rung 4 · plus the edge check</text>
+        <text class="b9bB" x="588" y="274">5 of 5 caught · 0 false alarms</text>
+
+        <text class="b9bN" x="30" y="322">The check reads one known risk on purpose: it catches the drift you thought of, not the one nobody did.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - join on the key, keep the hour either side of midnight, compare the day: rung 4 exists for this one check</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why the hour either side, not just the hour after<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Serai's drift only ever moves orders from 00:xx back to 23:xx, so checking the first hour would have been enough for this one bug. The check reads both sides of midnight anyway, 23:00 to 00:59 local, because the mirror bug exists: an offset that is one hour too far east moves 23:xx orders forward to the next day. A check shaped around the bug you already know finds only that bug; a check shaped around the risk, "the local day near its boundary", finds both directions.</p>
+        <p>The near-midnight set is chosen from legacy's local time, the side you trust, and every key in it must find a day on the new side. A key with no row on the new side counts as "another day" too: the build-along uses <code>IS DISTINCT FROM</code> so a missing day is a mismatch, not a NULL that quietly passes.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The edge check after legacy is switched off<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>While legacy is loaded and read-only, the check compares two warehouses. Once the decommission log reaches its last step there is no legacy to ask. The check survives because the instant was never lost: recompute the day from the stored UTC instant with the zone's name, and compare it with the day the new warehouse stored. That is the "rule that encodes what legacy would have said" in <a href="a6-the-week-after-and-switching-off.html">Leader session 6</a>. The build-along runs both versions on the same rows, and they find the same three orders.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What the edge check cannot do<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The bench is honest about this: the edge check exists because someone knew to look for time zones. It is the cheapest possible check for one named risk and says nothing about the next one. The checks that find a drift nobody named are the exact daily comparison at rung 2, read by a person, and the parallel run's nightly diff from <a href="b7-parallel-run.html">Builder session 7</a>. A watch the week after should hold a few narrow checks like this one for risks you can name, and keep the daily view open for the ones you cannot.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The engines keep the instant; your SQL picks the day.</strong> PostgreSQL's documentation says a <code>timestamptz</code> is "stored internally as UTC, and the originally stated or assumed time zone is not retained". DuckDB's says its TIMESTAMPTZ values "are displayed with the UTC offset of the configured time zone". Both statements are why the edge check is possible at all, and why it pins the session time zone: the instant in storage is right on both sides, and every disagreement about the day comes from the conversion written in a query. Fix the conversion and the history is correct again, with no reload.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers late data, caches and when the watch ends</span>
+      <h2>Late rows, stale copies and the end of the watch</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Cutover moved the readers you listed through the reporting view. Two things did not move with them: a feed that keeps sending old orders, and any copy of the numbers that something took before the switch.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn map of the week after cutover. The reporting view has been repointed to the new warehouse, and the ops dashboard queries through it. The legacy warehouse is read-only, but a board pack extract was copied from it the day before cutover and never refreshed, so it still serves legacy numbers. A late feed keeps writing older orders into the new warehouse: 367 orders delivered more than 30 days after purchase, which repeat keys if appended.">
+        <defs>
+          <filter id="b9cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="97" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b9cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b9cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b9cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b9cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b9cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b9cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b9cH" x="30" y="26">THE WEEK AFTER: WHAT THE VIEW SWAP DID NOT MOVE</text>
+        <text class="b9cS" x="420" y="26">Constructed Serai Commerce example · C = cutover day</text>
+
+        <g filter="url(#b9cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="200" height="66" rx="10" transform="rotate(-0.5 130 89)" fill="#F8F2E6" stroke-dasharray="6 4"/>
+          <rect x="30" y="194" width="200" height="66" rx="10" transform="rotate(0.5 130 227)" fill="#FFFFFF"/>
+          <rect x="300" y="126" width="180" height="60" rx="10" transform="rotate(-0.4 390 156)" fill="#FFFFFF"/>
+          <rect x="300" y="262" width="180" height="56" rx="10" transform="rotate(0.6 390 290)" fill="#F8F2E6"/>
+          <rect x="620" y="58" width="230" height="56" rx="10" transform="rotate(0.5 735 86)" fill="#9CC3E6"/>
+          <rect x="620" y="140" width="230" height="56" rx="10" transform="rotate(-0.5 735 168)" fill="#FFFFFF"/>
+          <path d="M232 86 L614 86" marker-end="url(#b9cAr)"/>
+          <path d="M616 168 L486 160" marker-end="url(#b9cAr)"/>
+          <path d="M370 190 L236 218" marker-end="url(#b9cAr)"/>
+          <path d="M296 284 L236 246" marker-end="url(#b9cAr)"/>
+        </g>
+
+        <text class="b9cA" x="250" y="76">copy taken from legacy at C - 1, never refreshed</text>
+
+        <text class="b9cH" x="46" y="84">LEGACY WAREHOUSE</text>
+        <text class="b9cS" x="46" y="104">read-only since cutover</text>
+        <text class="b9cH" x="46" y="222">NEW WAREHOUSE</text>
+        <text class="b9cS" x="46" y="242">live: readers moved here</text>
+        <text class="b9cH" x="316" y="152">REPORTING VIEW</text>
+        <text class="b9cS" x="316" y="172">repointed to new at C</text>
+        <text class="b9cH" x="316" y="286">LATE FEED</text>
+        <text class="b9cS" x="316" y="304">older orders still arrive</text>
+        <text class="b9cH" x="636" y="82">BOARD PACK EXTRACT</text>
+        <text class="b9cL" x="636" y="100">still serves legacy numbers</text>
+        <text class="b9cH" x="636" y="164">OPS DASHBOARD</text>
+        <text class="b9cS" x="636" y="182">live query through the view</text>
+
+        <text class="b9cL" x="500" y="282">367 orders delivered more than 30 days</text>
+        <text class="b9cS" x="500" y="298">after purchase; appended, their keys repeat</text>
+
+        <text class="b9cN" x="30" y="342">A cutover moves the readers you listed. The extract kept its own copy, and the late feed keeps writing.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the view swap reaches everything that reads through the view, and nothing that took a copy or writes from outside</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The late feed, now landing in new<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Orders delivered long after purchase keep arriving on the late feed, and after cutover they arrive in the new warehouse. On Serai's sample 367 orders were delivered more than 30 days after purchase. <a href="b6-historical-reload.html">Builder session 6</a> showed the consequence of appending them: 8,981 rows from 8,614, and 367 duplicated keys. If the reload used a merge on key but the nightly feed job still appends, the drift comes back one night at a time. The watch item is one query, run nightly: any key that appears more than once. How to make the load itself safe to rerun belongs to the backfill sessions linked from session 6; the watch only checks that it stayed that way.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The copy that outlived the switch<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Session 8's pointer swap moved every reader that queries the reporting view. It cannot move a BI extract refreshed on its own schedule, a cache in front of a dashboard, a spreadsheet with a saved connection string, or a file a partner receives. Each of those either still points at legacy or holds numbers copied from it. There is no count for this on the bench and none is claimed here: the risk is real, and its size is whatever your estate has.</p>
+        <p>Detection is two questions per copy, asked by name: where does it read from, and when did it last refresh? A copy pointing at legacy is a missed switch. A copy pointing at new but last refreshed before cutover is still serving legacy numbers until its next refresh. The list comes from session 1's inventory plus the BI tool's own list of extracts, and the watch item closes only when every line on it is confirmed.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>When the watch ends<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Serai's end condition is the one in Leader session 6, word for word, because there must be one condition and not one per team. It is constructed policy: the rung-4 suite clean on 30 consecutive nights, with no duplicated key on any of them; the first month-end close signed inside the bar; and every cache and extract on the list confirmed as reading the new warehouse. Owner: the platform lead. When it is met, the sponsor signs step 2 of the decommission log and the rollback window closes.</p>
+        <p>Whether 30 nights is right is the same open question as the length of the parallel run: no source gives a number, and a business with a quarterly close might wait for that close instead. What the builder owns is that the condition is a query, not a feeling. The parallel run's 14-night rule in <a href="b7-parallel-run.html">Builder session 7</a> and this 30-night rule are two different gates, written before each started.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>A watch is a comparison, not a monitor<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every item above compares new against legacy, or against a rule that says what legacy would have said. When the watch ends, that comparison stops. Some checks are worth keeping in another form: the duplicated-key query becomes a uniqueness test on the new table, the edge check becomes a test on the conversion code. Turning those into lasting monitors with freshness, volume, schema and alert routing is the work of the <a href="https://phoebefu6.github.io/learn-data-observability-with-phoebe/">Learn Data Observability course</a>. Hand them over there by name in section 8, rather than letting them run against a legacy warehouse that is about to disappear.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Writes that landed on one side only.</strong> GitHub's analysis of its 21 October 2018 incident describes connectivity "restored in 43 seconds", after which a database "contained writes that were not present in the other data center". GitHub reports "degraded service for 24 hours and 11 minutes", having chosen to "prioritize data integrity over site usability and time to recovery." A warehouse cutover is not a failover, but the shape is the same: the dangerous rows are the ones that arrived somewhere after the moment everyone treats as the switch.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Two conversions, one edge check</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Eight constructed orders, mostly in January 2017, inside the first Brazilian summer in Serai's sample. Legacy computed each order's day with the zone's name; new computed it with a fixed -03:00 and received one order twice from the late feed. Every output below is what DuckDB 1.5.3 printed on exactly these rows.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn pipeline. orders_utc, 8 constructed orders, feeds legacy_orders with the day by named zone and new_orders with the day by a fixed minus 3 hour offset and order o4 loaded twice. Q2 compares by day and by month: 4 of 7 days differ, 0 of 3 months. Q3, the edge check, finds 6 orders near midnight and 3 on another day. Q5 finds o4 twice.">
+        <defs>
+          <filter id="b9dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="99" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b9dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b9dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b9dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b9dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b9dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b9dH" x="30" y="26">EIGHT ORDERS, TWO CONVERSIONS, THREE QUESTIONS</text>
+
+        <g filter="url(#b9dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="110" width="170" height="60" rx="10" transform="rotate(-0.8 115 140)" fill="#F8F2E6"/>
+          <rect x="250" y="50" width="190" height="60" rx="10" transform="rotate(0.6 345 80)" fill="#FFFFFF"/>
+          <rect x="250" y="170" width="190" height="60" rx="10" transform="rotate(-0.6 345 200)" fill="#FFFFFF"/>
+          <rect x="520" y="40" width="330" height="56" rx="10" transform="rotate(0.4 685 68)" fill="#FFFFFF"/>
+          <rect x="520" y="112" width="330" height="56" rx="10" transform="rotate(-0.4 685 140)" fill="#9CC3E6"/>
+          <rect x="520" y="184" width="330" height="56" rx="10" transform="rotate(0.4 685 212)" fill="#FFFFFF"/>
+          <path d="M202 130 L246 88" marker-end="url(#b9dAr)"/>
+          <path d="M202 150 L246 194" marker-end="url(#b9dAr)"/>
+          <path d="M442 72 L516 68" marker-end="url(#b9dAr)"/>
+          <path d="M442 92 L516 134" marker-end="url(#b9dAr)"/>
+          <path d="M442 188 L516 148" marker-end="url(#b9dAr)"/>
+          <path d="M442 208 L516 210" marker-end="url(#b9dAr)"/>
+        </g>
+
+        <text class="b9dH" x="46" y="136">orders_utc</text>
+        <text class="b9dS" x="46" y="154">8 constructed orders</text>
+        <text class="b9dH" x="266" y="76">legacy_orders</text>
+        <text class="b9dS" x="266" y="94">day by named zone</text>
+        <text class="b9dH" x="266" y="196">new_orders</text>
+        <text class="b9dS" x="266" y="214">fixed -03:00 · o4 loaded twice</text>
+        <text class="b9dH" x="538" y="62">Q2 · BY DAY AND BY MONTH</text>
+        <text class="b9dS" x="538" y="80">4 of 7 days differ · 0 of 3 months differ</text>
+        <text class="b9dH" x="538" y="134">Q3 · THE EDGE CHECK</text>
+        <text class="b9dL" x="538" y="152">6 near midnight · 3 on another day</text>
+        <text class="b9dH" x="538" y="206">Q5 · LATE-FEED KEYS</text>
+        <text class="b9dS" x="538" y="224">o4 appears 2 times</text>
+
+        <text class="b9dN" x="30" y="274">Every number in this figure is printed by the queries below, on 8 constructed orders.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same rows give a quiet monthly view, a noisy daily view and an edge check that names the three orders</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed orders.</strong> Constructed Serai Commerce example. The session time zone is pinned to UTC so your own clock cannot leak in, and the ICU extension supplies named zones. In DuckDB 1.5.3 it loaded cleanly; if your build rejects the zone name, the two ICU lines are the fix. The last line loads o4 a second time, as the late feed would.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>SET TimeZone = 'UTC';
+INSTALL icu;
+LOAD icu;
+CREATE OR REPLACE TABLE orders_utc AS
+SELECT order_id, CAST(placed_utc AS TIMESTAMPTZ) AS placed_utc FROM (VALUES
+ ('o1', '2017-01-14 02:30:00+00'),
+ ('o2', '2017-01-14 01:40:00+00'),
+ ('o3', '2017-01-14 15:00:00+00'),
+ ('o4', '2017-01-15 02:05:00+00'),
+ ('o5', '2017-01-15 03:10:00+00'),
+ ('o6', '2017-01-31 02:20:00+00'),
+ ('o7', '2017-07-10 03:30:00+00'),
+ ('o8', '2019-11-20 02:30:00+00')
+) t(order_id, placed_utc);
+CREATE OR REPLACE TABLE legacy_orders AS
+SELECT order_id, placed_utc,
+       CAST(placed_utc AT TIME ZONE 'America/Sao_Paulo' AS DATE) AS order_day
+FROM orders_utc;
+CREATE OR REPLACE TABLE new_orders AS
+SELECT order_id, placed_utc,
+       CAST(CAST(placed_utc AS TIMESTAMP) - INTERVAL 3 HOUR AS DATE) AS order_day
+FROM orders_utc;
+INSERT INTO new_orders SELECT * FROM new_orders WHERE order_id = 'o4';
+SELECT count(*) AS legacy_rows, (SELECT count(*) FROM new_orders) AS new_rows FROM legacy_orders;
+-- legacy_rows 8 | new_rows 9</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, both conversions side by side.</strong> o1, o4 and o6 land on the day before under the fixed offset. o7 is in July, outside summer time, and o8 is from 2019, after Brazil stopped observing it: both rules agree on both. o5 is the odd one: the fixed offset puts it at 00:10, but its true local time is 01:10.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · named zone against fixed offset</span>SELECT order_id,
+       strftime(placed_utc AT TIME ZONE 'America/Sao_Paulo', '%Y-%m-%d %H:%M') AS named_zone,
+       strftime(CAST(placed_utc AS TIMESTAMP) - INTERVAL 3 HOUR, '%Y-%m-%d %H:%M') AS fixed_offset
+FROM orders_utc
+ORDER BY placed_utc;
+-- o2 | 2017-01-13 23:40 | 2017-01-13 22:40
+-- o1 | 2017-01-14 00:30 | 2017-01-13 23:30
+-- o3 | 2017-01-14 13:00 | 2017-01-14 12:00
+-- o4 | 2017-01-15 00:05 | 2017-01-14 23:05
+-- o5 | 2017-01-15 01:10 | 2017-01-15 00:10
+-- o6 | 2017-01-31 00:20 | 2017-01-30 23:20
+-- o7 | 2017-07-10 00:30 | 2017-07-10 00:30
+-- o8 | 2019-11-19 23:30 | 2019-11-19 23:30</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, the drift at two grains.</strong> Orders per day and per month, legacy against new. New counts distinct keys here so the late duplicate does not muddy the time-zone question; Q5 handles it. Four of seven days differ and no month does. Look at 2017-01-14: o1 left it and o4 arrived, so its count matches while the orders in it do not. That is the cancellation behind 74 days for orders and 81 for item value on the bench.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · daily and monthly views</span>SELECT 'daily' AS grain, count(*) AS buckets_compared,
+       count(*) FILTER (WHERE coalesce(l.n,0) &lt;&gt; coalesce(n.n,0)) AS buckets_differ
+FROM (SELECT order_day AS d, count(*) AS n FROM legacy_orders GROUP BY 1) l
+FULL OUTER JOIN (SELECT order_day AS d, count(DISTINCT order_id) AS n FROM new_orders GROUP BY 1) n USING (d)
+UNION ALL
+SELECT 'monthly', count(*),
+       count(*) FILTER (WHERE coalesce(l.n,0) &lt;&gt; coalesce(n.n,0))
+FROM (SELECT date_trunc('month', order_day) AS m, count(*) AS n FROM legacy_orders GROUP BY 1) l
+FULL OUTER JOIN (SELECT date_trunc('month', order_day) AS m, count(DISTINCT order_id) AS n FROM new_orders GROUP BY 1) n USING (m);
+-- daily   | 7 | 4
+-- monthly | 3 | 0
+
+SELECT strftime(d, '%Y-%m-%d') AS day, coalesce(l.n,0) AS legacy, coalesce(n.n,0) AS new
+FROM (SELECT order_day AS d, count(*) AS n FROM legacy_orders GROUP BY 1) l
+FULL OUTER JOIN (SELECT order_day AS d, count(DISTINCT order_id) AS n FROM new_orders GROUP BY 1) n USING (d)
+ORDER BY d;
+-- 2017-01-13 | 1 | 2
+-- 2017-01-14 | 2 | 2
+-- 2017-01-15 | 2 | 1
+-- 2017-01-30 | 0 | 1
+-- 2017-01-31 | 1 | 0
+-- 2017-07-10 | 1 | 1
+-- 2019-11-19 | 1 | 1</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, the edge check.</strong> Take every order placed in local hour 23 or 00 by legacy's clock, find the day new stored for the same key, and count disagreements. <code>min(order_day)</code> gives one day per key even when the late feed loaded it twice, and <code>IS DISTINCT FROM</code> counts a key missing from new as a mismatch.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · same order, same day?</span>WITH near AS (
+  SELECT order_id, order_day AS legacy_day,
+         hour(placed_utc AT TIME ZONE 'America/Sao_Paulo') AS local_hour
+  FROM legacy_orders
+  WHERE hour(placed_utc AT TIME ZONE 'America/Sao_Paulo') IN (23, 0)
+),
+new_day AS (
+  SELECT order_id, min(order_day) AS new_day FROM new_orders GROUP BY order_id
+)
+SELECT count(*) AS near_midnight,
+       count(*) FILTER (WHERE n.new_day IS DISTINCT FROM near.legacy_day) AS on_another_day,
+       string_agg(order_id, ', ' ORDER BY order_id)
+         FILTER (WHERE n.new_day IS DISTINCT FROM near.legacy_day) AS which
+FROM near LEFT JOIN new_day n USING (order_id);
+-- near_midnight 6 | on_another_day 3 | o1, o4, o6</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, the same check with legacy switched off.</strong> No legacy table: recompute the day from the stored instant with the zone's name and compare it with what new stored. Same three orders. This is the version that keeps working through the decommission log.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · the rule instead of legacy</span>SELECT order_id,
+       strftime(order_day, '%Y-%m-%d') AS stored_day,
+       strftime(CAST(placed_utc AT TIME ZONE 'America/Sao_Paulo' AS DATE), '%Y-%m-%d') AS rule_day
+FROM (SELECT DISTINCT order_id, placed_utc, order_day FROM new_orders)
+WHERE hour(placed_utc AT TIME ZONE 'America/Sao_Paulo') IN (23, 0)
+  AND order_day &lt;&gt; CAST(placed_utc AT TIME ZONE 'America/Sao_Paulo' AS DATE)
+ORDER BY order_id;
+-- o1 | 2017-01-13 | 2017-01-14
+-- o4 | 2017-01-14 | 2017-01-15
+-- o6 | 2017-01-30 | 2017-01-31</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, the late-feed watch.</strong> One query, run every night of the watch. Any row is an alarm; tonight o4 is there because the setup loaded it twice.</p>
+        <div class="prompt-box good"><span class="label">★ Q5 · keys that appear twice</span>SELECT order_id, count(*) AS copies
+FROM new_orders
+GROUP BY order_id
+HAVING count(*) &gt; 1;
+-- o4 | 2</div>
+      </div>
+      <div class="step">
+        <p><strong>Write runbook section 8, the builder's half.</strong> The watch items Leader session 6 lists, each tied to the query that checks it, and the end condition copied word for word. The two lists must never disagree.</p>
+        <div class="prompt-box good"><span class="label">★ Runbook section 8 · the week after (constructed policy)</span>Orders near midnight   daily     Q3 against legacy; Q4 once legacy is off
+                                 alarm: on_another_day &gt; 0
+Late-feed keys         nightly   Q5 on every order table the feed writes
+                                 alarm: any row returned
+Caches and extracts    each one  named list: source, last refresh, owner
+                                 alarm: one reads legacy or refreshed before C
+First month-end close  monthly   the signed bar from session 5
+                                 alarm: a metric outside the bar
+The watch closes when: the rung-4 suite is clean on 30 consecutive
+nights, with no duplicated key on any of them; the first month-end
+close is signed inside the bar; and every cache and extract on the
+list is confirmed as reading the new warehouse. Owner: platform lead.
+Hand-over: Q5 becomes a uniqueness test, Q4 a test on the conversion.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">A watch that cannot end and cannot see</span>
+-- week after: keep an eye on the dashboards for a while and
+-- raise anything that looks off. Monthly parity is green.
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Note which clock picks the near-midnight set.</strong> Q3 and Q4 choose rows by the named zone's hour, never by the stored day or the fixed offset. Choose by the fixed offset and o5, at a true 01:10, joins the set while an order at a true 23:30 in summer would drop out of it: the check would be shaped by the bug it is meant to find.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 10</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Find every place your own pipelines turn a stored instant into a local day, and run the shape of Q4 against one of them on history that spans a daylight saving change. Your numbers will differ.</li>
+      <li>Add an order placed at 2017-02-01 02:20 UTC to both <code>legacy_orders</code> and <code>new_orders</code>, each with its own day rule, and rerun Q2. Write down why the monthly line moves from 0 to 2 months, and what that says about "0 months" on Serai's sample.</li>
+      <li>List every extract, cache and saved connection that reads your warehouse, with its source and its refresh schedule. Mark the ones a view swap would not reach.</li>
+      <li>Write your own end condition for a week-after watch: what must be true, for how many nights, and who signs. Say which part of it no source can give you a number for.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 9 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Serai's signed monthly bar is green every month, yet the fixed-offset drift is planted. Why does rung 3 miss it?</p>
+      <button class="qopt" type="button">A · The tolerance on orders is too loose</button>
+      <button class="qopt" type="button">B · The 72 moved orders shift by one day and none crosses a month end, so every monthly number is unchanged while 74 daily numbers change</button>
+      <button class="qopt" type="button">C · The fixed offset changes the row count, which rung 3 does not read</button>
+      <button class="qopt" type="button">D · Floating-point noise hides it inside the bar</button>
+      <p class="qwhy">The orders bar is exact, so looseness is not the cause. The drift never leaves its month in this sample, so the monthly grain cannot see it. Rung 4's edge check reads the days of the 595 near-midnight orders and finds 72 on another day.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · Legacy has been switched off. How do you keep running the edge check?</p>
+      <button class="qopt" type="button">A · You cannot: an edge check needs two warehouses</button>
+      <button class="qopt" type="button">B · Compare new against last month's parity report</button>
+      <button class="qopt" type="button">C · Check only orders placed since cutover</button>
+      <button class="qopt" type="button">D · Recompute the local day from the stored UTC instant with the zone's name and compare it with the day new stored</button>
+      <p class="qwhy">The instant is kept in storage; only the conversion was wrong. A named-zone recomputation encodes what legacy would have said. Orders since cutover cannot show the drift, because Brazil no longer observes summer time.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A week after cutover the board pack still shows a legacy number, though the reporting view points at new. What is the most likely cause, and the check?</p>
+      <button class="qopt" type="button">A · An extract or cache took its own copy before the switch; ask of each one by name where it reads and when it last refreshed</button>
+      <button class="qopt" type="button">B · The view swap failed; roll back immediately</button>
+      <button class="qopt" type="button">C · The late feed duplicated the board pack's orders</button>
+      <button class="qopt" type="button">D · The signed bar is too tight for board numbers</button>
+      <p class="qwhy">A pointer swap reaches only what reads through the pointer. Copies refreshed on their own schedule keep legacy numbers until they refresh or are repointed, which is why each one is a named watch item.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The fixed-offset drift and the time-zone edge check</span><span class="note">Constructed rule on real rows; 72 orders, 74 days, 0 months and 72 of 595 measured on the bench in Builder session 10</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Brazil's end of daylight saving</span><span class="note">IANA time zone database NEWS, release 2019b, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Stored instants and displayed offsets</span><span class="note">PostgreSQL date/time types and DuckDB timestamp types docs, read at source; DuckDB re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Writes that land on one side after a switch</span><span class="note">GitHub's October 21 post-incident analysis (2018), read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Edge check, late-feed keys, daily and monthly views</span><span class="note">Taught as a method; every output run in DuckDB 1.5.3 on the constructed rows above</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Caches and extracts that outlive a cutover</span><span class="note">Qualitative only; no count is claimed, on the bench or anywhere else</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's watch list and 30-night end condition</span><span class="note">Constructed policy, shared with Leader session 6; no source gives a length for a watch</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Lasting monitors on the new warehouse</span><span class="note">Owned by the Learn Data Observability course; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 9 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>72 · 74 · 0</b><span>Orders moved, days changed, months changed by a fixed -03:00.</span></div>
+      <div class="cheat-item"><b>Edge check</b><span>Hour 23 and 00 by the named zone; same key, same day? 72 of 595.</span></div>
+      <div class="cheat-item"><b>After switch-off</b><span>Recompute the day from the stored instant by zone name.</span></div>
+      <div class="cheat-item"><b>Late feed</b><span>Nightly: any key that appears more than once is an alarm.</span></div>
+      <div class="cheat-item"><b>Copies by name</b><span>Each extract and cache: where it reads, when it last refreshed.</span></div>
+      <div class="cheat-item"><b>The watch ends in writing</b><span>30 clean nights, close signed, every copy confirmed. Constructed.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You have every section of the runbook. Session 10 plants all seven drifts on 8,614 real orders, lets you climb the five rungs one at a time, loosens the bar until a defect slips through, points both sides at the same warehouse, and asks you to sign the runbook only when the report says what each side read.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 9 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b8-cutover-rehearsal-and-rollback.html">← Prev: Cutover rehearsal and rollback</a> &nbsp;·&nbsp; <a href="b10-the-parity-bench.html">Next: The parity bench →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

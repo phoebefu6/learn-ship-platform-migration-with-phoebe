@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 10 of 10. The parity bench: two warehouses holding the same 8,614 real Olist orders, seven constructed drifts planted one at a time in the new one, and five rungs of checks computed live in your browser. Loosen the bar or point both sides at the new warehouse and watch the score fall. Capstone: Serai's signed migration runbook.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The parity bench - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 10 of 10. Seven planted drifts, five rungs of checks, a loose bar and a break button, computed in your browser.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b10-the-parity-bench.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The parity bench - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 10 of 10. 5 of 5 defects caught with 0 false alarms, or 0 of 5 when both sides read the same warehouse.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 10 · The parity bench - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 10 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 10 of 10</div>
+    <h1>The <span class="accent">parity bench</span></h1>
+    <p class="sub">Every check of the track, on one screen and computed in your browser. Serai Commerce's legacy and new warehouses hold the same 8,614 real Olist orders. The new one carries seven constructed drifts, five defects and two accepted differences, each planted alone. You climb five rungs of checks and score each one: defects caught, defects missed, false alarms. Then you break the bench twice, once with a bar that is too loose and once with a comparison that reads the same warehouse on both sides, and you sign Serai's runbook.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Advanced</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone signing a cutover</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:3">3-14 · What the bench computes</span>
+      <span class="a3" style="flex:6">14-40 · Build-along: climb, then break</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Two warehouses, seven drifts, five rungs</h2>
+    </div>
+    <p class="lede">Sessions 1 to 9 each did one part of the move. Tonight every check runs against every drift on the same rows. The bench is honest about what it is: every row is a real Olist order, derived and masked; every check is real and runs in your browser on each click; the two warehouses, the drifts and Serai's parity bar are constructed and labelled where they appear. This is a <strong>Constructed Serai Commerce example</strong>. The data is licensed CC BY-NC-SA 4.0, which is why no review text appears anywhere: only review scores.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The parity suite you would sign for your own move, scored on a bench that can print a worse number, and Serai's migration runbook with every section filled from sessions 1 to 9 and signed: 5 of 5 defects caught, 0 false alarms, the bar and the rung named.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers what each check compares</span>
+      <h2>Five checks between two warehouses</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Every check reads both warehouses and compares one thing. A check that reads one side only is a data-quality check, which the <a href="https://phoebefu6.github.io/learn-testing-data-ml-code-with-phoebe/courses/03-data-checks.html">Testing Data and ML Code course</a> owns; parity is always two-sided.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn diagram of the legacy warehouse on the left and the new warehouse on the right, both holding 8,614 real orders, with five checks between them. Counts compare total rows. Keys compare keys missing, extra, duplicated and customer keys unresolved. Daily compares six metrics on each of 598 days, exactly. Parity compares six metrics on each of 21 months against Serai's signed bar. Edge compares the day each side gives the 595 orders placed within an hour of local midnight.">
+        <defs>
+          <filter id="b10aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="53" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b10aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#624818" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b10aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b10aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b10aL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b10aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b10aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b10aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b10aH" x="30" y="26">FIVE CHECKS, EACH READING BOTH SIDES</text>
+        <text class="b10aS" x="320" y="26">Constructed Serai Commerce example · real orders · computed in the browser</text>
+
+        <g filter="url(#b10aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="60" width="150" height="270" rx="12" transform="rotate(-0.5 105 195)" fill="#F8F2E6"/>
+          <rect x="700" y="60" width="150" height="270" rx="12" transform="rotate(0.5 775 195)" fill="#FFFFFF"/>
+          <rect x="230" y="60" width="420" height="42" rx="10" fill="#FFFFFF"/>
+          <rect x="230" y="114" width="420" height="42" rx="10" fill="#FFFFFF"/>
+          <rect x="230" y="168" width="420" height="42" rx="10" fill="#FFFFFF"/>
+          <rect x="230" y="222" width="420" height="42" rx="10" fill="#FFFFFF"/>
+          <rect x="230" y="276" width="420" height="42" rx="10" fill="#9CC3E6"/>
+          <path d="M184 81 L226 81" marker-end="url(#b10aAr)"/>
+          <path d="M696 81 L654 81" marker-end="url(#b10aAr)"/>
+          <path d="M184 297 L226 297" marker-end="url(#b10aAr)"/>
+          <path d="M696 297 L654 297" marker-end="url(#b10aAr)"/>
+        </g>
+
+        <text class="b10aH" x="46" y="90">LEGACY</text>
+        <text class="b10aV" x="46" y="120">8,614</text>
+        <text class="b10aS" x="46" y="140">real orders</text>
+        <text class="b10aH" x="716" y="90">NEW</text>
+        <text class="b10aV" x="716" y="120">8,614</text>
+        <text class="b10aS" x="716" y="140">+ one drift</text>
+        <text class="b10aS" x="716" y="160">planted alone</text>
+
+        <text class="b10aL" x="246" y="86">counts</text>
+        <text class="b10aS" x="340" y="86">total rows, equal or not</text>
+        <text class="b10aL" x="246" y="140">keys</text>
+        <text class="b10aS" x="340" y="140">missing, extra, duplicated, unresolved</text>
+        <text class="b10aL" x="246" y="194">daily</text>
+        <text class="b10aS" x="340" y="194">6 metrics x 598 days, exact</text>
+        <text class="b10aL" x="246" y="248">parity</text>
+        <text class="b10aS" x="340" y="248">6 metrics x 21 months, signed bar</text>
+        <text class="b10aL" x="246" y="302">edge</text>
+        <text class="b10aS" x="340" y="302" style="fill:#231C12">595 near-midnight orders: same day?</text>
+
+        <text class="b10aN" x="30" y="360">A defect is caught when any check in the rung raises an alarm; an accepted difference that raises one is a false alarm.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - five comparisons, each reading both warehouses, and the edge check is the one built for a single known risk</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Exactly what the bench computes<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Check</th><th>Compares</th><th>Alarm when</th></tr></thead>
+          <tbody>
+            <tr><td><strong>counts</strong></td><td>Total rows in each warehouse</td><td>They differ</td></tr>
+            <tr><td><strong>keys</strong></td><td>Order keys on each side, and customer keys that do not resolve</td><td>Any key missing or extra, a different number of duplicated keys, or a different number of unresolved customer keys</td></tr>
+            <tr><td><strong>daily</strong></td><td>Orders, item value, freight, items per order, reviewed orders and average review score, per day</td><td>Any value on any day is not exactly equal</td></tr>
+            <tr><td><strong>parity</strong></td><td>The same six metrics per month</td><td>Any month is outside Serai's signed tolerance for that metric</td></tr>
+            <tr><td><strong>edge</strong></td><td>The day each side assigns to orders placed within an hour of local midnight</td><td>Any of them lands on a different day</td></tr>
+          </tbody>
+        </table>
+        <p>Serai's signed bar, a constructed policy: orders exact, item value within 0.05%, freight within 0.05%, items per order within 0.005, reviewed orders exact, average review score within 0.01. Rungs: 0 counts; 1 adds keys; 2 adds daily; 3 swaps daily for the signed bar at the monthly grain the board reads; 4 adds the edge check.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>How the bench was checked<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A bench that runs in the page cannot hide a step in a notebook. The same engine file runs under node, and an independent pure-Python reference with the same definitions agrees with it on all 1,740 numbers of the ladder, signed bar, loose bar and break mode, to a relative tolerance of one part in a billion. The comparison itself was tested: a planted 0.1% fault on one number is caught. On load, the bench checks eight properties of its own, for example that the legacy totals reproduce the builder's reference to the cent and that the daylight-saving drift moves exactly the 72 orders a direct time-zone conversion moves, then plants a fault (a loader that drops one row) and confirms that three properties fail. A self-test that cannot fail measures nothing.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Tools that do some of this for you.</strong> Google's open-source Data Validation Tool lists "Column validation (count, sum, avg, min, max, stddev, group by)", row validation with SHA256 hashes, schema validation and custom-query validation. reladiff, "a fork of an archived project called data-diff", finds changed rows with "a divide-and-conquer algorithm, based on matching hashes". Both are moving projects: re-verify their current state before you depend on them. Neither decides your tolerances, your grain or your edge checks; those are the parts of the bench that are a judgement.</p>
+    </div>
+  </section>
+
+  <section class="section" id="bench">
+    <div class="section-kicker">
+      <span class="klabel">Build-along · the bench</span>
+      <h2>Climb five rungs, then break it twice</h2>
+      <span class="tag demo">★ 26 min · everyone builds</span>
+    </div>
+    <p class="lede">Click the rungs in order and say out loud what you expect before the table changes. Nothing here is random: the rows, the drifts and the checks are fixed, so your numbers will match the ones in the steps.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn grid of verdicts, one row per drift and one column per rung, as the bench prints them with the signed bar. Late rows: caught at every rung. Fixed offset: missed at rungs 0 and 1, caught at 2, missed at 3, caught at 4. Missing review as 0 and integer division: missed at 0 and 1, caught from 2. Case-sensitive join: missed at 0, caught from 1. Freight per line and floating-point money: quiet except false alarms at rung 2. No drift: quiet at every rung.">
+        <defs>
+          <filter id="b10bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="59" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b10bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b10bL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b10bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b10bC { font: 800 11px Inter, sans-serif; fill: #231C12; }
+          .b10bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b10bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b10bH" x="30" y="26">EVERY DRIFT AGAINST EVERY RUNG</text>
+        <text class="b10bS" x="270" y="26">signed bar · measured on the bench · blue = caught, red = missed or false alarm</text>
+
+        <text class="b10bH" x="280" y="62" text-anchor="middle">0 counts</text>
+        <text class="b10bH" x="390" y="62" text-anchor="middle">1 keys</text>
+        <text class="b10bH" x="500" y="62" text-anchor="middle">2 daily</text>
+        <text class="b10bH" x="610" y="62" text-anchor="middle">3 bar</text>
+        <text class="b10bH" x="720" y="62" text-anchor="middle">4 edge</text>
+
+        <g filter="url(#b10bSk)" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="230" y="76" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="340" y="76" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="450" y="76" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="560" y="76" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="670" y="76" width="100" height="30" rx="6" fill="#9CC3E6"/>
+
+          <rect x="230" y="116" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="340" y="116" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="450" y="116" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="560" y="116" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="670" y="116" width="100" height="30" rx="6" fill="#9CC3E6"/>
+
+          <rect x="230" y="156" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="340" y="156" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="450" y="156" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="560" y="156" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="670" y="156" width="100" height="30" rx="6" fill="#9CC3E6"/>
+
+          <rect x="230" y="196" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="340" y="196" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="450" y="196" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="560" y="196" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="670" y="196" width="100" height="30" rx="6" fill="#9CC3E6"/>
+
+          <rect x="230" y="236" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="340" y="236" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="450" y="236" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="560" y="236" width="100" height="30" rx="6" fill="#9CC3E6"/>
+          <rect x="670" y="236" width="100" height="30" rx="6" fill="#9CC3E6"/>
+
+          <rect x="230" y="276" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="340" y="276" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="450" y="276" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="560" y="276" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="670" y="276" width="100" height="30" rx="6" fill="#FFFFFF"/>
+
+          <rect x="230" y="316" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="340" y="316" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="450" y="316" width="100" height="30" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="560" y="316" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="670" y="316" width="100" height="30" rx="6" fill="#FFFFFF"/>
+
+          <rect x="230" y="356" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="340" y="356" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="450" y="356" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="560" y="356" width="100" height="30" rx="6" fill="#FFFFFF"/>
+          <rect x="670" y="356" width="100" height="30" rx="6" fill="#FFFFFF"/>
+        </g>
+
+        <text class="b10bL" x="210" y="96" text-anchor="end">late rows twice</text>
+        <text class="b10bL" x="210" y="136" text-anchor="end">fixed -03:00 offset</text>
+        <text class="b10bL" x="210" y="176" text-anchor="end">review NULL as 0</text>
+        <text class="b10bL" x="210" y="216" text-anchor="end">integer division</text>
+        <text class="b10bL" x="210" y="256" text-anchor="end">case-sensitive join</text>
+        <text class="b10bS" x="210" y="296" text-anchor="end">freight per line (ok)</text>
+        <text class="b10bS" x="210" y="336" text-anchor="end">float money (ok)</text>
+        <text class="b10bS" x="210" y="376" text-anchor="end">no drift (control)</text>
+
+        <text class="b10bC" x="280" y="95" text-anchor="middle">caught</text>
+        <text class="b10bC" x="390" y="95" text-anchor="middle">caught</text>
+        <text class="b10bC" x="500" y="95" text-anchor="middle">caught</text>
+        <text class="b10bC" x="610" y="95" text-anchor="middle">caught</text>
+        <text class="b10bC" x="720" y="95" text-anchor="middle">caught</text>
+        <text class="b10bR" x="280" y="135" text-anchor="middle">missed</text>
+        <text class="b10bR" x="390" y="135" text-anchor="middle">missed</text>
+        <text class="b10bC" x="500" y="135" text-anchor="middle">caught</text>
+        <text class="b10bR" x="610" y="135" text-anchor="middle">missed</text>
+        <text class="b10bC" x="720" y="135" text-anchor="middle">caught</text>
+        <text class="b10bR" x="280" y="175" text-anchor="middle">missed</text>
+        <text class="b10bR" x="390" y="175" text-anchor="middle">missed</text>
+        <text class="b10bC" x="500" y="175" text-anchor="middle">caught</text>
+        <text class="b10bC" x="610" y="175" text-anchor="middle">caught</text>
+        <text class="b10bC" x="720" y="175" text-anchor="middle">caught</text>
+        <text class="b10bR" x="280" y="215" text-anchor="middle">missed</text>
+        <text class="b10bR" x="390" y="215" text-anchor="middle">missed</text>
+        <text class="b10bC" x="500" y="215" text-anchor="middle">caught</text>
+        <text class="b10bC" x="610" y="215" text-anchor="middle">caught</text>
+        <text class="b10bC" x="720" y="215" text-anchor="middle">caught</text>
+        <text class="b10bR" x="280" y="255" text-anchor="middle">missed</text>
+        <text class="b10bC" x="390" y="255" text-anchor="middle">caught</text>
+        <text class="b10bC" x="500" y="255" text-anchor="middle">caught</text>
+        <text class="b10bC" x="610" y="255" text-anchor="middle">caught</text>
+        <text class="b10bC" x="720" y="255" text-anchor="middle">caught</text>
+        <text class="b10bS" x="280" y="295" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="390" y="295" text-anchor="middle">quiet</text>
+        <text class="b10bR" x="500" y="295" text-anchor="middle">false alarm</text>
+        <text class="b10bS" x="610" y="295" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="720" y="295" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="280" y="335" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="390" y="335" text-anchor="middle">quiet</text>
+        <text class="b10bR" x="500" y="335" text-anchor="middle">false alarm</text>
+        <text class="b10bS" x="610" y="335" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="720" y="335" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="280" y="375" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="390" y="375" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="500" y="375" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="610" y="375" text-anchor="middle">quiet</text>
+        <text class="b10bS" x="720" y="375" text-anchor="middle">quiet</text>
+
+        <text class="b10bN" x="30" y="408">Only the last column is all blue in the defect rows and free of red below them.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the fixed-offset drift is the only one a rung can lose after catching it</figcaption>
+    </figure>
+
+    <div id="spm-bench"></div>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Rung 0, row counts.</strong> 1 of 5 defects caught. Only the late rows change the count: rows 8,614 vs 8,981. Every other drift leaves the count exactly equal.</p>
+      </div>
+      <div class="step">
+        <p><strong>Rung 1, add keys.</strong> 2 of 5. The late rows now also show as 367 duplicated keys, and the case-sensitive join appears: 1,767 customer keys unresolved, with not one row added or lost.</p>
+      </div>
+      <div class="step">
+        <p><strong>Rung 2, add every metric every day, exactly.</strong> 5 of 5, and 2 false alarms. Read the "what fired" column for the accepted differences: freight differs on 80 days from the per-line split, and floating-point money differs on 302 days of item value and 269 of freight, in the last bits.</p>
+      </div>
+      <div class="step">
+        <p><strong>Rung 3, replace exact days with the signed bar.</strong> 4 of 5, 0 false alarms. The fixed-offset drift is now missed: it moves 72 orders to the day before, and none of them crosses a month end, so every month is inside the bar.</p>
+      </div>
+      <div class="step">
+        <p><strong>Rung 4, add the edge check.</strong> 5 of 5, 0 false alarms: 72 of 595 near-midnight orders on another day. This is the suite to sign. Look at the "every drift at once" table too: orders 8,981, items per order 1.0000, average review score 4.0217 against 4.1390.</p>
+      </div>
+      <div class="step">
+        <p><strong>Press "Loosen the bar".</strong> At rung 4 the score falls to 4 of 5: the missing-review drift goes quiet, because its largest monthly gap is 2.22%, under 3%. At rung 3 it is 3 of 5. Then restore the signed bar and press the break button: 0 of 5 at every rung, because both sides now read the new warehouse.</p>
+        <div class="prompt-box good"><span class="label">★ Read the bench from the console</span>SPM_LIVE.setRung(4); SPM_LIVE.setLoose(false); SPM_LIVE.setBreak(false);
+SPM_LIVE.current().score
+// { caught: 5, missed: 0, falseAlarms: 0, quiet: 3, ... }
+SPM_LIVE.setLoose(true);  SPM_LIVE.current().score.caught   // 4
+SPM_LIVE.setLoose(false); SPM_LIVE.setBreak(true);
+SPM_LIVE.current().score.caught                              // 0</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the anti-lever: a bar too loose</span>
+      <h2>A tolerance wide enough to stop every alarm</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The loose bar never improves the score. That is its job: a bench must be able to print a worse number, or it measures nothing. It also shows why a tolerance is set per metric, against the size of the drift you need to see.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn gauges for the missing-review drift, as the bench measures it. Its largest monthly gap in reviewed orders is 2.22 percent, in February 2017. Under Serai's signed bar reviewed orders must match exactly, so the drift is caught in 20 of 21 months. Under the loose bar of 3 percent the 2.22 percent gap sits inside the tolerance and no month raises an alarm.">
+        <defs>
+          <filter id="b10cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b10cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b10cL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b10cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b10cB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b10cR { font: 800 12px Inter, sans-serif; fill: #991B1B; }
+          .b10cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b10cH" x="30" y="26">THE SAME 2.22% GAP AGAINST TWO BARS</text>
+        <text class="b10cS" x="320" y="26">missing review loaded as 0 · reviewed orders, worst month · measured on the bench</text>
+
+        <text class="b10cL" x="30" y="84">signed bar: exact</text>
+        <text class="b10cL" x="30" y="184">loose bar: 3%</text>
+
+        <g filter="url(#b10cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="200" y="66" width="560" height="26" rx="13" fill="#ECE6DB"/>
+          <rect x="200" y="66" width="414" height="26" rx="13" fill="#9CC3E6"/>
+          <path d="M200 52 L200 106" stroke="#991B1B" stroke-width="2.5"/>
+          <rect x="200" y="166" width="560" height="26" rx="13" fill="#ECE6DB"/>
+          <rect x="200" y="166" width="414" height="26" rx="13" fill="#FEF2F2" stroke="#991B1B"/>
+          <path d="M760 152 L760 206" stroke="#991B1B" stroke-width="2.5"/>
+        </g>
+
+        <text class="b10cS" x="200" y="124">tolerance 0: any gap fires</text>
+        <text class="b10cB" x="626" y="84">2.22%</text>
+        <text class="b10cB" x="470" y="124">caught in 20 of 21 months</text>
+        <text class="b10cS" x="700" y="224">tolerance 3%</text>
+        <text class="b10cR" x="626" y="184">2.22%</text>
+        <text class="b10cR" x="200" y="224">inside the bar: 0 months fire, defect missed</text>
+
+        <text class="b10cN" x="30" y="260">68 orders without a review became a score of 0. A 3% bar on every metric cannot see them.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a tolerance chosen for convenience hides a defect smaller than the tolerance</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Setting a tolerance per metric<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A count of reviewed orders has no rounding in it, so any difference is a defect: exact. Money summed in a different engine can differ in the last bits, so it needs a small relative tolerance, and Serai's 0.05% is far wider than the floating-point gaps (about 2e-10 BRL in a month) and far narrower than the late rows (BRL 1,197,842.24 against BRL 1,262,425.64 in total). An average needs an absolute tolerance on its own scale: Serai's 0.01 on a 1 to 5 score is narrow enough to see the missing-review drift, which moved one month by 0.0931.</p>
+        <p>Write each tolerance next to the drift it is meant to absorb and the drift it must still catch. A tolerance with no such sentence is a guess, and a guess is how 3% on every metric gets signed.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Row-by-row tools still need a bar.</strong> AWS's DMS validation "compares each row in the source with its corresponding row at the target" and "reports any mismatches"; Google's Data Validation Tool compares aggregates or row hashes. A tool reports differences. Which differences block cutover is a decision a person signs, before the first comparison runs, so that the result cannot move the bar.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the break button and the signed runbook</span>
+      <h2>What each side read, and the signature</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The break button models a mistake that is easy to make and hard to see: a copied connection string points both sides of the comparison at the new warehouse. Every check passes, and the report is worthless.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn wirings of the parity suite. Left, correct: one side reads legacy, the other reads the new warehouse, and the suite catches 5 of 5 defects. Right, broken: both sides read the new warehouse, every check compares the new warehouse with itself, and the suite catches 0 of 5 while every check shows green.">
+        <defs>
+          <filter id="b10dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b10dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b10dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b10dL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .b10dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b10dB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b10dR { font: 800 12px Inter, sans-serif; fill: #991B1B; }
+          .b10dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b10dH" x="30" y="26">THE SAME SUITE, WIRED TWO WAYS</text>
+        <text class="b10dS" x="270" y="26">rung 4 · signed bar · measured on the bench</text>
+
+        <g filter="url(#b10dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="400" height="200" rx="12" transform="rotate(-0.3 230 144)" fill="#FFFFFF"/>
+          <rect x="450" y="44" width="400" height="200" rx="12" transform="rotate(0.3 650 144)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="50" y="84" width="110" height="44" rx="8" fill="#F8F2E6"/>
+          <rect x="300" y="84" width="110" height="44" rx="8" fill="#FFFFFF"/>
+          <rect x="175" y="150" width="110" height="40" rx="20" fill="#9CC3E6"/>
+          <path d="M120 130 L190 150" marker-end="url(#b10dAr)"/>
+          <path d="M340 130 L270 150" marker-end="url(#b10dAr)"/>
+          <rect x="470" y="84" width="110" height="44" rx="8" fill="#FFFFFF"/>
+          <rect x="720" y="84" width="110" height="44" rx="8" fill="#FFFFFF"/>
+          <rect x="595" y="150" width="110" height="40" rx="20" fill="#FFFFFF" stroke="#991B1B"/>
+          <path d="M540 130 L610 150" marker-end="url(#b10dAr)"/>
+          <path d="M760 130 L690 150" marker-end="url(#b10dAr)"/>
+        </g>
+
+        <text class="b10dH" x="46" y="68">CORRECT WIRING</text>
+        <text class="b10dL" x="64" y="111">legacy</text>
+        <text class="b10dL" x="314" y="111">new</text>
+        <text class="b10dL" x="200" y="175">the suite</text>
+        <text class="b10dB" x="46" y="226">5 of 5 defects caught</text>
+
+        <text class="b10dH" x="466" y="68">COPIED CONNECTION STRING</text>
+        <text class="b10dL" x="484" y="111">new</text>
+        <text class="b10dL" x="734" y="111">new</text>
+        <text class="b10dL" x="620" y="175">the suite</text>
+        <text class="b10dR" x="466" y="226">0 of 5 caught, every check green</text>
+
+        <text class="b10dN" x="30" y="276">A parity report counts only when it names what each side read. Print both connection targets on the report.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - comparing a warehouse with itself passes every check, so the report must show what it compared</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Serai's signed runbook, section by section<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Section</th><th>From</th><th>What Serai signs</th></tr></thead>
+          <tbody>
+            <tr><td>1 · Inventory</td><td>Builder 1</td><td>Every table with a status: move, move as a dependency, retire candidate</td></tr>
+            <tr><td>2 · Order of moves</td><td>Builder 2</td><td>Retirements first, then waves in dependency order</td></tr>
+            <tr><td>3 · Translation rules</td><td>Builder 3</td><td>Time zones by name, never a fixed offset; NULL kept NULL; division typed; key comparison rule stated; money as DECIMAL</td></tr>
+            <tr><td>4 · Parity suite and bar</td><td>Builders 4, 5, 10</td><td>Rung 4 with the signed bar: 5 of 5, 0 false alarms; both connection targets printed on every report</td></tr>
+            <tr><td>5 · Historical reload</td><td>Builder 6</td><td>Reload windows, the late-row merge rule, and a parity run after each window</td></tr>
+            <tr><td>6 · Parallel run</td><td>Builder 7</td><td>The nightly diff, and the exit rule for ending it</td></tr>
+            <tr><td>7 · Cutover and rollback</td><td>Builder 8</td><td>Rehearsed timings, the go/no-go list, the rollback trigger and who pulls it</td></tr>
+            <tr><td>8 · The week after</td><td>Builder 9</td><td>Daily edge checks on time zones, late data and caches, and when the watch ends</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What the bench cannot tell you<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each drift is planted alone, so the bench never shows two drifts cancelling each other in an aggregate, which happens in real moves. The six metrics are Serai's; yours will include ratios and distinct counts that behave differently under the same drifts. And the edge check exists because someone knew to look for time zones: it catches the drift you thought of. The checks that find the drift nobody thought of are the exact daily comparison at rung 2, read by a person, and the parallel run of Builder session 7.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Integrity first, written down in advance.</strong> GitHub's analysis of its October 2018 incident records the choice to "prioritize data integrity over site usability and time to recovery". Serai's runbook makes the same choice before cutover day, in writing: if the suite is not at rung 4 with the signed bar and both targets printed, the move waits.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>The capstone</h2>
+      <span class="tag exercise">60 min</span>
+    </div>
+    <ol>
+      <li>Fill Serai's eight runbook sections with the decisions from sessions 1 to 9, each in one or two sentences, and sign section 4 with the bench's rung-4 numbers.</li>
+      <li>Write your own parity bar: one line per metric your business reads, with its grain, its tolerance, the drift it absorbs and the drift it must still catch.</li>
+      <li>Name one drift your own move could suffer that none of the seven covers, and design a check for it in the shape of the edge check: which rows, compared how, alarm when.</li>
+      <li>Add both connection targets to the header of your parity report template, and ask a colleague to break it the way the break button does.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 10 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Rung 2 catches 5 of 5 defects; rung 3 catches 4. Why is rung 3 still the better base for the suite?</p>
+      <button class="qopt" type="button">A · It is faster to run</button>
+      <button class="qopt" type="button">B · It stops the 2 false alarms by comparing at the grain people read with signed tolerances; the edge check at rung 4 then closes the one gap it opens</button>
+      <button class="qopt" type="button">C · Monthly numbers are more accurate than daily numbers</button>
+      <button class="qopt" type="button">D · It is not: rung 2 is always better</button>
+      <p class="qwhy">False alarms train people to ignore the suite. Rung 3 trades them for one known blind spot, the fixed-offset drift inside a month, and rung 4 is designed to see exactly that.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · With the loose bar on, rung 4 catches 4 of 5. Which defect slips through, and why?</p>
+      <button class="qopt" type="button">A · Integer division, because 1.14 and 1 are within 3%</button>
+      <button class="qopt" type="button">B · The late rows, because counts use the bar</button>
+      <button class="qopt" type="button">C · The missing review score loaded as 0: its largest monthly gap is 2.22%, inside 3%</button>
+      <button class="qopt" type="button">D · The case-sensitive join, because keys use the bar</button>
+      <p class="qwhy">Counts and keys are exact whatever the bar. Integer division moves items per order by far more than 3%. The 68 zeros move each month by 2.22% at most, so a 3% bar on every metric hides them.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A parity report shows every check green. What must it also show before you trust it?</p>
+      <button class="qopt" type="button">A · What each side read, the rung and the bar it was run against</button>
+      <button class="qopt" type="button">B · How long the checks took to run</button>
+      <button class="qopt" type="button">C · The number of rows in the new warehouse only</button>
+      <button class="qopt" type="button">D · Nothing more: green is green</button>
+      <p class="qwhy">With both sides on the new warehouse every check is green and 0 of 5 defects are caught; with a loose bar a real defect is green too. The report is evidence only with its targets, rung and bar printed.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The parity bench: five checks, seven drifts, three modes</span><span class="note">Computed in the browser; matched on 1,740 numbers by an independent Python reference; self-test with a planted fault</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Serai's rows: the Olist public dataset</span><span class="note">Brazilian E-Commerce Public Dataset by Olist, Kaggle, CC BY-NC-SA 4.0, read at source; derived and masked, no review text</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Daylight-saving dates for Sao Paulo</span><span class="note">IANA time zone database via Python zoneinfo; the 2019b release notes read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Validation tooling</span><span class="note">Google Data Validation Tool, reladiff and AWS DMS documentation, read at source; re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">GitHub's October 2018 incident</span><span class="note">GitHub's post-incident analysis, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The drifts, the warehouses and the parity bar</span><span class="note">Constructed for Serai Commerce and labelled on the bench; no benchmark claimed</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 10 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Parity is two-sided</b><span>Every check reads both warehouses and compares one thing.</span></div>
+      <div class="cheat-item"><b>Score three numbers</b><span>Defects caught, defects missed, false alarms.</span></div>
+      <div class="cheat-item"><b>Exact days cry wolf</b><span>Rung 2: 5 of 5 with 2 false alarms on accepted differences.</span></div>
+      <div class="cheat-item"><b>A bar opens a gap</b><span>Rung 3 misses the fixed offset; the edge check closes it.</span></div>
+      <div class="cheat-item"><b>A bench can print worse</b><span>Loose bar 4 of 5; both sides on new 0 of 5.</span></div>
+      <div class="cheat-item"><b>Sign the runbook</b><span>Rung, bar and both targets on the report, or the move waits.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>That is the builder track: inventory, order of moves, translation, row, key and aggregate parity, reload, parallel run, rehearsal, the week after and the bench. Take the signed runbook to the leader track's session 6 and close the cost case by switching the old warehouse off.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 10 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b9-drift-that-hides.html">← Prev: The week after: drift that hides</a> &nbsp;·&nbsp; <a href="../index.html">Course home</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/spm-sample.js?v=1"></script>
+<script src="../assets/spm-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

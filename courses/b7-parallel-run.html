@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 7 of 10. Run the legacy and new warehouses side by side from the same feeds, diff them every night with the rung-4 suite, store the result as one row per check per night, and end the run on a written rule, not a calendar. Built in DuckDB on Serai Commerce's constructed four-week run.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Parallel run - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 7 of 10. Two warehouses, one set of readers, a nightly diff you can query, and an exit rule that counts a missing check as a failure.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b7-parallel-run.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Parallel run - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 7 of 10. The nightly diff as a table, and the query that answers: are we clean, and since when?">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 7 · Parallel run - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 7 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 7 of 10</div>
+    <h1>Parallel <span class="accent">run</span></h1>
+    <p class="sub">The history is reloaded and the parity suite is signed. Now both warehouses run side by side, fed from the same sources every night, while every reader stays on legacy. Each night the rung-4 suite compares them and writes down what it found. Tonight you store that as a table you can query, and you write the rule that ends the run. Serai planned four weeks. The rule, not the calendar, says whether four weeks was enough.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Advanced-practical</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Whoever signs the end of a parallel run</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Two systems, the nightly diff, the exit rule</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: are we clean, and since when?</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Sessions 1 to 6 built the pieces: the inventory, the order of moves, the translation rules, the parity suite with its signed bar, and the historical reload. Session 7 runs them together, night after night, before a single reader moves. The running case is a <strong>Constructed Serai Commerce example</strong>: the company, its warehouses, the four-week run from 19 October to 15 November 2026 and every failure in it are constructed; the bench numbers quoted on failing nights come from the 8,614 real Olist orders on the <a href="b10-the-parity-bench.html">parity bench</a>. Session 8 rehearses the cutover this run is earning.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 6, the parallel run: what feeds both sides, a <code>nightly_diff</code> table with one row per check per night, the exit rule in one sentence, and the query that answers "are we clean, and since when?". On Serai's constructed run that query says 9 clean nights since 7 November and one open item, so the rule is not met on the night the four weeks end. You will have run every query that says so.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers running legacy and new side by side</span>
+      <h2>Two systems, one truth</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A parallel run is not two warehouses that both happen to be on. It is one set of feeds loaded into both, one set of readers on legacy, and one comparison every night that decides, slowly and in writing, whether the new side has earned the readers.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn flow. The same nightly sources, raw exports A, B and C, raw reviews and the late feed, load into both the legacy warehouse and the new warehouse. The legacy warehouse is the system of record and feeds the readers: ops daily, board pack, brand review and analysts. The new warehouse has no readers; both warehouses feed the nightly diff, which runs the rung-4 suite and writes one row per check per night.">
+        <defs>
+          <filter id="b7aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b7aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b7aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b7aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b7aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b7aH" x="30" y="30">ONE FEED, TWO WAREHOUSES, ONE SET OF READERS</text>
+        <text class="b7aS" x="420" y="30">Constructed Serai Commerce example · every night of the run</text>
+
+        <g filter="url(#b7aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="60" width="190" height="220" rx="10" transform="rotate(-0.6 125 170)" fill="#F8F2E6"/>
+          <rect x="290" y="60" width="220" height="80" rx="10" transform="rotate(0.5 400 100)" fill="#FFFFFF"/>
+          <rect x="290" y="200" width="220" height="80" rx="10" transform="rotate(-0.5 400 240)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <rect x="620" y="60" width="230" height="80" rx="10" transform="rotate(-0.4 735 100)" fill="#FFFFFF"/>
+          <rect x="620" y="200" width="230" height="80" rx="10" transform="rotate(0.4 735 240)" fill="#9CC3E6"/>
+          <path d="M224 110 L286 100" marker-end="url(#b7aAr)"/>
+          <path d="M224 220 L286 240" marker-end="url(#b7aAr)"/>
+          <path d="M514 96 L616 96" marker-end="url(#b7aAr)"/>
+          <path d="M514 130 L616 212" marker-end="url(#b7aAr)"/>
+          <path d="M514 244 L616 244" marker-end="url(#b7aAr)"/>
+        </g>
+
+        <text class="b7aH" x="46" y="88">SAME SOURCES</text>
+        <text class="b7aL" x="46" y="124">raw exports A, B, C</text>
+        <text class="b7aL" x="46" y="154">raw.reviews</text>
+        <text class="b7aL" x="46" y="184">late feed</text>
+        <text class="b7aS" x="46" y="236">one load into each side,</text>
+        <text class="b7aS" x="46" y="254">same cutoff, every night</text>
+
+        <text class="b7aH" x="306" y="90">LEGACY WAREHOUSE</text>
+        <text class="b7aS" x="306" y="112">system of record until cutover</text>
+
+        <text class="b7aH" x="306" y="230">NEW WAREHOUSE</text>
+        <text class="b7aS" x="306" y="252">loaded nightly, read by nobody</text>
+
+        <text class="b7aH" x="636" y="88">READERS</text>
+        <text class="b7aL" x="636" y="108">ops daily · board pack</text>
+        <text class="b7aL" x="636" y="126">brand review · analysts</text>
+
+        <text class="b7aH" x="636" y="228">NIGHTLY DIFF</text>
+        <text class="b7aL" x="636" y="248">rung-4 suite, both sides</text>
+        <text class="b7aL" x="636" y="266">one row per check per night</text>
+
+        <text class="b7aN" x="30" y="312">Readers stay on legacy until cutover; the new side is read by one thing only, the nightly diff.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - both sides load the same feeds, and only the diff reads the new one</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What "parallel" means, and what it does not<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Four rules turn two running warehouses into a parallel run you can learn from.</p>
+        <ul>
+          <li><strong>One set of feeds.</strong> Every source lands in both sides from the same extract, with the same cutoff. If the new side reads its own copy of an export, a difference may be the copy, not the migration.</li>
+          <li><strong>One system of record.</strong> Legacy stays the answer until cutover. Every dashboard, report and analyst reads legacy. Nobody quotes a number from the new side, however good it looks.</li>
+          <li><strong>Nothing written to one side only.</strong> A fix to a job is made in the migration code and both sides reload. A hand patch on the new side makes the next night's diff meaningless.</li>
+          <li><strong>One reader on the new side: the diff.</strong> Its output is the only evidence the run produces, so it is stored, not glanced at.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Same inputs, or the diff measures your schedule<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>On 31 October, constructed, Serai's new nightly load started before the late feed had landed, and legacy's started after it. Counts and monthly parity both failed that night, with nothing wrong in the translated SQL. The diff was comparing two different moments.</p>
+        <p>The fix is a cutoff both sides share: each night records which feed files, or which load id, it consumed, and the diff refuses to run until both sides report the same one. That turns a timing gap into a skipped night with a reason, rather than a false failure. Re-running a night after a fix must also give the same answer twice; that is idempotency, which <a href="https://phoebefu6.github.io/learn-data-reliability-with-phoebe/courses/b5-backfills.html">Data Reliability Builder 5</a> owns. The parallel run only asks for it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Vendors describe the overlap as a feature.</strong> A 2019 Google Cloud blog on moving data warehouses describes an iterative move in which "both your data warehouse and BigQuery can be actively used in parallel". Read it as a vendor claim about its own process. It is also an honest description of the cost: actively used in parallel means actively loaded, run and paid for in parallel. The leader track's <a href="a6-the-week-after-and-switching-off.html">session 6</a> closes that cost case; this session only makes sure the overlap buys evidence.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the rung-4 suite every night, stored as rows</span>
+      <h2>The nightly diff</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Every night the full suite runs against both sides: counts, keys, monthly parity against the signed bar, and the time-zone edge check. Its output is one row per check per night, so a month of nights is a grid you can read at a glance and a table you can query.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn grid of Serai's constructed parallel run: four rows for the checks counts, keys, parity and edge, and 28 columns for the nights from 19 October to 15 November 2026. Counts, keys and parity fail on 19 and 20 October when late rows were appended. Counts and parity fail on 31 October when the new load ran before the late feed. On 6 November the parity cell is empty because the job never ran. The nine nights from 7 to 15 November are all clean.">
+        <defs>
+          <filter id="b7bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="73" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b7bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b7bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b7bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b7bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b7bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b7bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b7bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b7bH" x="30" y="26">THE NIGHTLY DIFF: ONE ROW PER CHECK PER NIGHT</text>
+        <text class="b7bS" x="30" y="46">Constructed Serai Commerce example · 28 nights x 4 checks, 111 rows stored, because one never ran</text>
+
+        <g filter="url(#b7bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="130" y="66" width="22" height="24" rx="4" transform="rotate(-1.2 141.0 78.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="155" y="66" width="22" height="24" rx="4" transform="rotate(1.1 166.0 78.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="180" y="66" width="22" height="24" rx="4" transform="rotate(-1.0 191.0 78.0)" fill="#FFFFFF"/>
+          <rect x="205" y="66" width="22" height="24" rx="4" transform="rotate(0.8 216.0 78.0)" fill="#FFFFFF"/>
+          <rect x="230" y="66" width="22" height="24" rx="4" transform="rotate(-0.9 241.0 78.0)" fill="#FFFFFF"/>
+          <rect x="255" y="66" width="22" height="24" rx="4" transform="rotate(0.7 266.0 78.0)" fill="#FFFFFF"/>
+          <rect x="280" y="66" width="22" height="24" rx="4" transform="rotate(-0.6 291.0 78.0)" fill="#FFFFFF"/>
+          <rect x="305" y="66" width="22" height="24" rx="4" transform="rotate(0.5 316.0 78.0)" fill="#FFFFFF"/>
+          <rect x="330" y="66" width="22" height="24" rx="4" transform="rotate(-1.2 341.0 78.0)" fill="#FFFFFF"/>
+          <rect x="355" y="66" width="22" height="24" rx="4" transform="rotate(1.1 366.0 78.0)" fill="#FFFFFF"/>
+          <rect x="380" y="66" width="22" height="24" rx="4" transform="rotate(-1.0 391.0 78.0)" fill="#FFFFFF"/>
+          <rect x="405" y="66" width="22" height="24" rx="4" transform="rotate(0.8 416.0 78.0)" fill="#FFFFFF"/>
+          <rect x="430" y="66" width="22" height="24" rx="4" transform="rotate(-0.9 441.0 78.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="455" y="66" width="22" height="24" rx="4" transform="rotate(0.7 466.0 78.0)" fill="#FFFFFF"/>
+          <rect x="480" y="66" width="22" height="24" rx="4" transform="rotate(-0.6 491.0 78.0)" fill="#FFFFFF"/>
+          <rect x="505" y="66" width="22" height="24" rx="4" transform="rotate(0.5 516.0 78.0)" fill="#FFFFFF"/>
+          <rect x="530" y="66" width="22" height="24" rx="4" transform="rotate(-1.2 541.0 78.0)" fill="#FFFFFF"/>
+          <rect x="555" y="66" width="22" height="24" rx="4" transform="rotate(1.1 566.0 78.0)" fill="#FFFFFF"/>
+          <rect x="580" y="66" width="22" height="24" rx="4" transform="rotate(-1.0 591.0 78.0)" fill="#FFFFFF"/>
+          <rect x="605" y="66" width="22" height="24" rx="4" transform="rotate(0.8 616.0 78.0)" fill="#9CC3E6"/>
+          <rect x="630" y="66" width="22" height="24" rx="4" transform="rotate(-0.9 641.0 78.0)" fill="#9CC3E6"/>
+          <rect x="655" y="66" width="22" height="24" rx="4" transform="rotate(0.7 666.0 78.0)" fill="#9CC3E6"/>
+          <rect x="680" y="66" width="22" height="24" rx="4" transform="rotate(-0.6 691.0 78.0)" fill="#9CC3E6"/>
+          <rect x="705" y="66" width="22" height="24" rx="4" transform="rotate(0.5 716.0 78.0)" fill="#9CC3E6"/>
+          <rect x="730" y="66" width="22" height="24" rx="4" transform="rotate(-1.2 741.0 78.0)" fill="#9CC3E6"/>
+          <rect x="755" y="66" width="22" height="24" rx="4" transform="rotate(1.1 766.0 78.0)" fill="#9CC3E6"/>
+          <rect x="780" y="66" width="22" height="24" rx="4" transform="rotate(-1.0 791.0 78.0)" fill="#9CC3E6"/>
+          <rect x="805" y="66" width="22" height="24" rx="4" transform="rotate(0.8 816.0 78.0)" fill="#9CC3E6"/>
+          <rect x="130" y="98" width="22" height="24" rx="4" transform="rotate(0.8 141.0 110.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="155" y="98" width="22" height="24" rx="4" transform="rotate(-0.9 166.0 110.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="180" y="98" width="22" height="24" rx="4" transform="rotate(0.7 191.0 110.0)" fill="#FFFFFF"/>
+          <rect x="205" y="98" width="22" height="24" rx="4" transform="rotate(-0.6 216.0 110.0)" fill="#FFFFFF"/>
+          <rect x="230" y="98" width="22" height="24" rx="4" transform="rotate(0.5 241.0 110.0)" fill="#FFFFFF"/>
+          <rect x="255" y="98" width="22" height="24" rx="4" transform="rotate(-1.2 266.0 110.0)" fill="#FFFFFF"/>
+          <rect x="280" y="98" width="22" height="24" rx="4" transform="rotate(1.1 291.0 110.0)" fill="#FFFFFF"/>
+          <rect x="305" y="98" width="22" height="24" rx="4" transform="rotate(-1.0 316.0 110.0)" fill="#FFFFFF"/>
+          <rect x="330" y="98" width="22" height="24" rx="4" transform="rotate(0.8 341.0 110.0)" fill="#FFFFFF"/>
+          <rect x="355" y="98" width="22" height="24" rx="4" transform="rotate(-0.9 366.0 110.0)" fill="#FFFFFF"/>
+          <rect x="380" y="98" width="22" height="24" rx="4" transform="rotate(0.7 391.0 110.0)" fill="#FFFFFF"/>
+          <rect x="405" y="98" width="22" height="24" rx="4" transform="rotate(-0.6 416.0 110.0)" fill="#FFFFFF"/>
+          <rect x="430" y="98" width="22" height="24" rx="4" transform="rotate(0.5 441.0 110.0)" fill="#FFFFFF"/>
+          <rect x="455" y="98" width="22" height="24" rx="4" transform="rotate(-1.2 466.0 110.0)" fill="#FFFFFF"/>
+          <rect x="480" y="98" width="22" height="24" rx="4" transform="rotate(1.1 491.0 110.0)" fill="#FFFFFF"/>
+          <rect x="505" y="98" width="22" height="24" rx="4" transform="rotate(-1.0 516.0 110.0)" fill="#FFFFFF"/>
+          <rect x="530" y="98" width="22" height="24" rx="4" transform="rotate(0.8 541.0 110.0)" fill="#FFFFFF"/>
+          <rect x="555" y="98" width="22" height="24" rx="4" transform="rotate(-0.9 566.0 110.0)" fill="#FFFFFF"/>
+          <rect x="580" y="98" width="22" height="24" rx="4" transform="rotate(0.7 591.0 110.0)" fill="#FFFFFF"/>
+          <rect x="605" y="98" width="22" height="24" rx="4" transform="rotate(-0.6 616.0 110.0)" fill="#9CC3E6"/>
+          <rect x="630" y="98" width="22" height="24" rx="4" transform="rotate(0.5 641.0 110.0)" fill="#9CC3E6"/>
+          <rect x="655" y="98" width="22" height="24" rx="4" transform="rotate(-1.2 666.0 110.0)" fill="#9CC3E6"/>
+          <rect x="680" y="98" width="22" height="24" rx="4" transform="rotate(1.1 691.0 110.0)" fill="#9CC3E6"/>
+          <rect x="705" y="98" width="22" height="24" rx="4" transform="rotate(-1.0 716.0 110.0)" fill="#9CC3E6"/>
+          <rect x="730" y="98" width="22" height="24" rx="4" transform="rotate(0.8 741.0 110.0)" fill="#9CC3E6"/>
+          <rect x="755" y="98" width="22" height="24" rx="4" transform="rotate(-0.9 766.0 110.0)" fill="#9CC3E6"/>
+          <rect x="780" y="98" width="22" height="24" rx="4" transform="rotate(0.7 791.0 110.0)" fill="#9CC3E6"/>
+          <rect x="805" y="98" width="22" height="24" rx="4" transform="rotate(-0.6 816.0 110.0)" fill="#9CC3E6"/>
+          <rect x="130" y="130" width="22" height="24" rx="4" transform="rotate(-0.6 141.0 142.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="155" y="130" width="22" height="24" rx="4" transform="rotate(0.5 166.0 142.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="180" y="130" width="22" height="24" rx="4" transform="rotate(-1.2 191.0 142.0)" fill="#FFFFFF"/>
+          <rect x="205" y="130" width="22" height="24" rx="4" transform="rotate(1.1 216.0 142.0)" fill="#FFFFFF"/>
+          <rect x="230" y="130" width="22" height="24" rx="4" transform="rotate(-1.0 241.0 142.0)" fill="#FFFFFF"/>
+          <rect x="255" y="130" width="22" height="24" rx="4" transform="rotate(0.8 266.0 142.0)" fill="#FFFFFF"/>
+          <rect x="280" y="130" width="22" height="24" rx="4" transform="rotate(-0.9 291.0 142.0)" fill="#FFFFFF"/>
+          <rect x="305" y="130" width="22" height="24" rx="4" transform="rotate(0.7 316.0 142.0)" fill="#FFFFFF"/>
+          <rect x="330" y="130" width="22" height="24" rx="4" transform="rotate(-0.6 341.0 142.0)" fill="#FFFFFF"/>
+          <rect x="355" y="130" width="22" height="24" rx="4" transform="rotate(0.5 366.0 142.0)" fill="#FFFFFF"/>
+          <rect x="380" y="130" width="22" height="24" rx="4" transform="rotate(-1.2 391.0 142.0)" fill="#FFFFFF"/>
+          <rect x="405" y="130" width="22" height="24" rx="4" transform="rotate(1.1 416.0 142.0)" fill="#FFFFFF"/>
+          <rect x="430" y="130" width="22" height="24" rx="4" transform="rotate(-1.0 441.0 142.0)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="455" y="130" width="22" height="24" rx="4" transform="rotate(0.8 466.0 142.0)" fill="#FFFFFF"/>
+          <rect x="480" y="130" width="22" height="24" rx="4" transform="rotate(-0.9 491.0 142.0)" fill="#FFFFFF"/>
+          <rect x="505" y="130" width="22" height="24" rx="4" transform="rotate(0.7 516.0 142.0)" fill="#FFFFFF"/>
+          <rect x="530" y="130" width="22" height="24" rx="4" transform="rotate(-0.6 541.0 142.0)" fill="#FFFFFF"/>
+          <rect x="555" y="130" width="22" height="24" rx="4" transform="rotate(0.5 566.0 142.0)" fill="#FFFFFF"/>
+          <rect x="580" y="130" width="22" height="24" rx="4" transform="rotate(-1.2 591.0 142.0)" fill="#FFFFFF" stroke-dasharray="4 3"/>
+          <rect x="605" y="130" width="22" height="24" rx="4" transform="rotate(1.1 616.0 142.0)" fill="#9CC3E6"/>
+          <rect x="630" y="130" width="22" height="24" rx="4" transform="rotate(-1.0 641.0 142.0)" fill="#9CC3E6"/>
+          <rect x="655" y="130" width="22" height="24" rx="4" transform="rotate(0.8 666.0 142.0)" fill="#9CC3E6"/>
+          <rect x="680" y="130" width="22" height="24" rx="4" transform="rotate(-0.9 691.0 142.0)" fill="#9CC3E6"/>
+          <rect x="705" y="130" width="22" height="24" rx="4" transform="rotate(0.7 716.0 142.0)" fill="#9CC3E6"/>
+          <rect x="730" y="130" width="22" height="24" rx="4" transform="rotate(-0.6 741.0 142.0)" fill="#9CC3E6"/>
+          <rect x="755" y="130" width="22" height="24" rx="4" transform="rotate(0.5 766.0 142.0)" fill="#9CC3E6"/>
+          <rect x="780" y="130" width="22" height="24" rx="4" transform="rotate(-1.2 791.0 142.0)" fill="#9CC3E6"/>
+          <rect x="805" y="130" width="22" height="24" rx="4" transform="rotate(1.1 816.0 142.0)" fill="#9CC3E6"/>
+          <rect x="130" y="162" width="22" height="24" rx="4" transform="rotate(1.1 141.0 174.0)" fill="#FFFFFF"/>
+          <rect x="155" y="162" width="22" height="24" rx="4" transform="rotate(-1.0 166.0 174.0)" fill="#FFFFFF"/>
+          <rect x="180" y="162" width="22" height="24" rx="4" transform="rotate(0.8 191.0 174.0)" fill="#FFFFFF"/>
+          <rect x="205" y="162" width="22" height="24" rx="4" transform="rotate(-0.9 216.0 174.0)" fill="#FFFFFF"/>
+          <rect x="230" y="162" width="22" height="24" rx="4" transform="rotate(0.7 241.0 174.0)" fill="#FFFFFF"/>
+          <rect x="255" y="162" width="22" height="24" rx="4" transform="rotate(-0.6 266.0 174.0)" fill="#FFFFFF"/>
+          <rect x="280" y="162" width="22" height="24" rx="4" transform="rotate(0.5 291.0 174.0)" fill="#FFFFFF"/>
+          <rect x="305" y="162" width="22" height="24" rx="4" transform="rotate(-1.2 316.0 174.0)" fill="#FFFFFF"/>
+          <rect x="330" y="162" width="22" height="24" rx="4" transform="rotate(1.1 341.0 174.0)" fill="#FFFFFF"/>
+          <rect x="355" y="162" width="22" height="24" rx="4" transform="rotate(-1.0 366.0 174.0)" fill="#FFFFFF"/>
+          <rect x="380" y="162" width="22" height="24" rx="4" transform="rotate(0.8 391.0 174.0)" fill="#FFFFFF"/>
+          <rect x="405" y="162" width="22" height="24" rx="4" transform="rotate(-0.9 416.0 174.0)" fill="#FFFFFF"/>
+          <rect x="430" y="162" width="22" height="24" rx="4" transform="rotate(0.7 441.0 174.0)" fill="#FFFFFF"/>
+          <rect x="455" y="162" width="22" height="24" rx="4" transform="rotate(-0.6 466.0 174.0)" fill="#FFFFFF"/>
+          <rect x="480" y="162" width="22" height="24" rx="4" transform="rotate(0.5 491.0 174.0)" fill="#FFFFFF"/>
+          <rect x="505" y="162" width="22" height="24" rx="4" transform="rotate(-1.2 516.0 174.0)" fill="#FFFFFF"/>
+          <rect x="530" y="162" width="22" height="24" rx="4" transform="rotate(1.1 541.0 174.0)" fill="#FFFFFF"/>
+          <rect x="555" y="162" width="22" height="24" rx="4" transform="rotate(-1.0 566.0 174.0)" fill="#FFFFFF"/>
+          <rect x="580" y="162" width="22" height="24" rx="4" transform="rotate(0.8 591.0 174.0)" fill="#FFFFFF"/>
+          <rect x="605" y="162" width="22" height="24" rx="4" transform="rotate(-0.9 616.0 174.0)" fill="#9CC3E6"/>
+          <rect x="630" y="162" width="22" height="24" rx="4" transform="rotate(0.7 641.0 174.0)" fill="#9CC3E6"/>
+          <rect x="655" y="162" width="22" height="24" rx="4" transform="rotate(-0.6 666.0 174.0)" fill="#9CC3E6"/>
+          <rect x="680" y="162" width="22" height="24" rx="4" transform="rotate(0.5 691.0 174.0)" fill="#9CC3E6"/>
+          <rect x="705" y="162" width="22" height="24" rx="4" transform="rotate(-1.2 716.0 174.0)" fill="#9CC3E6"/>
+          <rect x="730" y="162" width="22" height="24" rx="4" transform="rotate(1.1 741.0 174.0)" fill="#9CC3E6"/>
+          <rect x="755" y="162" width="22" height="24" rx="4" transform="rotate(-1.0 766.0 174.0)" fill="#9CC3E6"/>
+          <rect x="780" y="162" width="22" height="24" rx="4" transform="rotate(0.8 791.0 174.0)" fill="#9CC3E6"/>
+          <rect x="805" y="162" width="22" height="24" rx="4" transform="rotate(-0.9 816.0 174.0)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b7bL" x="30" y="82">counts</text>
+        <text class="b7bL" x="30" y="114">keys</text>
+        <text class="b7bL" x="30" y="146">parity</text>
+        <text class="b7bL" x="30" y="178">edge</text>
+
+        <text class="b7bA" x="141" y="206" text-anchor="middle">19 Oct</text>
+        <text class="b7bA" x="316" y="206" text-anchor="middle">26 Oct</text>
+        <text class="b7bA" x="441" y="206" text-anchor="middle">31 Oct</text>
+        <text class="b7bA" x="591" y="206" text-anchor="middle">6 Nov</text>
+        <text class="b7bA" x="816" y="206" text-anchor="middle">15 Nov</text>
+
+        <text class="b7bR" x="130" y="230">late rows appended</text>
+        <text class="b7bR" x="591" y="230" text-anchor="middle">parity did not run</text>
+        <text class="b7bR" x="441" y="250" text-anchor="middle">new loaded early</text>
+        <text class="b7bB" x="716" y="250" text-anchor="middle">9 clean nights</text>
+
+        <text class="b7bN" x="30" y="278">White: pass. Red: fail. Dashed: no row at all. Blue: the clean streak still running on 15 Nov.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a month of nights as a grid; the empty cell is the one a careless query reads as a pass</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>One row per check per night<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The diff writes a narrow table, not a report. Narrow means a new check is a new value in a column, not a new column, and a missing check is a missing row you can count.</p>
+        <table class="clean">
+          <thead><tr><th>Column</th><th>Why it is there</th></tr></thead>
+          <tbody>
+            <tr><td><code>night</code></td><td>The load the check ran against, not the time the job happened to finish</td></tr>
+            <tr><td><code>check_name</code></td><td><code>counts</code>, <code>keys</code>, <code>parity</code>, <code>edge</code>: the rung-4 suite from sessions 4, 5 and 9</td></tr>
+            <tr><td><code>status</code></td><td><code>pass</code> or <code>fail</code> against the signed bar, decided by the check, not by the reader</td></tr>
+            <tr><td><code>detail</code></td><td>The number that failed, in the bench's words, so the morning reader can start without rerunning anything</td></tr>
+          </tbody>
+        </table>
+        <p>On the bench, this suite with the signed bar catches 5 of 5 planted defects with 0 false alarms. That is why a red cell is worth a person's morning: it is not the floating-point noise or the per-line rounding Serai agreed to accept. In a real estate, add two columns the bench taught at its break button: the connection target each side read. A report that cannot say what it compared proves nothing.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the daily exact view fits<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Session 5 kept the daily exact comparison as a read-only view. It flags both accepted differences, so on the bench it raises 2 false alarms, and counting it in "clean" would mean no night is ever clean. It stays out of <code>nightly_diff</code>'s verdict and in a person's morning read, because it is the view most likely to surface a drift nobody planned for. If a person finds one there, it becomes an open item, and open items are part of the exit rule in Part 3.</p>
+        <p>Alerting on a red row, paging someone, deciding who looks first: that is monitor design, and <a href="https://phoebefu6.github.io/learn-data-observability-with-phoebe/">Data Observability</a> owns it. This session owns what is compared and what the comparison must say.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Tools report; people decide what blocks.</strong> AWS's Database Migration Service documentation says its validation "compares each row in the source with its corresponding row at the target, verifies the rows contain the same data, and reports any mismatches". Google's open-source Data Validation Tool offers column, row, schema and custom-query validation. Both are vendor claims, and both stop at the report. Neither knows which mismatches Serai signed as accepted, nor whether a night with a missing check counts. Those rules live in the runbook, which is why the diff's output has to be a table the runbook's rules can be run against.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers exit criteria and the cost of running two</span>
+      <h2>A written rule for stopping</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">How long a parallel run should last is contested, and no source gives a number. What is not contested is that the end is a rule written before the run starts, with an owner, and that the rule can say "not yet" on the day the plan said "done".</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn bar chart of the clean-night streak for each of the 28 nights of Serai's constructed run. The streak resets to zero on 19 and 20 October, 31 October and 6 November. It reaches 10 on 30 October and 5 on 5 November, and stands at 9 on 15 November. A dashed line at 14 marks the exit rule; a dashed vertical line marks the planned end after four weeks. The streak never reaches 14 inside the four weeks.">
+        <defs>
+          <filter id="b7cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="79" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b7cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b7cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b7cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b7cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b7cV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b7cR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b7cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b7cH" x="30" y="26">THE CLEAN-NIGHT STREAK, AND THE RULE THAT ENDS THE RUN</text>
+        <text class="b7cA" x="30" y="44">clean nights in a row; a night is clean only when all four checks ran and passed</text>
+
+        <g filter="url(#b7cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M70 254 L806 254"/>
+          <path d="M74 84 L800 84" stroke="#624818" stroke-dasharray="7 5"/>
+          <path d="M812 66 L812 256" stroke="#624818" stroke-dasharray="5 5"/>
+          <rect x="80" y="242" width="18" height="10" rx="2" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="106" y="242" width="18" height="10" rx="2" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="132" y="240" width="18" height="12" rx="2" transform="rotate(-0.48 141 246)" fill="#F8F2E6"/>
+          <rect x="158" y="228" width="18" height="24" rx="2" transform="rotate(0.88 167 240)" fill="#F8F2E6"/>
+          <rect x="184" y="216" width="18" height="36" rx="2" transform="rotate(-0.72 193 234)" fill="#F8F2E6"/>
+          <rect x="210" y="204" width="18" height="48" rx="2" transform="rotate(0.40 219 228)" fill="#F8F2E6"/>
+          <rect x="236" y="192" width="18" height="60" rx="2" transform="rotate(-0.80 245 222)" fill="#F8F2E6"/>
+          <rect x="262" y="180" width="18" height="72" rx="2" transform="rotate(0.56 271 216)" fill="#F8F2E6"/>
+          <rect x="288" y="168" width="18" height="84" rx="2" transform="rotate(-0.96 297 210)" fill="#F8F2E6"/>
+          <rect x="314" y="156" width="18" height="96" rx="2" transform="rotate(0.64 323 204)" fill="#F8F2E6"/>
+          <rect x="340" y="144" width="18" height="108" rx="2" transform="rotate(-0.48 349 198)" fill="#F8F2E6"/>
+          <rect x="366" y="132" width="18" height="120" rx="2" transform="rotate(0.88 375 192)" fill="#F8F2E6"/>
+          <rect x="392" y="242" width="18" height="10" rx="2" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="418" y="240" width="18" height="12" rx="2" transform="rotate(0.40 427 246)" fill="#F8F2E6"/>
+          <rect x="444" y="228" width="18" height="24" rx="2" transform="rotate(-0.80 453 240)" fill="#F8F2E6"/>
+          <rect x="470" y="216" width="18" height="36" rx="2" transform="rotate(0.56 479 234)" fill="#F8F2E6"/>
+          <rect x="496" y="204" width="18" height="48" rx="2" transform="rotate(-0.96 505 228)" fill="#F8F2E6"/>
+          <rect x="522" y="192" width="18" height="60" rx="2" transform="rotate(0.64 531 222)" fill="#F8F2E6"/>
+          <rect x="548" y="242" width="18" height="10" rx="2" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="574" y="240" width="18" height="12" rx="2" transform="rotate(0.88 583 246)" fill="#9CC3E6"/>
+          <rect x="600" y="228" width="18" height="24" rx="2" transform="rotate(-0.72 609 240)" fill="#9CC3E6"/>
+          <rect x="626" y="216" width="18" height="36" rx="2" transform="rotate(0.40 635 234)" fill="#9CC3E6"/>
+          <rect x="652" y="204" width="18" height="48" rx="2" transform="rotate(-0.80 661 228)" fill="#9CC3E6"/>
+          <rect x="678" y="192" width="18" height="60" rx="2" transform="rotate(0.56 687 222)" fill="#9CC3E6"/>
+          <rect x="704" y="180" width="18" height="72" rx="2" transform="rotate(-0.96 713 216)" fill="#9CC3E6"/>
+          <rect x="730" y="168" width="18" height="84" rx="2" transform="rotate(0.64 739 210)" fill="#9CC3E6"/>
+          <rect x="756" y="156" width="18" height="96" rx="2" transform="rotate(-0.48 765 204)" fill="#9CC3E6"/>
+          <rect x="782" y="144" width="18" height="108" rx="2" transform="rotate(0.88 791 198)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b7cB" x="80" y="76">exit rule: 14 clean nights in a row, and no open item (constructed)</text>
+        <text class="b7cS" x="850" y="58" text-anchor="end">planned end: 4 weeks (constructed)</text>
+
+        <text class="b7cV" x="375" y="126" text-anchor="middle">10</text>
+        <text class="b7cV" x="531" y="186" text-anchor="middle">5</text>
+        <text class="b7cV" x="791" y="138" text-anchor="middle">9</text>
+
+        <text class="b7cA" x="89" y="274" text-anchor="middle">19 Oct</text>
+        <text class="b7cA" x="401" y="274" text-anchor="middle">31 Oct</text>
+        <text class="b7cA" x="557" y="274" text-anchor="middle">6 Nov</text>
+        <text class="b7cA" x="791" y="274" text-anchor="middle">15 Nov</text>
+
+        <text class="b7cR" x="89" y="292" text-anchor="middle">late rows</text>
+        <text class="b7cR" x="401" y="292" text-anchor="middle">early load</text>
+        <text class="b7cR" x="557" y="292" text-anchor="middle">check missing</text>
+
+        <text class="b7cN" x="30" y="318">On 15 Nov: 9 clean nights and 1 open item. The rule says keep running; the calendar is not asked.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - every unclean night resets the count, and the four weeks end with the rule unmet</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Serai's exit rule, in one sentence<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Serai's rule, a constructed policy written before the first night: <strong>the rung-4 suite clean on 14 consecutive nights, where a night is clean only when all four checks ran and passed, and every item on the open-items list closed; the migration lead signs it.</strong></p>
+        <p>Each clause closes a door. "Consecutive" means a bad night resets the count, so a run cannot reach its number by averaging. "All four ran" means silence is not a pass. "Every item closed" covers what the suite cannot see: a reader's complaint, a drift a person spotted in the daily view, a job that failed without alerting. "Signs it" means one named person, not a meeting.</p>
+        <p>Why 14 and not some other number? No source gives one. Serai's 4 weeks is 28 nights, so the rule asks for at least the second half of the plan to be clean in a row; a business with a weekly or month-end peak might want the streak to include one. Leader session 6's 30-night watch is a different window: it starts after cutover, with readers already on the new side.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The cost of running two, and why it does not shorten the rule<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every night of the run is paid twice: two loads, two warehouses, and the people who read the diff and chase its red cells. That pressure is real, and it arrives at exactly the moment the rule says "not yet". It is the reason the rule is written before the run, when nobody is tired of it yet.</p>
+        <p>The honest trade is not shorter against longer. It is what a missed defect costs once readers have moved, against what one more week of two systems costs. Serai's constructed answer on 15 November: five more clean nights, the open item closed, and the earliest exit is 20 November. No real prices here; the leader track's <a href="a6-the-week-after-and-switching-off.html">session 6</a> treats the cost case as a shape, not a number.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Readiness reported is not readiness defined.</strong> TSB's own release on the review of its 2018 migration says go-live "followed a long period of testing, with reports to the Board signalling readiness", and that the review raised "questions around how testing was carried out". In 2022 the Bank of England fined TSB "a total of £48,650,000" and said it "failed to organise and control the IT migration programme adequately". One case is not a base rate, and the review itself is not quoted here. The contrast with Google's SRE book is useful: there a change that "doesn't pass the validation period" is "automatically rolled back". A validation period with a written pass condition is what an exit rule is.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Are we clean, and since when?</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Paste the setup once, then run the queries in order. The data is a Constructed Serai Commerce example: four weeks of nightly results and an open-items list. Every output below is what DuckDB printed on exactly this setup.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 282" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four hand-drawn query boxes. nightly_diff, 111 rows over 28 nights with one check row missing, feeds Q3, which marks a night clean only when 4 checks ran and 4 passed and finds 4 unclean nights. That feeds Q4, which counts the nights after the last unclean one: 9. Separately, open_items holds 3 items, 1 still open. Both feed Q6, the exit verdict for 15 November: 9 clean nights, 1 open item, exit rule met false.">
+        <defs>
+          <filter id="b7dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="83" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b7dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b7dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b7dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b7dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b7dH" x="30" y="26">FROM A TABLE OF NIGHTS TO ONE EXIT VERDICT</text>
+
+        <g filter="url(#b7dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="175" height="84" rx="10" transform="rotate(-0.8 117 88)" fill="#F8F2E6"/>
+          <rect x="245" y="46" width="175" height="84" rx="10" transform="rotate(0.6 332 88)" fill="#FFFFFF"/>
+          <rect x="460" y="46" width="175" height="84" rx="10" transform="rotate(-0.6 547 88)" fill="#FFFFFF"/>
+          <rect x="675" y="46" width="175" height="84" rx="10" transform="rotate(0.8 762 88)" fill="#F8F2E6"/>
+          <path d="M208 88 L240 88" marker-end="url(#b7dAr)"/>
+          <path d="M423 88 L455 88" marker-end="url(#b7dAr)"/>
+          <path d="M547 134 L547 164" marker-end="url(#b7dAr)"/>
+          <path d="M762 134 L762 164" marker-end="url(#b7dAr)"/>
+          <rect x="30" y="170" width="820" height="70" rx="12" transform="rotate(-0.2 440 205)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b7dH" x="46" y="72">NIGHTLY_DIFF</text>
+        <text class="b7dS" x="46" y="94">111 rows, 28 nights</text>
+        <text class="b7dS" x="46" y="112">one check row missing</text>
+
+        <text class="b7dH" x="261" y="72">Q3 PER NIGHT</text>
+        <text class="b7dS" x="261" y="94">clean: 4 ran, 4 passed</text>
+        <text class="b7dS" x="261" y="112">4 unclean nights</text>
+
+        <text class="b7dH" x="476" y="72">Q4 SINCE WHEN</text>
+        <text class="b7dS" x="476" y="94">after the last unclean</text>
+        <text class="b7dS" x="476" y="112">night: 9, since 7 Nov</text>
+
+        <text class="b7dH" x="691" y="72">OPEN_ITEMS</text>
+        <text class="b7dS" x="691" y="94">3 raised</text>
+        <text class="b7dS" x="691" y="112">1 still open</text>
+
+        <text class="b7dH" x="50" y="198">Q6 · THE EXIT VERDICT ON 15 NOVEMBER</text>
+        <text class="b7dV" x="50" y="224">9 clean nights · 1 open item · exit rule met: false</text>
+
+        <text class="b7dN" x="30" y="266">Q5 is the trap: drop the "4 ran" test and the missing check reads as clean, 15 nights.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three questions about the nights, one about the open items, one verdict</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed run.</strong> Twenty-eight nights from 19 October to 15 November 2026, four checks a night, every result a pass unless the failures list says otherwise. Then one row is deleted, because on 6 November the parity job on the new side never ran. The failure details are the bench's own numbers for the late-rows drift.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE nightly_diff AS
+SELECT CAST(n.night AS DATE) AS night, c.check_name,
+       coalesce(f.status, 'pass') AS status,
+       coalesce(f.detail, '') AS detail
+FROM generate_series(DATE '2026-10-19', DATE '2026-11-15', INTERVAL 1 DAY) n(night)
+CROSS JOIN (VALUES ('counts'), ('keys'), ('parity'), ('edge')) c(check_name)
+LEFT JOIN (VALUES
+  (DATE '2026-10-19', 'counts', 'fail', 'rows 8,614 vs 8,981'),
+  (DATE '2026-10-19', 'keys',   'fail', '367 duplicated keys on new'),
+  (DATE '2026-10-19', 'parity', 'fail', 'orders fail all 21 months'),
+  (DATE '2026-10-20', 'counts', 'fail', 'rows 8,614 vs 8,981'),
+  (DATE '2026-10-20', 'keys',   'fail', '367 duplicated keys on new'),
+  (DATE '2026-10-20', 'parity', 'fail', 'orders fail all 21 months'),
+  (DATE '2026-10-31', 'counts', 'fail', 'new loaded before the late feed'),
+  (DATE '2026-10-31', 'parity', 'fail', 'new loaded before the late feed')
+) f(night, check_name, status, detail)
+  ON f.night = CAST(n.night AS DATE) AND f.check_name = c.check_name;
+
+-- the parity job on new did not run on 6 November: no row at all
+DELETE FROM nightly_diff
+WHERE night = DATE '2026-11-06' AND check_name = 'parity';
+
+CREATE OR REPLACE TABLE open_items AS SELECT * FROM (VALUES
+  (1, DATE '2026-10-19', 'late rows appended on new: load must merge on key', 'closed'),
+  (2, DATE '2026-10-31', 'new nightly load ran before the late feed landed',  'closed'),
+  (3, DATE '2026-11-06', 'parity job on new did not run, and nothing alerted', 'open')
+) t(item, raised, what, state);</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, the shape.</strong> Before any verdict, count what is there. 28 nights times 4 checks is 112, and the table holds 111. That one-row gap is the whole lesson of Q5.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · rows, nights, failures</span>SELECT count(*) AS check_rows, count(DISTINCT night) AS nights,
+       count(*) FILTER (WHERE status = 'fail') AS failing_rows
+FROM nightly_diff;
+-- check_rows 111 | nights 28 | failing_rows 8</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, the diff dashboard.</strong> Pivot the last two weeks into the grid from Part 2: one row per night, one column per check. The missing run shows as NULL, not as a failure, which is exactly how it slips past a careless reader.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · nights by checks</span>PIVOT (SELECT night, check_name, status FROM nightly_diff
+       WHERE night &gt;= DATE '2026-11-03')
+ON check_name IN ('counts', 'keys', 'parity', 'edge')
+USING first(status)
+ORDER BY night;
+-- 13 rows; every cell pass except
+-- 2026-11-06 | pass | pass | NULL | pass</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, the unclean nights and why.</strong> A night is clean only when 4 checks ran and all 4 passed. Four nights are not, and 6 November is unclean with nothing failed at all.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · what went wrong, by night</span>SELECT night,
+       count(*) AS checks_run,
+       count(*) FILTER (WHERE status = 'pass') AS checks_passed,
+       string_agg(check_name || ': ' || detail, '; ' ORDER BY check_name)
+         FILTER (WHERE status = 'fail') AS failed
+FROM nightly_diff
+GROUP BY night
+HAVING NOT (count(*) = 4 AND bool_and(status = 'pass'))
+ORDER BY night;
+-- 2026-10-19 | 4 | 1 | counts: rows 8,614 vs 8,981; keys: 367 duplicated keys on new; parity: orders fail all 21 months
+-- 2026-10-20 | 4 | 1 | counts: rows 8,614 vs 8,981; keys: 367 duplicated keys on new; parity: orders fail all 21 months
+-- 2026-10-31 | 4 | 2 | counts: new loaded before the late feed; parity: new loaded before the late feed
+-- 2026-11-06 | 3 | 3 | NULL</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, are we clean, and since when?</strong> Find the last unclean night; every night after it is the current streak. This is the number the exit rule reads.</p>
+        <div class="prompt-box good"><span class="label">★ Q4 · the clean streak</span>WITH per_night AS (
+  SELECT night, count(*) = 4 AND bool_and(status = 'pass') AS clean
+  FROM nightly_diff GROUP BY night
+)
+SELECT min(night) AS clean_since, max(night) AS last_night,
+       count(*) AS clean_nights
+FROM per_night
+WHERE night &gt; (SELECT max(night) FROM per_night WHERE NOT clean);
+-- clean_since 2026-11-07 | last_night 2026-11-15 | clean_nights 9</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, the version that looks right.</strong> Drop the <code>count(*) = 4</code> test and ask only whether every row that exists passed. The night with a missing check now counts as clean, the streak grows to 15, and a 14-night rule would let Serai exit on a check that never ran.</p>
+        <div class="prompt-box bad"><span class="label">Looks right, reads a missing check as a pass</span>WITH per_night AS (
+  SELECT night, bool_and(status = 'pass') AS clean
+  FROM nightly_diff GROUP BY night
+)
+SELECT min(night) AS clean_since, max(night) AS last_night,
+       count(*) AS clean_nights
+FROM per_night
+WHERE night &gt; (SELECT max(night) FROM per_night WHERE NOT clean);
+-- clean_since 2026-11-01 | last_night 2026-11-15 | clean_nights 15</div>
+      </div>
+      <div class="step">
+        <p><strong>Q6, the exit verdict.</strong> Runbook section 6 in one query: the streak against 14, the open items against 0, and the earliest date the rule could be met if every night from here is clean.</p>
+        <div class="prompt-box good"><span class="label">★ Q6 · runbook section 6, the exit rule</span>WITH per_night AS (
+  SELECT night, count(*) = 4 AND bool_and(status = 'pass') AS clean
+  FROM nightly_diff GROUP BY night
+),
+streak AS (
+  SELECT count(*) AS clean_nights FROM per_night
+  WHERE night &gt; (SELECT max(night) FROM per_night WHERE NOT clean)
+),
+items AS (
+  SELECT count(*) FILTER (WHERE state = 'open') AS open_items FROM open_items
+)
+SELECT s.clean_nights, i.open_items,
+       s.clean_nights &gt;= 14 AND i.open_items = 0 AS exit_rule_met,
+       CAST(DATE '2026-11-15' + INTERVAL (14 - s.clean_nights) DAY AS DATE)
+         AS earliest_exit_if_clean
+FROM streak s, items i;
+-- clean_nights 9 | open_items 1 | exit_rule_met false | earliest_exit_if_clean 2026-11-20</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Why Q4 needs a night to exist at all.</strong> Q4 counts nights that have at least one row. If a whole night's suite failed to run, that night has no rows and vanishes from <code>per_night</code>, and the streak skips over it. The fix is the move from Builder session 1: start from the list of expected nights, here <code>generate_series</code> over the run's dates, and LEFT JOIN the results to it. Homework item 3 asks you to make that change.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 8</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Write your own exit rule in one sentence, with its number, what makes a night clean, what else must be closed, and who signs. Say why your number is your number; no source will say it for you.</li>
+      <li>Close item 3 in <code>open_items</code> and insert five clean nights, 16 to 20 November, with all four checks. Rerun Q6 and confirm the verdict turns true on 20 November.</li>
+      <li>Delete every row for 10 November and rerun Q4. Then rewrite <code>per_night</code> to start from <code>generate_series</code> over the run's dates with a LEFT JOIN, so a night with no rows at all counts as unclean.</li>
+      <li>Add <code>legacy_target</code> and <code>new_target</code> columns to <code>nightly_diff</code> and write the check that fails a night when both point at the same warehouse.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 7 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · On 15 November, Q5 says 15 clean nights since 1 November and Q4 says 9 since 7 November. Which is right, and why?</p>
+      <button class="qopt" type="button">A · Q5: it uses fewer conditions, so it is less likely to contain a bug</button>
+      <button class="qopt" type="button">B · Q4: the parity check never ran on 6 November, and a check that did not run is not a pass</button>
+      <button class="qopt" type="button">C · Both: they measure different things and the runbook can quote either</button>
+      <button class="qopt" type="button">D · Neither: a streak only counts once the four weeks are over</button>
+      <p class="qwhy">bool_and over the rows that exist cannot see a row that does not. Requiring all four checks per night turns silence into an unclean night, which is the only safe reading.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · The new warehouse's numbers have matched for a week. An analyst wants to point a dashboard at it now. What does the parallel run say?</p>
+      <button class="qopt" type="button">A · Fine, as long as the analyst checks the numbers by hand</button>
+      <button class="qopt" type="button">B · Fine for internal dashboards, not for the board pack</button>
+      <button class="qopt" type="button">C · Fine, because readers on the new side make the diff more realistic</button>
+      <button class="qopt" type="button">D · Not yet: legacy is the system of record until cutover, and the only reader on the new side is the nightly diff</button>
+      <p class="qwhy">A reader on the new side before cutover is a cutover nobody rehearsed, with no rollback plan, for one dashboard. Session 8 moves readers deliberately, all at once, with a way back.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · The planned four weeks end on 15 November and the exit rule is not met. What happens next?</p>
+      <button class="qopt" type="button">A · The run continues: close the open item and report the earliest date the rule can be met, 20 November if every night is clean</button>
+      <button class="qopt" type="button">B · Cut over anyway: the plan said four weeks and the cost of two systems is real</button>
+      <button class="qopt" type="button">C · Lower the rule to 9 nights so it is met today</button>
+      <button class="qopt" type="button">D · Restart the four weeks from 16 November</button>
+      <p class="qwhy">Four weeks is a constructed plan and no source gives a length. The rule was written before the run so that it could say "not yet" at the moment everyone wants to hear "done".</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Running both warehouses in parallel</span><span class="note">Google Cloud 2019 migration blog, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The nightly diff and the rung-4 suite</span><span class="note">Bench numbers from the parity bench; every query output run in DuckDB on the constructed run above</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">What validation tools report</span><span class="note">AWS DMS validation docs and the Google Data Validation Tool README, read at source; re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Validation periods and readiness</span><span class="note">Google SRE book, read at source; TSB's release on its review and the Bank of England's 2022 notice, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">How long a parallel run should last</span><span class="note">Contested: no source gives a length; Serai's 4 weeks and its 14-night exit rule are constructed</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Alerting and monitor design</span><span class="note">Owned by Data Observability; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 7 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>One feed, two loads</b><span>Same extract, same cutoff, both sides, every night.</span></div>
+      <div class="cheat-item"><b>Readers stay on legacy</b><span>The only reader of the new side is the diff.</span></div>
+      <div class="cheat-item"><b>One row per check per night</b><span>night, check_name, status, detail: a table, not a report.</span></div>
+      <div class="cheat-item"><b>Silence is not a pass</b><span>Clean means all four checks ran and all four passed.</span></div>
+      <div class="cheat-item"><b>Streak after the last bad night</b><span>Find the last unclean night; count the nights after it.</span></div>
+      <div class="cheat-item"><b>The rule ends the run</b><span>Written before night one, with a number, an owner, and no open items.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>The rule is met. Session 8 rehearses the cutover end to end on a copy, times every step, and builds the rollback as a pointer swap you can pull in minutes, before anyone tries it for real.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 7 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b6-historical-reload.html">← Prev: Historical reload</a> &nbsp;·&nbsp; <a href="b8-cutover-rehearsal-and-rollback.html">Next: Cutover rehearsal and rollback →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

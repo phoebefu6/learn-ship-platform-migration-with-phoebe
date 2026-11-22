@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 3 of 10. Translate SQL between engines without changing the answer: integer division, NULL against empty string against zero, named time zones against fixed offsets, and case in key comparisons. Every gap run in DuckDB on Serai Commerce's constructed export.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Translate the SQL - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 3 of 10. Four dialect gaps that compile cleanly and change the number, each with a translation rule and a test query you run in DuckDB.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b3-translate-the-sql.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Translate the SQL - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 3 of 10. Same SQL text, different answer: the translation rules a migration runbook needs, each with its own test, in DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 3 · Translate the SQL - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 3 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 3 of 10</div>
+    <h1>Translate <span class="accent">the SQL</span></h1>
+    <p class="sub">A query that compiles on the new engine has not been translated yet. It has been parsed. Division, NULL, time zones and string comparison each have defaults that differ between engines, and each difference is one of the drifts Builder session 10 plants on real orders. Tonight you meet them one at a time in DuckDB, watch each one change a number while every job reports success, and write the rule that stops it: runbook section 3, with a test query for every rule.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Intermediate</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Anyone rewriting SQL for a new engine</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Numbers, NULL, time and text</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: five rules, five tests</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 counted what Serai reads; session 2 put the moves in order. Before the first wave can move, the SQL that builds each table has to run on the new warehouse and give the same answer. That is the job tonight, and it is narrower than it sounds: not rewriting for speed, not redesigning a model, only making sure the translated text means what the old text meant. The running case is a <strong>Constructed Serai Commerce example</strong>: a six-order export small enough to read row by row, built so each dialect gap fires once. Changing a schema inside one database, and the migration tools that run in CI/CD, belong to the <a href="https://phoebefu6.github.io/learn-dataops-with-phoebe/courses/b4-dbops-migrations.html">DataOps course's session on database migrations</a>; this side owns moving SQL from one engine to another.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 3, the translation rules: division typed, NULL kept NULL, time zones by name, one stated rule for comparing keys, money as DECIMAL. Each rule comes with a test query that prints the wrong way and the rule's way side by side, and you will have run every one of them.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers division, rounding and float against DECIMAL</span>
+      <h2>Numbers that quietly change type</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The most common translation defect is arithmetic that looks identical on both sides. Two whole numbers divided give a fraction on one engine and a whole number on another, and money held as floating point stops adding up to the cent.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 316" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Items per order computed as sum of items over count of orders, 9 over 6, on Serai's constructed six-order export. DuckDB's slash on integers gives 1.5. A dialect that truncates integer division, as PostgreSQL documents, gives 1. Below, money: 0.1 plus 0.2 as DOUBLE gives 0.30000000000000004, as DECIMAL gives 0.30, and freight of 10.00 split over three lines rounded per line adds up to 9.99.">
+        <defs>
+          <filter id="b3aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="53" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b3aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b3aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b3aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b3aV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b3aR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b3aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b3aH" x="30" y="26">ONE DIVISION, TWO DIALECTS</text>
+        <text class="b3aS" x="300" y="26">Constructed Serai Commerce example · 6 orders, 9 items · run in DuckDB below</text>
+
+        <g filter="url(#b3aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="220" height="118" rx="10" transform="rotate(-0.6 140 109)" fill="#F8F2E6"/>
+          <rect x="320" y="46" width="530" height="58" rx="10" transform="rotate(0.4 585 75)" fill="#9CC3E6"/>
+          <rect x="320" y="118" width="530" height="58" rx="10" transform="rotate(-0.4 585 147)" fill="#FEF2F2" stroke="#991B1B"/>
+          <path d="M254 92 L314 76" marker-end="url(#b3aAr)"/>
+          <path d="M254 128 L314 144" marker-end="url(#b3aAr)"/>
+          <rect x="30" y="196" width="260" height="76" rx="10" transform="rotate(0.5 160 234)" fill="#FFFFFF"/>
+          <rect x="310" y="196" width="260" height="76" rx="10" transform="rotate(-0.5 440 234)" fill="#F8F2E6"/>
+          <rect x="590" y="196" width="260" height="76" rx="10" transform="rotate(0.4 720 234)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="b3aH" x="46" y="78">ITEMS PER ORDER</text>
+        <text class="b3aL" x="46" y="102">sum(items) / count(*)</text>
+        <text class="b3aS" x="46" y="124">9 / 6, both whole numbers</text>
+        <text class="b3aS" x="46" y="146">same SQL text on both sides</text>
+
+        <text class="b3aV" x="340" y="82">1.5</text>
+        <text class="b3aH" x="390" y="70">DUCKDB: / ON INTEGERS IS FLOATING POINT</text>
+        <text class="b3aS" x="390" y="90" style="fill:#231C12">5 / 2 gives 2.5, and 5 // 2 gives 2</text>
+        <text class="b3aV" x="344" y="154">1</text>
+        <text class="b3aR" x="390" y="142">A DIALECT THAT TRUNCATES</text>
+        <text class="b3aS" x="390" y="162">PostgreSQL: integer division "truncates the result towards zero"</text>
+
+        <text class="b3aH" x="46" y="220">DOUBLE</text>
+        <text class="b3aV" x="46" y="244">0.30000000000000004</text>
+        <text class="b3aS" x="46" y="262">0.1 + 0.2 in floating point</text>
+        <text class="b3aH" x="326" y="220">DECIMAL(4,2)</text>
+        <text class="b3aV" x="326" y="244">0.30</text>
+        <text class="b3aS" x="326" y="262">0.1 + 0.2 in exact cents</text>
+        <text class="b3aH" x="606" y="220">ROUNDED PER LINE</text>
+        <text class="b3aV" x="606" y="244">9.99</text>
+        <text class="b3aS" x="606" y="262">10.00 over 3 lines, each 3.33</text>
+
+        <text class="b3aN" x="30" y="300">On the bench: integer division moves items per order from 1.1427 to 1. The bottom two are signed as accepted.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same division returns 1.5 or 1 depending on the engine's default, and money in floating point drifts in the last bits</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Integer division: same text, different answer<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The PostgreSQL documentation says integer division "truncates the result towards zero", so <code>5 / 2</code> is 2. DuckDB's documentation says the opposite for the same operator: "When both operands are integers, / performs floating points division (5 / 2 = 2.5)", and "// performs integer division (5 // 2 = 2)". Neither is wrong. A query moved between two engines with different defaults still compiles, and answers a different question. Run both operators, and a negative case, since truncation towards zero and rounding down part company below zero:</p>
+        <div class="prompt-box good"><span class="label">★ Run both</span>SELECT 5 / 2 AS slash, 5 // 2 AS double_slash, -7 // 2 AS neg;
+-- slash 2.5 | double_slash 2 | neg -3</div>
+        <p>In the DuckDB build used for this page (1.5.3), <code>-7 // 2</code> printed -3, so <code>//</code> truncated towards zero here too. The translation rule does not depend on remembering which engine does what: <strong>cast one side to DECIMAL before you divide, and round to a stated precision at the end</strong>. The intent is then in the text, not in a default.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Float, DECIMAL and rounding halves<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Two of the bench's seven drifts are accepted differences, and both are arithmetic. Money summed as floating point differs from the same money summed in exact cents in the last bits; freight split across order lines and rounded per line can lose or gain a cent per order. Run the three cases from the figure:</p>
+        <div class="prompt-box good"><span class="label">★ Float against DECIMAL, and a per-line split</span>SELECT 0.1::DOUBLE + 0.2::DOUBLE AS dbl, 0.1::DECIMAL(4,2) + 0.2::DECIMAL(4,2) AS dec;
+-- dbl 0.30000000000000004 | dec 0.30
+
+SELECT round(10.00 / 3, 2) AS per_line, 3 * round(10.00 / 3, 2) AS three_lines;
+-- per_line 3.33 | three_lines 9.99
+
+SELECT round(2.5) AS half, round(0.125::DECIMAL(6,3), 2) AS dec_half;
+-- half 3 | dec_half 0.13</div>
+        <p>Two things to note from the outputs. First, the per-line columns came back typed <code>double</code>: in the build we ran, dividing a DECIMAL by an integer returned a DOUBLE, so the rule rounds explicitly at the end rather than trusting the type to carry cents. Second, halves: DuckDB printed 3 for <code>round(2.5)</code>. Do not assume the legacy engine rounds a half the same way; run the same literals on both engines and write down what each prints.</p>
+        <p>On the bench, floating-point money differs on 302 days of item value and 269 days of freight, by about 2e-10 BRL in the worst month, and the per-line split moves total freight from BRL 195,579.02 to BRL 195,579.59. Exact equality on every day flags both. Builder session 5 shows why a signed tolerance clears them while still catching the real defects.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Two engines document opposite answers to 5 / 2.</strong> PostgreSQL's mathematical operators page gives <code>5 / 2</code> as 2, because integer division "truncates the result towards zero". DuckDB's numeric functions page gives the same expression as 2.5 and moves integer division to <code>//</code>. Both pages are clear and both engines behave as documented. The defect only appears in the gap between them, which is exactly where a migration lives.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers NULL, empty strings and zero</span>
+      <h2>NULL, empty and zero are three different answers</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A missing review score is a NULL in the legacy warehouse. The export writes it as an empty string, and the new loader has to decide what an empty string means. Pick zero and the average review score drops while every count still looks fine.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 296" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's constructed export column review_raw holds 5, 4, an empty string that was NULL, 3, 5 and 4. Loaded with NULLIF then CAST, the empty value stays NULL and the average over 5 reviewed orders is 4.2. Loaded with COALESCE of TRY_CAST and 0, it becomes a score of 0 and the average over 6 orders is 3.5.">
+        <defs>
+          <filter id="b3bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="59" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b3bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b3bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b3bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b3bV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b3bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b3bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b3bH" x="30" y="26">AN EMPTY STRING ON THE WAY OUT, A ZERO ON THE WAY IN</text>
+
+        <g filter="url(#b3bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="180" height="204" rx="10" transform="rotate(-0.6 120 148)" fill="#F8F2E6"/>
+          <rect x="260" y="60" width="220" height="62" rx="10" transform="rotate(0.6 370 91)" fill="#FFFFFF"/>
+          <rect x="260" y="174" width="220" height="62" rx="10" transform="rotate(-0.6 370 205)" fill="#FFFFFF"/>
+          <rect x="540" y="60" width="310" height="62" rx="10" transform="rotate(-0.4 695 91)" fill="#9CC3E6"/>
+          <rect x="540" y="174" width="310" height="62" rx="10" transform="rotate(0.4 695 205)" fill="#FEF2F2" stroke="#991B1B"/>
+          <path d="M214 120 L254 94" marker-end="url(#b3bAr)"/>
+          <path d="M214 176 L254 202" marker-end="url(#b3bAr)"/>
+          <path d="M484 91 L534 91" marker-end="url(#b3bAr)"/>
+          <path d="M484 205 L534 205" marker-end="url(#b3bAr)"/>
+        </g>
+
+        <text class="b3bH" x="46" y="72">review_raw</text>
+        <text class="b3bS" x="46" y="90">export file, as text</text>
+        <text class="b3bL" x="46" y="114">o1 · '5'</text>
+        <text class="b3bL" x="46" y="134">o2 · '4'</text>
+        <text class="b3bR" x="46" y="154">o3 · '' (was NULL)</text>
+        <text class="b3bL" x="46" y="174">o4 · '3'</text>
+        <text class="b3bL" x="46" y="194">o5 · '5'</text>
+        <text class="b3bL" x="46" y="214">o6 · '4'</text>
+
+        <text class="b3bH" x="276" y="86">NULLIF(x, '') THEN CAST</text>
+        <text class="b3bS" x="276" y="106">empty becomes NULL again</text>
+        <text class="b3bH" x="276" y="200">COALESCE(TRY_CAST(x), 0)</text>
+        <text class="b3bS" x="276" y="220">empty becomes a score of 0</text>
+
+        <text class="b3bV" x="556" y="98">4.2</text>
+        <text class="b3bH" x="606" y="86">AVERAGE OVER 5 REVIEWED</text>
+        <text class="b3bS" x="606" y="106" style="fill:#231C12">avg skips the NULL, as it should</text>
+        <text class="b3bV" x="556" y="212">3.5</text>
+        <text class="b3bR" x="606" y="200">AVERAGE OVER 6</text>
+        <text class="b3bS" x="606" y="220">the unreviewed order now scores 0</text>
+
+        <text class="b3bN" x="30" y="278">On the bench: reviewed orders 8,546 becomes 8,614, and the average 4.1390 becomes 4.1063. Row counts do not move.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the loader's choice for an empty string decides the average review score</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>= NULL is never true<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The PostgreSQL documentation puts it plainly: "Do not write expression = NULL because NULL is not 'equal to' NULL". It offers <code>IS DISTINCT FROM</code>, which it describes as "Not equal, treating null as a comparable value". Translated code that compares nullable columns with <code>=</code> or <code>&lt;&gt;</code> loses rows silently, most often in a join or an anti-join that builds a change list.</p>
+        <div class="prompt-box good"><span class="label">★ Three-valued logic in one line</span>SELECT NULL = NULL AS eq, NULL IS DISTINCT FROM NULL AS distinct_nulls, '' IS NULL AS empty_is_null;
+-- eq NULL | distinct_nulls false | empty_is_null false</div>
+        <p>The first column is not false, it is NULL, and a WHERE clause keeps only rows where the condition is true. The last column is the start of the next card: in DuckDB, an empty string is a value, not a NULL.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Empty string, NULL and zero in a CAST<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Text exports have no NULL, only an empty field. Whatever the loader does with that empty field becomes the new warehouse's truth. A plain <code>CAST('' AS INTEGER)</code> in DuckDB refuses: it printed <code>Conversion Error: Could not convert string '' to INT32</code>. That error is a gift, because it stops the load. The defect comes from the "fix" someone adds to silence it.</p>
+        <div class="prompt-box good"><span class="label">★ Three loaders, three answers</span>SELECT TRY_CAST('' AS INTEGER)              AS try_cast,
+       CAST(NULLIF('', '') AS INTEGER)       AS nullif_cast,
+       COALESCE(TRY_CAST('' AS INTEGER), 0)  AS as_zero;
+-- try_cast NULL | nullif_cast NULL | as_zero 0</div>
+        <div class="prompt-box bad"><span class="label">Silences the error and changes the average</span>COALESCE(TRY_CAST(review_raw AS INTEGER), 0) AS review_score</div>
+        <p>The rule: <strong>an empty field that was NULL at source loads as NULL</strong>, using <code>NULLIF(x, '')</code> before the cast. If a column genuinely holds empty strings as values, say so in the runbook column by column; never set a blanket default.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>When the legacy engine has its own idea of empty<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Some engines merge the two concepts. Oracle's SQL reference says "The database currently treats a character value with a length of zero as null", and adds that this "may not continue to be true in future releases". If your legacy warehouse behaves that way and the new one does not, a filter like <code>WHERE note IS NULL</code> returns different rows on each side, with no error on either. Test it with a literal on both engines before you translate any filter on a text column, and record the answer in the runbook rather than in someone's memory.</p>
+        <p>Joins on nullable keys deserve the same care. Where a NULL key on both sides should match, the translation has to say so explicitly with <code>IS NOT DISTINCT FROM</code>; where it should not, leave <code>=</code> and write down why.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A vendor documents a behaviour and warns it may change.</strong> Oracle's own reference says its zero-length-string-as-null treatment "may not continue to be true in future releases". A translation rule that depends on an engine default is a rule with an expiry date nobody wrote down. Writing NULL handling explicitly in the SQL is how the rule survives the next upgrade of either engine.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers time zones and case in comparisons</span>
+      <h2>Time and text</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A fixed offset is right for most of the year and wrong for the rest. A key comparison that ignores case on one engine and respects it on the other leaves orders without a customer. Both pass every count you run.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Order o1 was placed at 02:30 UTC on 15 January 2017. Converted with the named zone America/Sao_Paulo, which was on summer time at minus 2 hours, it lands at 00:30 on 15 January. Converted with a fixed minus 3 hour offset it lands at 23:30 on 14 January, the day before. The same order shape in July 2017 lands at 23:30 on 9 July both ways.">
+        <defs>
+          <filter id="b3cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b3cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b3cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b3cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b3cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b3cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b3cR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b3cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b3cH" x="30" y="26">ONE ORDER, TWO LOCAL DAYS</text>
+        <text class="b3cS" x="230" y="26">Constructed Serai Commerce example · order o1 · run in DuckDB below</text>
+
+        <g filter="url(#b3cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="300" y="42" width="280" height="40" rx="10" transform="rotate(-0.5 440 62)" fill="#F8F2E6"/>
+          <path d="M60 150 L820 150"/>
+          <path d="M440 124 L440 176" stroke-dasharray="5 4"/>
+          <path d="M400 86 L400 136" marker-end="url(#b3cAr)"/>
+          <path d="M480 86 L480 136" marker-end="url(#b3cAr)"/>
+          <circle cx="400" cy="150" r="8" fill="#FEF2F2" stroke="#991B1B"/>
+          <circle cx="480" cy="150" r="8" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b3cL" x="316" y="67">o1 · placed 02:30 UTC, 15 Jan 2017</text>
+        <text class="b3cA" x="90" y="140">14 JAN 2017</text>
+        <text class="b3cA" x="700" y="140">15 JAN 2017</text>
+        <text class="b3cS" x="440" y="118" text-anchor="middle">midnight</text>
+
+        <text class="b3cR" x="390" y="196" text-anchor="end">MINUS 3 HOURS, FIXED</text>
+        <text class="b3cS" x="390" y="214" text-anchor="end">23:30 on 14 Jan: the day before</text>
+        <text class="b3cB" x="490" y="196">AT TIME ZONE 'America/Sao_Paulo'</text>
+        <text class="b3cS" x="490" y="214">00:30 on 15 Jan, summer time at -02:00</text>
+
+        <text class="b3cS" x="30" y="248">Same shape on 10 Jul 2017, outside summer time: both ways give 23:30 on 9 Jul. The fixed offset is right most of the year.</text>
+        <text class="b3cN" x="30" y="274">On the bench: 72 orders move a day, 74 daily numbers change, 0 monthly numbers change.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a fixed offset and a named zone disagree only in summer time, and only near midnight</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A named zone, not an offset<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The PostgreSQL documentation says a <code>timestamptz</code> is "stored internally as UTC, and the originally stated or assumed time zone is not retained", and that a timestamp without time zone "will silently ignore any time zone indication". DuckDB's says its TIMESTAMPTZ values "are displayed with the UTC offset of the configured time zone". So the instant is safe; the local day is computed at query time, by whatever rule the SQL text gives. Give it the zone's name, and the zone's history comes with it.</p>
+        <div class="prompt-box good"><span class="label">★ Summer and winter, both ways</span>SELECT TIMESTAMPTZ '2017-01-15 02:30:00+00' AT TIME ZONE 'America/Sao_Paulo' AS named,
+       TIMESTAMP '2017-01-15 02:30:00' - INTERVAL 3 HOUR AS fixed;
+-- named 2017-01-15 00:30:00 | fixed 2017-01-14 23:30:00
+
+SELECT TIMESTAMPTZ '2017-07-10 02:30:00+00' AT TIME ZONE 'America/Sao_Paulo' AS named,
+       TIMESTAMP '2017-07-10 02:30:00' - INTERVAL 3 HOUR AS fixed;
+-- named 2017-07-09 23:30:00 | fixed 2017-07-09 23:30:00</div>
+        <p>Named zones in DuckDB come from its ICU extension. In the build used for this page (1.5.3) it was already installed and loaded, and <code>INSTALL icu; LOAD icu;</code> ran cleanly. If your DuckDB rejects the zone name, run those two statements first.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Same key, two spellings<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>MySQL 8.0's default character set and collation, per its manual, mean "nonbinary string comparisons are case-insensitive by default". Many engines compare case-sensitively instead. If one of Serai's marketplace exports writes customer keys in lower case, a join that matched every order on a case-insensitive legacy engine leaves those orders without a customer on a case-sensitive new one. Nothing errors; a dimension just goes quiet.</p>
+        <div class="prompt-box good"><span class="label">★ Three ways to compare</span>SELECT 'abc' = 'ABC' AS plain, lower('abc') = lower('ABC') AS lowered, 'abc' = 'ABC' COLLATE NOCASE AS nocase;
+-- plain false | lowered true | nocase true</div>
+        <p>The rule is a decision, not a default: <strong>state how keys are compared, and put it in the SQL</strong>. Normalising the key once at load (upper case, say) and comparing plainly afterwards keeps the rule in one place. A collation clause works in DuckDB too, as the output shows; whichever you choose, write it in runbook section 3 so every translated join follows it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why the fixed offset got written in the first place<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Hard-coding -03:00 for Brazil is not careless: for every date since Brazil stopped observing summer time it is correct, so every recent test passes. The error lives only in history, and only within an hour of midnight in the summer months. On Serai's sample those windows are 2016-10-16 to 2017-02-18 and 2017-10-15 to 2018-02-17. The bench's fixed-offset drift moves 72 orders placed between 00:00 and 00:59 civil time in those windows to the day before. Builder session 9 builds the edge check that catches it after cutover; tonight's job is to keep it out of the translation.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A time zone rule changed, and history did not.</strong> The IANA time zone database's 2019b release notes record that "Brazil no longer observes DST". Code written after that can treat Brazil as a fixed -03:00 and look right on every date it was tested on. A named zone carries the old rules for old dates; a fixed offset throws them away. The same reasoning holds for any country whose rules have changed.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Five rules, each with its own test</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. The setup loads a six-order export from Serai's legacy warehouse, as text where a file would carry text, plus a three-row customer table. Each step runs one rule's test: the wrong way and the rule's way in the same query. Every output below is what DuckDB 1.5.3 printed on this exact data.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Runbook section 3 as a hand-drawn table of five translation rules with the test each one runs, and what the test printed the wrong way and the rule's way. Division typed: items per order 1 against 1.5. NULL kept NULL: average review 3.5 against 4.2. Zone by name: orders on 15 January 2017, 2 against 3. Keys compared upper: unresolved customer keys 2 against 0. Money as DECIMAL: freight total 50.99999999999999 against 51.00.">
+        <defs>
+          <filter id="b3dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .b3dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b3dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b3dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b3dA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .b3dB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .b3dR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b3dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b3dH" x="30" y="26">RUNBOOK SECTION 3 · TRANSLATION RULES AND THEIR TESTS</text>
+        <text class="b3dA" x="46" y="54">RULE</text>
+        <text class="b3dA" x="300" y="54">WHAT THE TEST PRINTS</text>
+        <text class="b3dA" x="588" y="54">WRONG WAY</text>
+        <text class="b3dA" x="742" y="54">RULE'S WAY</text>
+
+        <g filter="url(#b3dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="64" width="820" height="34" rx="8" transform="rotate(-0.3 440 81)" fill="#FFFFFF"/>
+          <rect x="30" y="106" width="820" height="34" rx="8" transform="rotate(0.3 440 123)" fill="#FFFFFF"/>
+          <rect x="30" y="148" width="820" height="34" rx="8" transform="rotate(-0.3 440 165)" fill="#FFFFFF"/>
+          <rect x="30" y="190" width="820" height="34" rx="8" transform="rotate(0.3 440 207)" fill="#FFFFFF"/>
+          <rect x="30" y="232" width="820" height="34" rx="8" transform="rotate(-0.3 440 249)" fill="#FFFFFF"/>
+          <rect x="578" y="68" width="140" height="26" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="578" y="110" width="140" height="26" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="578" y="152" width="140" height="26" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="578" y="194" width="140" height="26" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="578" y="236" width="140" height="26" rx="6" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="732" y="68" width="110" height="26" rx="6" fill="#9CC3E6"/>
+          <rect x="732" y="110" width="110" height="26" rx="6" fill="#9CC3E6"/>
+          <rect x="732" y="152" width="110" height="26" rx="6" fill="#9CC3E6"/>
+          <rect x="732" y="194" width="110" height="26" rx="6" fill="#9CC3E6"/>
+          <rect x="732" y="236" width="110" height="26" rx="6" fill="#9CC3E6"/>
+        </g>
+
+        <text class="b3dL" x="46" y="86">R1 · division typed</text>
+        <text class="b3dS" x="300" y="86">items per order</text>
+        <text class="b3dR" x="588" y="86">1</text>
+        <text class="b3dB" x="742" y="86">1.5</text>
+        <text class="b3dL" x="46" y="128">R2 · NULL kept NULL</text>
+        <text class="b3dS" x="300" y="128">average review score</text>
+        <text class="b3dR" x="588" y="128">3.5</text>
+        <text class="b3dB" x="742" y="128">4.2</text>
+        <text class="b3dL" x="46" y="170">R3 · zone by name</text>
+        <text class="b3dS" x="300" y="170">orders on 15 Jan 2017, local</text>
+        <text class="b3dR" x="588" y="170">2</text>
+        <text class="b3dB" x="742" y="170">3</text>
+        <text class="b3dL" x="46" y="212">R4 · keys compared upper</text>
+        <text class="b3dS" x="300" y="212">unresolved customer keys</text>
+        <text class="b3dR" x="588" y="212">2</text>
+        <text class="b3dB" x="742" y="212">0</text>
+        <text class="b3dL" x="46" y="254">R5 · money as DECIMAL</text>
+        <text class="b3dS" x="300" y="254">freight total</text>
+        <text class="b3dR" x="588" y="254">50.99999999999999</text>
+        <text class="b3dB" x="742" y="254">51.00</text>
+
+        <text class="b3dN" x="30" y="288">Constructed Serai Commerce example, six orders. Every value is what the test pack in step 7 printed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - each rule is only as good as the test that shows the wrong way failing</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed export.</strong> Six orders as the legacy warehouse wrote them out: a UTC timestamp as text, review scores as text with one empty field, and two customer keys in lower case from the marketplace export that writes them that way. The session time zone is set to UTC so your local clock cannot leak into the results.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>SET TimeZone = 'UTC';
+
+CREATE OR REPLACE TABLE export_orders AS
+SELECT * FROM (VALUES
+ ('o1','C1A7','2017-01-15 02:30:00',2,120.50,10.00,'5'),
+ ('o2','B22F','2017-01-15 14:10:00',1, 59.90, 8.20,'4'),
+ ('o3','c1a7','2017-01-16 01:45:00',1, 35.00, 7.10,''),
+ ('o4','9E0D','2017-07-10 02:30:00',3,210.00,15.30,'3'),
+ ('o5','b22f','2017-07-10 18:05:00',1, 44.00, 6.00,'5'),
+ ('o6','9E0D','2017-07-11 12:00:00',1, 18.00, 4.40,'4')
+) t(order_id, customer_key, placed_utc, items, item_value, freight, review_raw);
+
+CREATE OR REPLACE TABLE customers AS
+SELECT * FROM (VALUES ('C1A7'),('B22F'),('9E0D')) c(customer_key);</div>
+      </div>
+      <div class="step">
+        <p><strong>R1, division typed.</strong> <code>//</code> stands in for a legacy or target dialect whose <code>/</code> truncates. The rule casts first and rounds to four places at the end.</p>
+        <div class="prompt-box good"><span class="label">★ R1 · items per order</span>SELECT sum(items) / count(*)                            AS slash,
+       sum(items) // count(*)                           AS truncated,
+       round(CAST(sum(items) AS DECIMAL(12,4)) / count(*), 4) AS rule_r1
+FROM export_orders;
+-- slash 1.5 | truncated 1 | rule_r1 1.5</div>
+      </div>
+      <div class="step">
+        <p><strong>R2, NULL kept NULL.</strong> The wrong way counts six reviewed orders and averages a zero in; the rule counts five and leaves the unreviewed order out of the average.</p>
+        <div class="prompt-box good"><span class="label">★ R2 · reviewed orders and average score</span>SELECT count(COALESCE(TRY_CAST(review_raw AS INTEGER), 0)) AS reviewed_wrong,
+       round(avg(COALESCE(TRY_CAST(review_raw AS INTEGER), 0)), 4) AS avg_wrong,
+       count(CAST(NULLIF(review_raw, '') AS INTEGER))      AS reviewed_r2,
+       round(avg(CAST(NULLIF(review_raw, '') AS INTEGER)), 4) AS avg_r2
+FROM export_orders;
+-- reviewed_wrong 6 | avg_wrong 3.5 | reviewed_r2 5 | avg_r2 4.2</div>
+      </div>
+      <div class="step">
+        <p><strong>R3, time zone by name.</strong> One row per order, local day both ways. Only o1 disagrees: placed 00:30 local in summer time, pushed to the day before by the fixed offset. o3 is also in summer time but at 23:45 local, so both ways agree on its day.</p>
+        <div class="prompt-box good"><span class="label">★ R3 · local order day</span>SELECT order_id,
+       CAST(CAST(placed_utc AS TIMESTAMP) - INTERVAL 3 HOUR AS DATE) AS day_fixed,
+       CAST(CAST(placed_utc || '+00' AS TIMESTAMPTZ)
+            AT TIME ZONE 'America/Sao_Paulo' AS DATE)                AS day_r3
+FROM export_orders
+ORDER BY order_id;
+-- o1 | 2017-01-14 | 2017-01-15
+-- o2 | 2017-01-15 | 2017-01-15
+-- o3 | 2017-01-15 | 2017-01-15
+-- o4 | 2017-07-09 | 2017-07-09
+-- o5 | 2017-07-10 | 2017-07-10
+-- o6 | 2017-07-11 | 2017-07-11</div>
+      </div>
+      <div class="step">
+        <p><strong>R4, keys compared by one stated rule.</strong> An exact join leaves the two lower-case keys unresolved; comparing in upper case resolves all six. The row count is six either way, which is why a count never sees this drift.</p>
+        <div class="prompt-box good"><span class="label">★ R4 · unresolved customer keys</span>SELECT count(*) FILTER (WHERE c1.customer_key IS NULL) AS unresolved_exact,
+       count(*) FILTER (WHERE c2.customer_key IS NULL) AS unresolved_r4
+FROM export_orders o
+LEFT JOIN customers c1 ON c1.customer_key = o.customer_key
+LEFT JOIN customers c2 ON c2.customer_key = upper(o.customer_key);
+-- unresolved_exact 2 | unresolved_r4 0</div>
+      </div>
+      <div class="step">
+        <p><strong>R5, money as DECIMAL.</strong> Item value happens to come out the same both ways on these six rows; freight does not. A difference this small is harmless to a reader and fatal to an exact-equality check, which is why the bench signs it as accepted rather than pretending it away.</p>
+        <div class="prompt-box good"><span class="label">★ R5 · totals in DOUBLE and DECIMAL</span>SELECT sum(CAST(item_value AS DOUBLE))        AS value_double,
+       sum(CAST(item_value AS DECIMAL(12,2))) AS value_r5,
+       sum(CAST(freight AS DOUBLE))           AS freight_double,
+       sum(CAST(freight AS DECIMAL(12,2)))    AS freight_r5
+FROM export_orders;
+-- value_double 487.4 | value_r5 487.40 | freight_double 50.99999999999999 | freight_r5 51.00</div>
+      </div>
+      <div class="step">
+        <p><strong>The test pack, runbook section 3.</strong> One query, one row per rule, the wrong way next to the rule's way. Keep it in the runbook beside the rules; Builder session 4 starts from the same export.</p>
+        <div class="prompt-box good"><span class="label">★ Runbook section 3 · test pack</span>SELECT 'R1 division typed' AS rule,
+       CAST(sum(items) // count(*) AS VARCHAR) AS wrong_way,
+       CAST(round(CAST(sum(items) AS DECIMAL(12,4)) / count(*), 4) AS VARCHAR) AS rule_way
+FROM export_orders
+UNION ALL
+SELECT 'R2 NULL kept NULL',
+       CAST(round(avg(COALESCE(TRY_CAST(review_raw AS INTEGER), 0)), 4) AS VARCHAR),
+       CAST(round(avg(CAST(NULLIF(review_raw, '') AS INTEGER)), 4) AS VARCHAR)
+FROM export_orders
+UNION ALL
+SELECT 'R3 zone by name',
+       CAST(count(*) FILTER (WHERE CAST(CAST(placed_utc AS TIMESTAMP) - INTERVAL 3 HOUR AS DATE) = DATE '2017-01-15') AS VARCHAR),
+       CAST(count(*) FILTER (WHERE CAST(CAST(placed_utc || '+00' AS TIMESTAMPTZ) AT TIME ZONE 'America/Sao_Paulo' AS DATE) = DATE '2017-01-15') AS VARCHAR)
+FROM export_orders
+UNION ALL
+SELECT 'R4 keys compared upper',
+       CAST(count(*) FILTER (WHERE c1.customer_key IS NULL) AS VARCHAR),
+       CAST(count(*) FILTER (WHERE c2.customer_key IS NULL) AS VARCHAR)
+FROM export_orders o
+LEFT JOIN customers c1 ON c1.customer_key = o.customer_key
+LEFT JOIN customers c2 ON c2.customer_key = upper(o.customer_key)
+UNION ALL
+SELECT 'R5 money as DECIMAL',
+       CAST(sum(CAST(freight AS DOUBLE)) AS VARCHAR),
+       CAST(sum(CAST(freight AS DECIMAL(12,2))) AS VARCHAR)
+FROM export_orders;
+-- R1 division typed      | 1                 | 1.5
+-- R2 NULL kept NULL      | 3.5               | 4.2
+-- R3 zone by name        | 2                 | 3
+-- R4 keys compared upper | 2                 | 0
+-- R5 money as DECIMAL    | 50.99999999999999 | 51.00</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>A test that cannot fail proves nothing.</strong> Every row of the pack shows the wrong way producing a different number from the rule's way on this data. If you adapt the pack to your own estate and a rule's two columns agree, your sample does not contain the case the rule exists for: add a row that does before you trust the rule. Your numbers will differ.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 4</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>Run <code>SELECT 5 / 2, '' IS NULL, 'abc' = 'ABC'</code> on your own legacy engine and your target engine, and write the six answers side by side.</li>
+      <li>Find one query in your estate that divides two integer columns, and rewrite it with rule R1. Run both versions and record whether the answer changes.</li>
+      <li>List every place your own pipelines turn UTC into a local day, and mark each one as a named zone or a fixed offset.</li>
+      <li>Add a sixth row to tonight's export that makes R3 fail a second time (a summer-time order between 00:00 and 00:59 local), rerun the test pack, and check that the wrong-way column moves and the rule's way does not.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 3 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Items per order is <code>sum(items) / count(*)</code> on both engines. The legacy engine prints 1.5; the new one prints 1. What happened?</p>
+      <button class="qopt" type="button">A · The new engine dropped three orders during the load</button>
+      <button class="qopt" type="button">B · The new engine truncates integer division, so the same text now answers a different question</button>
+      <button class="qopt" type="button">C · Floating-point error in the last bits of the sum</button>
+      <button class="qopt" type="button">D · The legacy engine rounds halves up and the new one rounds them down</button>
+      <p class="qwhy">Both operands are whole numbers. PostgreSQL documents that integer division "truncates the result towards zero"; DuckDB's <code>/</code> gives a floating-point answer. Cast to DECIMAL before dividing and the text says what you mean.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · The export writes a missing review score as an empty string, and the loader uses <code>COALESCE(TRY_CAST(review_raw AS INTEGER), 0)</code>. What changes on the new side?</p>
+      <button class="qopt" type="button">A · Nothing: TRY_CAST already turns the empty string into NULL</button>
+      <button class="qopt" type="button">B · The row count goes up by the number of missing scores</button>
+      <button class="qopt" type="button">C · The load fails with a conversion error</button>
+      <button class="qopt" type="button">D · Reviewed orders go up and the average score goes down, while row counts stay equal</button>
+      <p class="qwhy">TRY_CAST gives NULL, and then COALESCE turns it into 0. Every unreviewed order now counts as reviewed with a score of 0. On the bench that is 8,546 reviewed orders becoming 8,614 and an average of 4.1390 becoming 4.1063.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">3 · A report converts UTC to Brazilian local time with a fixed -03:00 offset. Every monthly number matches the legacy warehouse. Is the translation safe?</p>
+      <button class="qopt" type="button">A · Yes: Brazil is always -03:00</button>
+      <button class="qopt" type="button">B · Yes: if months match, days must match too</button>
+      <button class="qopt" type="button">C · No: in the summer-time windows, orders just after local midnight land on the day before, which daily numbers show and monthly ones may not</button>
+      <button class="qopt" type="button">D · No: fixed offsets lose the UTC instant itself</button>
+      <p class="qwhy">The instant is kept; the local day is wrong for orders between 00:00 and 00:59 in summer time. On the bench, 72 orders move a day, 74 daily numbers change and 0 monthly ones do. Translate with the zone's name.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Integer division and its two documented defaults</span><span class="note">PostgreSQL and DuckDB documentation, read at source; DuckDB outputs run on 1.5.3, re-verify before delivery</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">NULL comparison, IS DISTINCT FROM, and empty strings</span><span class="note">PostgreSQL comparison operators and Oracle's Nulls reference, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Time zones: stored instants, named zones, fixed offsets</span><span class="note">PostgreSQL date/time types, DuckDB timestamp types and IANA tz 2019b release notes</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Case in string comparison</span><span class="note">MySQL 8.0 manual on case sensitivity, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Rounding of halves across engines</span><span class="note">Only DuckDB's output is shown; no cross-engine rule is claimed, test both sides</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Schema migrations inside one database</span><span class="note">Owned by the DataOps course's database migrations session; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Compiles is not translated</b><span>Same SQL text, different engine default, different number.</span></div>
+      <div class="cheat-item"><b>R1 division typed</b><span>Cast to DECIMAL before dividing; round to a stated precision.</span></div>
+      <div class="cheat-item"><b>R2 NULL kept NULL</b><span>NULLIF(x, '') before the cast; never a blanket 0.</span></div>
+      <div class="cheat-item"><b>R3 zone by name</b><span>AT TIME ZONE 'America/Sao_Paulo', never a fixed offset.</span></div>
+      <div class="cheat-item"><b>R4 one key rule</b><span>State how keys compare, normalise once, put it in the SQL.</span></div>
+      <div class="cheat-item"><b>R5 money as DECIMAL</b><span>Float drift is accepted only once someone signs it.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>The SQL now means the same thing on both sides. Session 4 checks that the rows arrived: counts first, then keys both ways, and what a duplicated, missing or lower-cased key looks like when you go looking for it.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 3 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b2-the-dependency-graph.html">← Prev: The dependency graph and the order of moves</a> &nbsp;·&nbsp; <a href="b4-row-and-key-parity.html">Next: Row and key parity →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

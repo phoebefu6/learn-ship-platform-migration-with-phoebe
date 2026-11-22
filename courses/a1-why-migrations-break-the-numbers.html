@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 1 of 6. A warehouse move changes numbers without an error message. Seven drifts planted on 8,614 real orders show where they enter, what they do to the numbers the business reads, and how many each rung of checks catches. Done means every number is the same, or explained.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Why migrations break the numbers - learn ship platform migration with phoebe">
+<meta property="og:description" content="Leader session 1 of 6. Seven quiet drifts, five rungs of checks, and what done means on cutover day.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/a1-why-migrations-break-the-numbers.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Why migrations break the numbers - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Leader session 1 of 6. Row counts catch 1 of 5 planted defects; the full suite catches all 5 with no false alarm.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 1 · Why migrations break the numbers - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Leader session 1 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Leader session 1 of 6</div>
+    <h1>Why migrations <span class="accent">break the numbers</span></h1>
+    <p class="sub">A warehouse move rarely fails loudly. The jobs run, the dashboards load, and a number the board reads is quietly different. Serai Commerce, a constructed Southeast Asian commerce enabler, is moving its warehouse from a legacy stack to a new one, on the same 8,614 real orders its sibling courses use. Seven drifts are planted in the new warehouse, each one a mistake real teams make. You leave with the definition of done you will hold the move to: every number the business reads is the same, or someone can say exactly why it changed.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Foundational</span>
+      <span class="chip audience">Heads of data and platform owners</span>
+      <span class="chip audience">Anyone asked to approve a warehouse move</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:5">3-20 · Seven drifts, five rungs</span>
+      <span class="a3" style="flex:4">20-40 · Build-along: your done sheet</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>How the leader track works</h2>
+    </div>
+    <p class="lede">Six sessions, no code. The artifact you build across them is <strong>Serai's migration runbook</strong>, seen from the chair that signs it: tonight the definition of done; session 2 the inventory; session 3 what to lift, rebuild or retire and in what order; session 4 the parity bar, signed before anyone looks at a diff; session 5 cutover day and the rollback; session 6 the week after and the day the old system is switched off. The builder track does the same move with SQL, and Builder session 10 runs every check on one bench. The running example is a <strong>Constructed Serai Commerce example</strong>, continued from the <a href="https://phoebefu6.github.io/learn-ship-social-commerce-with-phoebe/">Ship It: Social Commerce course</a>, which owns Serai's schema and data products. Its orders are real: 8,614 delivered orders from the public Olist dataset, derived and masked.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A one-page done sheet: every number the business reads, the grain it is read at, who reads it, and a column that must say either "same" or "explained by" with a reason and an owner. Plus one sentence for your steering meeting: "we cut over when every row on this sheet says same or explained, and not before". Every later session fills in a part of the runbook behind that sheet.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers where migration drift enters</span>
+      <h2>Seven drifts, none of them an error</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Moving a warehouse is four steps: export what the old one holds, load it into the new one, translate the SQL that builds the tables, and point the reports at the result. Each step has its own way of changing a number while every job reports success.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn pipeline from the legacy warehouse through export, load, translated SQL and the report layer, with the seven planted drifts hanging under the step where each enters. Export: a missing review score loaded as 0, 68 orders; lower-case customer keys, 1,767 orders. Load: late rows appended twice, 367 orders. Translated SQL: integer division and floating-point money, all orders; freight split per line, 90 orders. Report layer: a fixed minus 3 hour offset that ignores daylight saving, 72 orders. Two of the seven are accepted differences.">
+        <defs>
+          <filter id="a1aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a1aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#624818" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a1aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a1aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a1aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a1aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a1aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a1aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a1aH" x="30" y="26">WHERE THE SEVEN DRIFTS ENTER</text>
+        <text class="a1aS" x="290" y="26">constructed rules on real rows · count = orders touched, measured on the bench</text>
+
+        <g filter="url(#a1aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="140" height="70" rx="10" transform="rotate(-0.6 100 91)" fill="#F8F2E6"/>
+          <rect x="200" y="56" width="140" height="70" rx="10" transform="rotate(0.5 270 91)" fill="#FFFFFF"/>
+          <rect x="370" y="56" width="140" height="70" rx="10" transform="rotate(-0.5 440 91)" fill="#FFFFFF"/>
+          <rect x="540" y="56" width="140" height="70" rx="10" transform="rotate(0.4 610 91)" fill="#FFFFFF"/>
+          <rect x="710" y="56" width="140" height="70" rx="10" transform="rotate(-0.4 780 91)" fill="#FFFFFF"/>
+          <path d="M172 91 L196 91" marker-end="url(#a1aAr)"/>
+          <path d="M342 91 L366 91" marker-end="url(#a1aAr)"/>
+          <path d="M512 91 L536 91" marker-end="url(#a1aAr)"/>
+          <path d="M682 91 L706 91" marker-end="url(#a1aAr)"/>
+          <path d="M270 128 L270 154" marker-end="url(#a1aAr)"/>
+          <path d="M440 128 L440 154" marker-end="url(#a1aAr)"/>
+          <path d="M610 128 L610 154" marker-end="url(#a1aAr)"/>
+          <path d="M780 128 L780 154" marker-end="url(#a1aAr)"/>
+          <rect x="200" y="160" width="140" height="40" rx="8" transform="rotate(-1 270 180)" fill="#9CC3E6"/>
+          <rect x="200" y="210" width="140" height="40" rx="8" transform="rotate(1 270 230)" fill="#9CC3E6"/>
+          <rect x="370" y="160" width="140" height="40" rx="8" transform="rotate(0.8 440 180)" fill="#9CC3E6"/>
+          <rect x="540" y="160" width="140" height="40" rx="8" transform="rotate(-0.8 610 180)" fill="#9CC3E6"/>
+          <rect x="540" y="210" width="140" height="40" rx="8" transform="rotate(0.8 610 230)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="540" y="260" width="140" height="40" rx="8" transform="rotate(-0.8 610 280)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="710" y="160" width="140" height="40" rx="8" transform="rotate(1 780 180)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="a1aH" x="44" y="84">LEGACY</text>
+        <text class="a1aL" x="44" y="104">8,614 orders</text>
+        <text class="a1aH" x="214" y="84">EXPORT FILES</text>
+        <text class="a1aS" x="214" y="104">one file per table</text>
+        <text class="a1aH" x="384" y="84">LOAD</text>
+        <text class="a1aS" x="384" y="104">nightly + late feed</text>
+        <text class="a1aH" x="554" y="84">TRANSLATED SQL</text>
+        <text class="a1aS" x="554" y="104">the new dialect</text>
+        <text class="a1aH" x="724" y="84">REPORT LAYER</text>
+        <text class="a1aS" x="724" y="104">what the board reads</text>
+
+        <text class="a1aL" x="212" y="177">NULL loaded as 0</text>
+        <text class="a1aB" x="212" y="192">68 orders</text>
+        <text class="a1aL" x="212" y="227">lower-case keys</text>
+        <text class="a1aB" x="212" y="242">1,767 orders</text>
+        <text class="a1aL" x="382" y="177">late rows twice</text>
+        <text class="a1aB" x="382" y="192">367 orders</text>
+        <text class="a1aL" x="552" y="177">integer division</text>
+        <text class="a1aB" x="552" y="192">every order</text>
+        <text class="a1aL" x="552" y="227">float money</text>
+        <text class="a1aS" x="552" y="242">accepted</text>
+        <text class="a1aL" x="552" y="277">freight per line</text>
+        <text class="a1aS" x="552" y="292">90 orders, accepted</text>
+        <text class="a1aL" x="722" y="177">fixed -03:00 offset</text>
+        <text class="a1aB" x="722" y="192">72 orders</text>
+
+        <text class="a1aN" x="30" y="334">Every drift compiles, loads and reports without an error. Five change a number someone reads.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - drift enters at every step of the move, and none of it raises an error</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The seven drifts in Serai's new warehouse<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Drift</th><th>Where it enters</th><th>Orders touched</th><th>Defect or accepted</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Late rows appended twice</strong>: an order delivered more than 30 days after purchase comes back on the late-row feed and is added, not merged</td><td>Load</td><td>367</td><td>Defect</td></tr>
+            <tr><td><strong>Fixed -03:00 offset</strong>: the report layer turns UTC back into local time with a fixed offset, so in Brazilian summer time an order placed just after midnight lands on the day before</td><td>Report layer</td><td>72</td><td>Defect</td></tr>
+            <tr><td><strong>Missing review score loaded as 0</strong>: the export writes NULL as an empty string and the new loader casts it to 0</td><td>Export and load</td><td>68</td><td>Defect</td></tr>
+            <tr><td><strong>Integer division</strong>: items per order is computed as whole number over whole number, which truncates in the new dialect</td><td>Translated SQL</td><td>Every order</td><td>Defect</td></tr>
+            <tr><td><strong>Case-sensitive key join</strong>: one marketplace export writes customer keys in lower case, and the new engine compares them case-sensitively</td><td>Export and translated SQL</td><td>1,767</td><td>Defect</td></tr>
+            <tr><td><strong>Freight split per line</strong>: order freight divided across lines and rounded per line</td><td>Translated SQL</td><td>90</td><td>Accepted, cents only</td></tr>
+            <tr><td><strong>Floating-point money</strong>: amounts summed as floating point, not whole cents</td><td>Translated SQL</td><td>Every order</td><td>Accepted, far below a cent</td></tr>
+          </tbody>
+        </table>
+        <p>Every drift is a constructed rule, and every order it touches is real. The 72 are real orders placed between midnight and one in the morning during the two Brazilian summers in the sample; the 367 are real orders whose delivery landed more than 30 days after purchase. The two accepted differences matter as much as the five defects: a check that cannot tell them apart will raise alarms nobody acts on.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why nothing fails loudly<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each drift is legal SQL doing what it was told. The PostgreSQL documentation says integer division "truncates the result towards zero", while DuckDB's says that when both operands are integers, <code>/</code> gives a floating-point answer and <code>//</code> is integer division. Oracle "currently treats a character value with a length of zero as null". MySQL's default collation makes "nonbinary string comparisons" "case-insensitive by default". Move a query between engines whose defaults differ and it still compiles; it just answers a different question. Builder session 3 runs each of these in DuckDB.</p>
+        <p>That is why "the jobs are green" is not evidence. A migration is done when the numbers are, and the numbers have to be checked by something other than the job that produced them.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A bank's platform move, and the regulators' finding.</strong> In 2018 the UK bank TSB moved its customers onto a new IT platform, and the go-live went badly wrong for customers. In December 2022 the Bank of England announced that the regulators had fined TSB "a total of £48,650,000", finding that it "failed to organise and control the IT migration programme adequately." TSB's own release on the independent review it commissioned notes the reviewers raised "questions around how testing was carried out", after a go-live that "followed a long period of testing, with reports to the Board signalling readiness." Reports of readiness are not the same thing as proof.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers what done means on cutover day</span>
+      <h2>Same, or explained</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">"The new warehouse matches the old one" is not a sentence anyone can check. "Every number on this list is the same at the grain it is read, or has a written reason and an owner" is.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn table of four numbers Serai's business reads, legacy against the new warehouse with all seven drifts on, as the bench prints them for the whole sample. Orders 8,614 against 8,981, explained by late rows appended twice. Item value BRL 1,197,842.24 against BRL 1,262,425.64, the same late rows. Items per order 1.14 against 1, integer division. Average review score 4.14 against 4.02, NULL loaded as 0 plus the late rows.">
+        <defs>
+          <filter id="a1bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="17" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a1bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a1bL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .a1bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a1bB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .a1bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a1bH" x="30" y="26">WHAT THE BOARD WOULD READ, ALL SEVEN DRIFTS ON</text>
+        <text class="a1bS" x="410" y="26">whole sample · measured on the bench · every number differs</text>
+
+        <g filter="url(#a1bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="820" height="212" rx="12" transform="rotate(-0.2 440 150)" fill="#FFFFFF"/>
+          <rect x="584" y="84" width="262" height="168" rx="6" fill="#EAF3FB" stroke="none"/>
+          <path d="M30 82 L850 82"/>
+          <path d="M210 44 L210 256"/>
+          <path d="M400 44 L400 256"/>
+          <path d="M580 44 L580 256"/>
+        </g>
+
+        <text class="a1bH" x="46" y="68">NUMBER</text>
+        <text class="a1bH" x="226" y="68">LEGACY</text>
+        <text class="a1bH" x="416" y="68">NEW</text>
+        <text class="a1bH" x="596" y="68">EXPLAINED BY</text>
+
+        <text class="a1bL" x="46" y="114">Orders</text>
+        <text class="a1bL" x="226" y="114">8,614</text>
+        <text class="a1bL" x="416" y="114">8,981</text>
+        <text class="a1bB" x="596" y="114">late rows appended twice</text>
+        <text class="a1bL" x="46" y="156">Item value</text>
+        <text class="a1bL" x="226" y="156">BRL 1,197,842.24</text>
+        <text class="a1bL" x="416" y="156">BRL 1,262,425.64</text>
+        <text class="a1bB" x="596" y="156">the same 367 late rows</text>
+        <text class="a1bL" x="46" y="198">Items per order</text>
+        <text class="a1bL" x="226" y="198">1.14</text>
+        <text class="a1bL" x="416" y="198">1</text>
+        <text class="a1bB" x="596" y="198">integer division</text>
+        <text class="a1bL" x="46" y="240">Average review</text>
+        <text class="a1bL" x="226" y="240">4.14</text>
+        <text class="a1bL" x="416" y="240">4.02</text>
+        <text class="a1bB" x="596" y="240">NULL as 0, plus late rows</text>
+
+        <text class="a1bN" x="30" y="282">An explanation is a cause and an owner. "The new system is more accurate" is neither.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - every number moved, and each one needs a named cause before cutover</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Three words for every number: same, explained, open<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Same</strong> means equal at the grain it is read, within a tolerance signed before anyone looked. <strong>Explained</strong> means different for a written reason someone owns, which is either fixed before cutover or accepted in writing. <strong>Open</strong> means different and nobody knows why. Done is a list with no "open" on it.</p>
+        <p>Read the figure with those words. Orders, item value and items per order are explained by defects and must be fixed, not accepted: a board pack that counts 367 orders twice is wrong, however well understood. The freight split, which moved Serai's total freight from BRL 195,579.02 to BRL 195,579.59, is explained and accepted: 57 centavos across 90 orders is a rounding policy, and the sheet says so.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Vendors say the same thing in their own words<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Migration guides from warehouse vendors converge on validating against a definition of done, though they sell their own tools for it. Google Cloud's BigQuery migration page says to "run the data validation tool to validate that your source and destination tables match", and a 2019 Google Cloud blog on migrating data warehouses asks you to "validate that the use case was successfully migrated according to your definition of done" at the end of each iteration. AWS's Database Migration Service validation "compares each row in the source with its corresponding row at the target". Read these as claims from vendors about their own products: useful for the shape of the process, never a recommendation. Session 4 and Builder sessions 4 and 5 turn "validate" into a bar you can sign.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>When two copies disagree, which one is right?</strong> On 21 October 2018 a network fault split GitHub's data centres for 43 seconds, and when the link came back, each side's database "contained writes that were not present in the other data center". GitHub's post-incident analysis records that the team chose to "prioritize data integrity over site usability and time to recovery", and service was degraded for "24 hours and 11 minutes". That is the decision a migration lead pre-commits to: when the two systems disagree, the numbers win over the schedule.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers what each rung of checks catches</span>
+      <h2>Five rungs, one blind spot</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The bench plants each drift alone and asks a growing suite of checks whether it noticed. A defect that raises an alarm is caught. An accepted difference that raises one is a false alarm. The ladder is not a straight climb.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hand-drawn bars of defects caught out of five at each rung of the parity suite, as the bench prints them. Rung 0, row counts: 1, the late rows only. Rung 1, plus keys: 2, adding the customer keys. Rung 2, plus exact daily aggregates: 5, with 2 false alarms. Rung 3, plus tolerances by metric at the monthly grain: 4, the time-zone drift missed, 0 false alarms. Rung 4, plus the time-zone edge check: 5 of 5 with 0 false alarms.">
+        <defs>
+          <filter id="a1cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="19" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a1cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a1cL { font: 600 12px Inter, sans-serif; fill: #231C12; }
+          .a1cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a1cK { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a1cR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .a1cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a1cH" x="30" y="26">DEFECTS CAUGHT, OF FIVE, AT EACH RUNG</text>
+        <text class="a1cS" x="330" y="26">each drift planted alone · measured on the bench · signed parity bar</text>
+
+        <g filter="url(#a1cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="260" y="56" width="80" height="30" rx="6" fill="#E3D3B0"/>
+          <rect x="260" y="106" width="160" height="30" rx="6" fill="#E3D3B0"/>
+          <rect x="260" y="156" width="400" height="30" rx="6" fill="#E3D3B0"/>
+          <rect x="676" y="156" width="150" height="30" rx="15" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="260" y="206" width="320" height="30" rx="6" fill="#E3D3B0"/>
+          <rect x="260" y="256" width="400" height="30" rx="6" fill="#9CC3E6"/>
+          <path d="M260 46 L260 296"/>
+        </g>
+
+        <text class="a1cL" x="240" y="76" text-anchor="end">0 · row counts</text>
+        <text class="a1cL" x="240" y="126" text-anchor="end">1 · + keys</text>
+        <text class="a1cL" x="240" y="176" text-anchor="end">2 · + daily, exact</text>
+        <text class="a1cL" x="240" y="226" text-anchor="end">3 · + tolerances</text>
+        <text class="a1cL" x="240" y="276" text-anchor="end">4 · + time-zone edge</text>
+
+        <text class="a1cK" x="272" y="76">1 of 5</text>
+        <text class="a1cS" x="352" y="76">late rows only</text>
+        <text class="a1cK" x="272" y="126">2 of 5</text>
+        <text class="a1cS" x="432" y="126">adds the 1,767 unresolved customer keys</text>
+        <text class="a1cK" x="272" y="176">5 of 5</text>
+        <text class="a1cR" x="696" y="175">2 false alarms</text>
+        <text class="a1cK" x="272" y="226">4 of 5</text>
+        <text class="a1cS" x="592" y="226">time-zone drift missed</text>
+        <text class="a1cK" x="272" y="276">5 of 5</text>
+        <text class="a1cS" x="672" y="276">0 false alarms</text>
+
+        <text class="a1cN" x="30" y="318">Rung 3 trades two false alarms for a blind spot inside the month; rung 4 closes it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - more checks is not automatically better: the bar you sign decides what you can see</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Reading the ladder as a leader<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Rung 0, row counts:</strong> only the late rows change the count, from 8,614 to 8,981. <strong>Rung 1, keys:</strong> the same number of rows, but 1,767 orders whose customer key no longer resolves. <strong>Rung 2, every metric every day, exact:</strong> catches all five defects and also flags the two accepted differences: the freight split on 80 days and floating-point item value on 302 days. <strong>Rung 3, Serai's signed bar at the monthly grain the board reads:</strong> the false alarms go quiet, and so does the time-zone drift, because in this sample none of the 72 shifted orders crosses a month end. <strong>Rung 4, an edge check on the 595 orders placed within an hour of midnight:</strong> 72 land on another day, so the drift is caught again.</p>
+        <p>The lesson for the person signing: ask which rung the "all green" report came from. Sessions 4 and 6 return to the two awkward rungs.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Two ways to make the bench lie<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Loosen the bar to 3% on every metric and the suite misses the missing-review drift as well: 3 of 5 at rung 3 and 4 of 5 even at rung 4, because no month moves by more than 2.22%. Point both sides of the comparison at the new warehouse, a mistake that happens when a connection string is copied, and every check passes: 0 of 5. A green parity report means nothing until you know what each side read and how wide the bar was.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The fault that hides in a monthly number.</strong> The 72 shifted orders exist because Brazil observed daylight saving in the summers of 2016-17 and 2017-18, and a fixed -03:00 offset is right for the rest of the year. The IANA time zone database's 2019b release records that "Brazil no longer observes DST", so code written since then can hard-code -03:00 and pass every recent test while still misplacing historical orders. Builder session 9 is about drift like this.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Your done sheet</h2>
+      <span class="tag demo">★ 20 min · everyone builds</span>
+    </div>
+    <p class="lede">You need the list of reports your business reads every month, and ten minutes with whoever owns the warehouse. No list to hand? Do it for Serai with the numbers on this page. The sheet becomes page one of the migration runbook.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The done sheet as a hand-drawn grid with four columns: number, grain read, who reads it, same or explained. Four rows are left to fill: orders monthly for the board pack, item value monthly for the finance close, items per order daily for the operations dashboard, reviewed orders monthly for brand reviews. The bottom row is filled for Serai: average review score, monthly, brand reviews, explained by NULL loaded as 0, fix before cutover, owner the data platform lead.">
+        <defs>
+          <filter id="a1dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="23" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a1dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a1dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a1dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a1dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a1dH" x="30" y="26">THE DONE SHEET · PAGE ONE OF THE RUNBOOK</text>
+
+        <g filter="url(#a1dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="820" height="210" rx="12" transform="rotate(-0.2 440 149)" fill="#FFFFFF"/>
+          <path d="M30 78 L850 78"/>
+          <path d="M210 44 L210 254"/>
+          <path d="M350 44 L350 254"/>
+          <path d="M510 44 L510 254"/>
+          <rect x="34" y="210" width="812" height="40" rx="6" fill="#9CC3E6"/>
+        </g>
+
+        <text class="a1dH" x="44" y="66">NUMBER</text>
+        <text class="a1dH" x="224" y="66">GRAIN READ</text>
+        <text class="a1dH" x="364" y="66">WHO READS IT</text>
+        <text class="a1dH" x="524" y="66">SAME, OR EXPLAINED BY (AND OWNER)</text>
+
+        <text class="a1dS" x="44" y="100">Orders</text>
+        <text class="a1dS" x="224" y="100">monthly</text>
+        <text class="a1dS" x="364" y="100">board pack</text>
+        <text class="a1dS" x="44" y="128">Item value</text>
+        <text class="a1dS" x="224" y="128">monthly</text>
+        <text class="a1dS" x="364" y="128">finance close</text>
+        <text class="a1dS" x="44" y="156">Items per order</text>
+        <text class="a1dS" x="224" y="156">daily</text>
+        <text class="a1dS" x="364" y="156">ops dashboard</text>
+        <text class="a1dS" x="44" y="184">Reviewed orders</text>
+        <text class="a1dS" x="224" y="184">monthly</text>
+        <text class="a1dS" x="364" y="184">brand reviews</text>
+
+        <text class="a1dL" x="44" y="235">Average review</text>
+        <text class="a1dL" x="224" y="235">monthly</text>
+        <text class="a1dL" x="364" y="235">brand reviews</text>
+        <text class="a1dL" x="524" y="235">NULL as 0: fix first · platform lead</text>
+
+        <text class="a1dN" x="30" y="280">Fill the last column only from evidence. A blank cell is an open item, and an open item blocks cutover.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - one row per number someone reads, and the last column is the only one that matters on the day</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>List the numbers people read, not the tables you own.</strong> Start from the board pack, the finance close and the three dashboards with the most viewers. One line per number. Serai's list starts with orders, item value, items per order, reviewed orders and average review score.</p>
+      </div>
+      <div class="step">
+        <p><strong>Write the grain each one is read at.</strong> Daily, weekly, monthly. This is where the time-zone drift lives: Serai's daily numbers move on 74 days, its monthly numbers on none.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's sheet, first two columns</span>Orders            monthly   board pack
+Item value        monthly   finance close
+Items per order   daily     ops dashboard
+Reviewed orders   monthly   brand reviews
+Average review    monthly   brand reviews</div>
+      </div>
+      <div class="step">
+        <p><strong>Name who reads it.</strong> The reader is the person who will notice on day one, and the person who signs that row off.</p>
+      </div>
+      <div class="step">
+        <p><strong>Leave the last column empty until there is evidence.</strong> It fills in from the parity checks in later sessions. For practice, fill one row from this page: average review score, explained by NULL loaded as 0, to be fixed before cutover, owned by the data platform lead.</p>
+      </div>
+      <div class="step">
+        <p><strong>Write the steering sentence and read it to whoever approves the move.</strong></p>
+        <div class="prompt-box good"><span class="label">★ The steering sentence</span>We cut over when every number on the done sheet says "same" at the grain
+it is read, or "explained" with a written cause and an owner, and every
+explained defect is fixed. A green job run is not evidence. A parity report
+counts only when it names the rung, the bar and what each side read.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">The definition of done that proves nothing</span>
+Migration complete when all pipelines run successfully in the new
+environment and stakeholders confirm the dashboards look right.
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 2</h2>
+      <span class="tag exercise">25 min</span>
+    </div>
+    <ol>
+      <li>Finish your done sheet: every number in the board pack and the finance close, with grain and reader. Leave the last column blank.</li>
+      <li>For one number on it, find out whether any query behind it divides two whole numbers, compares text keys, or converts a time zone. Write which.</li>
+      <li>Ask the team running your last migration what their definition of done was. Write it down word for word and mark which of the seven drifts it would have caught.</li>
+      <li>Find one daily number and one monthly number built from the same table. Note which one would show a drift that only moves orders across midnight.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 1 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · On the bench, a row-count check catches only 1 of the 5 planted defects. Why?</p>
+      <button class="qopt" type="button">A · The count compares the wrong tables</button>
+      <button class="qopt" type="button">B · Only the late rows add or remove rows; the other four change values, keys or days without changing the count</button>
+      <button class="qopt" type="button">C · Row counts are too slow to run on 8,614 orders</button>
+      <button class="qopt" type="button">D · The other defects cancel each other out</button>
+      <p class="qwhy">Counts move only when rows are added or dropped: 8,614 against 8,981 for the late rows. Integer division, NULL as 0, the time-zone shift and the case-sensitive join leave the count exactly equal.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · Serai's monthly numbers all match legacy within the signed bar. What does that prove about its daily numbers?</p>
+      <button class="qopt" type="button">A · They match too, because days add up to months</button>
+      <button class="qopt" type="button">B · They differ by at most the monthly tolerance</button>
+      <button class="qopt" type="button">C · Nothing, unless the daily numbers are never read</button>
+      <button class="qopt" type="button">D · Nothing: the time-zone drift changes 74 days and no month</button>
+      <p class="qwhy">The 72 shifted orders move to the previous day without crossing a month end, so every month agrees while 74 daily numbers do not. C sounds reasonable, but Serai's ops dashboard reads daily, so the drift is not harmless.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Freight moved from BRL 195,579.02 to BRL 195,579.59 across 90 orders because of per-line rounding. What goes in the done sheet?</p>
+      <button class="qopt" type="button">A · Explained: a rounding policy, accepted in writing, with an owner</button>
+      <button class="qopt" type="button">B · Same, because 57 centavos is too small to mention</button>
+      <button class="qopt" type="button">C · Open, until the new warehouse matches to the cent</button>
+      <button class="qopt" type="button">D · A defect to fix before cutover</button>
+      <p class="qwhy">A known cause with a size and an owner is "explained". Calling it "same" hides a policy decision; calling it open or a defect turns an accepted difference into a false alarm.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The seven drifts and the five rungs</span><span class="note">Constructed rules on real rows; every count measured on the bench in Builder session 10, matched by an independent Python reference</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">SQL defaults that differ between engines</span><span class="note">PostgreSQL, DuckDB, Oracle and MySQL documentation, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB's 2018 migration and the 2022 fine</span><span class="note">Bank of England release (2022) and TSB's release on its independent review, read at source; the review's own text is not quoted</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">GitHub's 21 October 2018 incident</span><span class="note">GitHub's post-incident analysis, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Vendor validation guidance</span><span class="note">Google Cloud migration page and 2019 blog, AWS DMS validation docs, read at source as vendor claims</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's reports, readers and parity bar</span><span class="note">Constructed for the case; no benchmark claimed</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Drift is silent</b><span>Seven drifts, zero errors. Green jobs are not evidence.</span></div>
+      <div class="cheat-item"><b>Four places it enters</b><span>Export, load, translated SQL, report layer.</span></div>
+      <div class="cheat-item"><b>Same, explained, open</b><span>Done is a list of numbers read with no "open" left.</span></div>
+      <div class="cheat-item"><b>Counts are rung 0</b><span>1 of 5 defects. Keys add one more.</span></div>
+      <div class="cheat-item"><b>The bar decides</b><span>Exact daily: 2 false alarms. Monthly bar: a hidden time-zone drift.</span></div>
+      <div class="cheat-item"><b>Ask what each side read</b><span>Both sides on the new warehouse: 0 of 5 caught, all green.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You know what done means. Session 2 asks what you own before you plan anything: which tables are read, by whom, and which nobody has opened in 90 days, so they can be retired instead of moved.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 1 of 6 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← Course home</a> &nbsp;·&nbsp; <a href="a2-inventory-before-plan.html">Next: Inventory before plan →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

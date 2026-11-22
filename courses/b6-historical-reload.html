@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Builder session 6 of 10. Reload a warehouse's history into the new one a month at a time, run parity after every window, and give the late-row feed a rule: merge on the order key, never append. Built in DuckDB on Serai Commerce's constructed orders.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Historical reload - learn ship platform migration with phoebe">
+<meta property="og:description" content="Builder session 6 of 10. History in monthly windows, a parity run after each, and the late feed merged on its key: 8,614 rows, not 8,981.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/b6-historical-reload.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Historical reload - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Builder session 6 of 10. Reload history one window at a time and merge the late feed on its key, in DuckDB.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Builder session 6 · Historical reload - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Builder session 6 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Builder session 6 of 10</div>
+    <h1>Historical <span class="accent">reload</span></h1>
+    <p class="sub">The parity suite from sessions 4 and 5 can now tell whether two warehouses agree. Tonight you give it something to compare: all 21 months of Serai's history, moved into the new warehouse one month at a time, with a parity run after every month. And you meet the drift that is born during the reload itself: the late-row feed, which sends 367 orders a second time and turns 8,614 rows into 8,981 unless the load merges on the order key. In DuckDB, on a small constructed pair, with both rules run side by side.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Advanced-practical</span>
+      <span class="chip audience">Analytics and data engineers</span>
+      <span class="chip audience">Whoever owns the load into the new warehouse</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Windows, the late feed, the check</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: append against merge</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede"><a href="b4-row-and-key-parity.html">Builder session 4</a> proved rows and keys; <a href="b5-aggregate-parity.html">Builder session 5</a> proved six metrics by day and by month against a signed bar. Both assumed the new warehouse already held the history. Tonight is how it gets there, as one step of the cutover: which windows, in which order, what the load does when a row arrives a second time, and which check must pass before the next window starts. The running case is a <strong>Constructed Serai Commerce example</strong>: tonight's eight-order pair is constructed, and the bench numbers on this page come from the same 8,614 real Olist orders, derived and masked, with the late-row drift planted alone. How to make any backfill safe to rerun belongs to the reliability and orchestration courses, linked in Part 1; this page owns the reload as a migration step and the rule for the late feed.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Runbook section 5, the historical reload: the list of windows (by month, 21 in the sample), the order they load in, the late-row rule written as SQL (merge on the order key, never append), and the parity run that gates each window. You will have run both load rules on the same constructed orders and watched one of them pass every window while the other fails both.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the reload as one cutover step</span>
+      <h2>History moves one month at a time</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The reload is the biggest single load the new warehouse will ever take, and it happens before anyone reads from it. Cut it into windows small enough that a failure points at one place, and prove each window before the next one starts.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn strip of 21 monthly windows from 2016-10 to 2018-08, the months in Serai's sample. In this illustration the first twelve are reloaded and passed their parity run, the thirteenth is loading now, and eight are not loaded yet. Below, the loop each window goes through: extract one month from legacy, load it into the new warehouse with the late-row rule, run parity on counts, keys and the monthly bar; on pass the next window starts, on fail only that window is redone.">
+        <defs>
+          <filter id="b6aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b6aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b6aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b6aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b6aB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b6aR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b6aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b6aH" x="30" y="26">HISTORY IN 21 MONTHLY WINDOWS</text>
+        <text class="b6aS" x="330" y="26">Constructed Serai Commerce example · 598 order days, 2016-10-04 to 2018-08-28</text>
+
+        <g filter="url(#b6aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="46" width="36" height="34" rx="5" transform="rotate(-2 48 63)" fill="#F8F2E6"/>
+          <rect x="69" y="46" width="36" height="34" rx="5" transform="rotate(1.5 87 63)" fill="#F8F2E6"/>
+          <rect x="108" y="46" width="36" height="34" rx="5" transform="rotate(-1 126 63)" fill="#F8F2E6"/>
+          <rect x="147" y="46" width="36" height="34" rx="5" transform="rotate(2 165 63)" fill="#F8F2E6"/>
+          <rect x="186" y="46" width="36" height="34" rx="5" transform="rotate(-1.5 204 63)" fill="#F8F2E6"/>
+          <rect x="225" y="46" width="36" height="34" rx="5" transform="rotate(1 243 63)" fill="#F8F2E6"/>
+          <rect x="264" y="46" width="36" height="34" rx="5" transform="rotate(-2 282 63)" fill="#F8F2E6"/>
+          <rect x="303" y="46" width="36" height="34" rx="5" transform="rotate(1.5 321 63)" fill="#F8F2E6"/>
+          <rect x="342" y="46" width="36" height="34" rx="5" transform="rotate(-1 360 63)" fill="#F8F2E6"/>
+          <rect x="381" y="46" width="36" height="34" rx="5" transform="rotate(2 399 63)" fill="#F8F2E6"/>
+          <rect x="420" y="46" width="36" height="34" rx="5" transform="rotate(-1.5 438 63)" fill="#F8F2E6"/>
+          <rect x="459" y="46" width="36" height="34" rx="5" transform="rotate(1 477 63)" fill="#F8F2E6"/>
+          <rect x="498" y="46" width="36" height="34" rx="5" transform="rotate(-2 516 63)" fill="#9CC3E6"/>
+          <rect x="537" y="46" width="36" height="34" rx="5" transform="rotate(1.5 555 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="576" y="46" width="36" height="34" rx="5" transform="rotate(-1 594 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="615" y="46" width="36" height="34" rx="5" transform="rotate(2 633 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="654" y="46" width="36" height="34" rx="5" transform="rotate(-1.5 672 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="693" y="46" width="36" height="34" rx="5" transform="rotate(1 711 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="732" y="46" width="36" height="34" rx="5" transform="rotate(-2 750 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="771" y="46" width="36" height="34" rx="5" transform="rotate(1.5 789 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="810" y="46" width="36" height="34" rx="5" transform="rotate(-1 828 63)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+
+          <rect x="30" y="140" width="180" height="80" rx="10" transform="rotate(-0.6 120 180)" fill="#FFFFFF"/>
+          <rect x="250" y="140" width="180" height="80" rx="10" transform="rotate(0.5 340 180)" fill="#FFFFFF"/>
+          <rect x="470" y="140" width="180" height="80" rx="10" transform="rotate(-0.5 560 180)" fill="#9CC3E6"/>
+          <rect x="680" y="134" width="170" height="46" rx="10" transform="rotate(0.6 765 157)" fill="#EAF3FB"/>
+          <rect x="680" y="192" width="170" height="46" rx="10" transform="rotate(-0.6 765 215)" fill="#FEF2F2" stroke="#991B1B"/>
+          <path d="M214 180 L246 180" marker-end="url(#b6aAr)"/>
+          <path d="M434 180 L466 180" marker-end="url(#b6aAr)"/>
+          <path d="M654 170 L676 158" marker-end="url(#b6aAr)"/>
+          <path d="M654 190 L676 214" marker-end="url(#b6aAr)"/>
+        </g>
+
+        <text class="b6aL" x="30" y="102">2016-10</text>
+        <text class="b6aS" x="130" y="102">reloaded, parity passed</text>
+        <text class="b6aB" x="516" y="102" text-anchor="middle">loading now</text>
+        <text class="b6aS" x="640" y="102">not loaded yet</text>
+        <text class="b6aL" x="846" y="102" text-anchor="end">2018-08</text>
+
+        <text class="b6aH" x="44" y="166">1 · EXTRACT A WINDOW</text>
+        <text class="b6aS" x="44" y="186">one month from legacy</text>
+        <text class="b6aS" x="44" y="204">21 in the sample</text>
+        <text class="b6aH" x="264" y="166">2 · LOAD INTO NEW</text>
+        <text class="b6aS" x="264" y="186">with the late-row rule</text>
+        <text class="b6aS" x="264" y="204">from Part 2</text>
+        <text class="b6aH" x="484" y="166">3 · PARITY RUN</text>
+        <text class="b6aL" x="484" y="186">counts and keys</text>
+        <text class="b6aL" x="484" y="204">and the monthly bar</text>
+        <text class="b6aB" x="694" y="154">PASS</text>
+        <text class="b6aL" x="694" y="171">next window starts</text>
+        <text class="b6aR" x="694" y="212">FAIL</text>
+        <text class="b6aL" x="694" y="229">redo this window only</text>
+
+        <text class="b6aN" x="30" y="260">Each window is proved before the next one starts, so a failure points at one month, not all 21.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the reload is 21 small moves with a gate after each, not one big one</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why a window, and why a month<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A reload of everything in one go has one verdict: it matches or it does not. When it does not, you have 21 months of history and no idea where to look. Cut it into windows and each parity run covers one window, so a failure names a month, and redoing it means one month of load instead of all of it.</p>
+        <p>The window follows the grain the parity bar is signed at. Serai's bar is monthly, its sample holds 21 months, so the reload has 21 windows and each window ends in the same monthly check the business signed. If your bar were daily, a daily window would make the reload's failures speak the same language as the bar. A table too big for a month at a time can be cut finer; the rule is that every window must end at a boundary the parity run can compare.</p>
+        <table class="clean">
+          <thead><tr><th>Choice</th><th>Serai's answer</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Window</td><td>One month of orders, by purchase date</td><td>Matches the grain of the signed bar</td></tr>
+            <tr><td>Order</td><td>Oldest month first, in the wave order from session 2</td><td>Tables load after the tables they are built from</td></tr>
+            <tr><td>Gate</td><td>Counts, keys and the monthly bar for that window</td><td>The suite from sessions 4 and 5, scoped to one window</td></tr>
+            <tr><td>On fail</td><td>Stop, fix, redo that window only</td><td>Every earlier window is already proved</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where reload ends and backfill begins<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Mechanically a reload is a backfill: run the load for a past period. The craft of making that safe, so a window can be rerun without doubling anything, is idempotency, and it has an owner. Read <a href="https://phoebefu6.github.io/learn-data-reliability-with-phoebe/courses/b5-backfills.html">the Data Reliability builder session on backfills</a>, its <a href="https://phoebefu6.github.io/learn-data-reliability-with-phoebe/courses/a5-backfills-and-debt.html">leader session on backfills and debt</a>, and <a href="https://phoebefu6.github.io/learn-data-orchestration-with-phoebe/courses/05-backfills.html">the Data Orchestration session on backfills</a>. Those pages own how to rerun a window safely.</p>
+        <p>This page owns what is particular to a migration: the reload is a step of the cutover with a gate after every window, the comparison is between two warehouses rather than within one, and there is a second feed, the late-row feed, that keeps writing into the target while the reload runs. That feed is Part 2.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The vendor guides gate every iteration.</strong> Google Cloud's 2019 migration blog asks that "At the end of each iteration, validate that the use case was successfully migrated according to your definition of done". Its documentation for the move itself says to "run the data validation tool to validate that your source and destination tables match". Read both as vendor claims about their own process. The pattern still holds on any engine: a window is not loaded until a comparison against the source says so.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the late-row feed and the load rule</span>
+      <h2>The late feed sends some orders twice</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Some orders are delivered long after they are bought. On the bench, 367 orders were delivered more than 30 days after purchase, and Serai's late-row feed sends each of them again when it finally lands. Whether the new warehouse holds 8,614 rows or 8,981 comes down to one word in the load: append or merge.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn mechanism. The reloaded history holds order o102, bought 2017-01-09, once. The late feed then sends o102 again, delivered 2017-02-20, 42 days after purchase. Both go through the load. Appended into a table with no key, o102 is stored twice; on the bench that makes 8,981 rows instead of 8,614, with 367 keys appearing twice. Merged on the order key, o102 is stored once with its delivery updated; on the bench, 8,614 rows and 0 keys twice.">
+        <defs>
+          <filter id="b6bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b6bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b6bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b6bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b6bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b6bV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b6bR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b6bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b6bH" x="30" y="26">ONE ORDER, TWO ARRIVALS, TWO LOAD RULES</text>
+
+        <g filter="url(#b6bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="230" height="96" rx="10" transform="rotate(-0.6 145 104)" fill="#F8F2E6"/>
+          <rect x="30" y="178" width="230" height="76" rx="10" transform="rotate(0.6 145 216)" fill="#FFFFFF" stroke-dasharray="6 4"/>
+          <circle cx="315" cy="170" r="20" fill="#FFFFFF"/>
+          <path d="M264 112 L298 158" marker-end="url(#b6bAr)"/>
+          <path d="M264 214 L298 182" marker-end="url(#b6bAr)"/>
+          <path d="M334 162 L376 112" marker-end="url(#b6bAr)"/>
+          <path d="M334 178 L376 254" marker-end="url(#b6bAr)"/>
+          <rect x="380" y="46" width="470" height="128" rx="12" transform="rotate(0.4 615 110)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="396" y="82" width="200" height="22" rx="4" transform="rotate(-1 496 93)" fill="#FFFFFF"/>
+          <rect x="396" y="110" width="200" height="22" rx="4" transform="rotate(1 496 121)" fill="#FFFFFF"/>
+          <rect x="396" y="138" width="200" height="22" rx="4" transform="rotate(-1.5 496 149)" fill="#FCA5A5"/>
+          <rect x="380" y="192" width="470" height="128" rx="12" transform="rotate(-0.4 615 256)" fill="#FFFFFF"/>
+          <rect x="396" y="228" width="200" height="22" rx="4" transform="rotate(1 496 239)" fill="#9CC3E6"/>
+          <rect x="396" y="256" width="200" height="22" rx="4" transform="rotate(-1 496 267)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="b6bH" x="44" y="80">RELOADED HISTORY</text>
+        <text class="b6bL" x="44" y="100">o102 · bought 2017-01-09</text>
+        <text class="b6bL" x="44" y="120">o103 · bought 2017-01-17</text>
+        <text class="b6bS" x="44" y="140">one row per order</text>
+        <text class="b6bH" x="44" y="200">LATE FEED</text>
+        <text class="b6bL" x="44" y="220">o102 · delivered 2017-02-20</text>
+        <text class="b6bS" x="44" y="240">42 days after purchase</text>
+        <text class="b6bS" x="315" y="174" text-anchor="middle">load</text>
+
+        <text class="b6bR" x="396" y="70">APPEND INTO A TABLE WITH NO KEY</text>
+        <text class="b6bL" x="406" y="97">o102 · from history</text>
+        <text class="b6bL" x="406" y="125">o103 · from history</text>
+        <text class="b6bL" x="406" y="153">o102 · from the late feed</text>
+        <text class="b6bV" x="630" y="100">8,981</text>
+        <text class="b6bS" x="630" y="120">rows on the bench, not 8,614</text>
+        <text class="b6bR" x="630" y="146">367 keys appear twice</text>
+
+        <text class="b6bH" x="396" y="216">MERGE ON THE ORDER KEY</text>
+        <text class="b6bL" x="406" y="243">o102 · delivery updated</text>
+        <text class="b6bL" x="406" y="271">o103 · from history</text>
+        <text class="b6bV" x="630" y="246">8,614</text>
+        <text class="b6bS" x="630" y="266">rows, one per order</text>
+        <text class="b6bB" x="630" y="292">0 keys twice</text>
+
+        <text class="b6bN" x="30" y="342">Orders o102 and o103 are constructed; the 8,981, 8,614 and 367 are the bench's late-row drift, planted alone.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the late feed is not wrong; appending it is</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why the feed exists, and why legacy never doubled<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A late-row feed is ordinary plumbing: the nightly load picks up orders as they are bought, and a second feed picks up the ones whose delivery came in long after, so the delivery date and anything that depends on it are filled in. The legacy load merged that feed on the order key, quietly, years ago. Nobody wrote the rule down because nothing ever broke.</p>
+        <p>The new load was written from the job's description: "load the late feed into orders". Written as an append, it adds every late order a second time. On the bench, 367 orders were delivered more than 30 days after purchase; each one comes back, so the table holds 8,981 rows instead of 8,614, and item value moves from BRL 1,197,842.24 to BRL 1,262,425.64. Every job reports success. The rule belongs in runbook section 5 as SQL, not as a sentence: <strong>the late feed merges on the order key; it never appends</strong>.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>A key is what makes the merge possible<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A merge needs to know that two rows are the same order, and only a key says so. Give the target a primary key and two things change. A plain insert of a duplicate stops being silent: DuckDB refuses it with a constraint error naming the key, as the build-along shows. And the merge becomes one statement, <code>INSERT ... ON CONFLICT (order_id) DO UPDATE</code>, which updates the row that is already there instead of adding another.</p>
+        <p>Not every engine enforces a declared primary key, so the refusal you see in DuckDB may not happen on your target; check what it does before you rely on it. Where keys are not enforced, the merge statement your engine offers is the rule, and the duplicated-key check in Part 3 is the only thing that will notice when someone writes an append instead.</p>
+        <div class="prompt-box bad"><span class="label">Appends: duplicates every late order</span>INSERT INTO orders SELECT * FROM late_feed;</div>
+        <div class="prompt-box good"><span class="label">★ Merges on the key: one row per order</span>INSERT INTO orders SELECT * FROM late_feed
+ON CONFLICT (order_id) DO UPDATE
+SET delivered_on = EXCLUDED.delivered_on, item_value = EXCLUDED.item_value;</div>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Validation needs the key too.</strong> AWS's Database Migration Service documentation says its validation "compares each row in the source with its corresponding row at the target", and that "Data validation requires that the table has a primary key or unique index." That is a vendor claim about one tool, and it describes a general fact: without a key, neither the load nor the check can tell a late order from a new one. Decide the key before the reload, not after the first duplicate.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the check after each window</span>
+      <h2>Reload, then prove it</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The late-row drift is the loudest of the seven on the bench: every rung of the ladder catches it. But only one rung tells you which rows to fix, and that is the one to put first in the gate after each window.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four hand-drawn check boxes showing what each rung of the bench reports when the late rows are appended twice, with the signed bar. Rung 0, row counts: 8,614 against 8,981, caught. Rung 1, keys: 367 duplicated keys, by name. Rung 2, daily aggregates: orders differ on 205 of 598 days. Rung 3, the monthly bar: orders fail in 21 of 21 months. An arrow runs from the key check to a box saying the key check hands you the fix list: which orders, how many copies, then rerun that window.">
+        <defs>
+          <filter id="b6cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b6cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b6cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b6cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b6cV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b6cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b6cH" x="30" y="26">WHAT EACH CHECK SAYS ABOUT THE LATE ROWS</text>
+        <text class="b6cS" x="380" y="26">bench · late-row drift planted alone · signed bar</text>
+
+        <g filter="url(#b6cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="190" height="100" rx="10" transform="rotate(-0.6 125 100)" fill="#FFFFFF"/>
+          <rect x="240" y="50" width="190" height="100" rx="10" transform="rotate(0.5 335 100)" fill="#9CC3E6"/>
+          <rect x="450" y="50" width="190" height="100" rx="10" transform="rotate(-0.5 545 100)" fill="#FFFFFF"/>
+          <rect x="660" y="50" width="190" height="100" rx="10" transform="rotate(0.6 755 100)" fill="#FFFFFF"/>
+          <path d="M335 154 L335 186" marker-end="url(#b6cAr)"/>
+          <rect x="240" y="190" width="420" height="60" rx="10" transform="rotate(-0.3 450 220)" fill="#F8F2E6"/>
+        </g>
+
+        <text class="b6cH" x="44" y="74">RUNG 0 · ROW COUNTS</text>
+        <text class="b6cV" x="44" y="104">8,614 vs 8,981</text>
+        <text class="b6cS" x="44" y="128">caught: the count moved</text>
+        <text class="b6cH" x="254" y="74">RUNG 1 · KEYS</text>
+        <text class="b6cV" x="254" y="104">367</text>
+        <text class="b6cL" x="254" y="128">duplicated keys, by name</text>
+        <text class="b6cH" x="464" y="74">RUNG 2 · DAILY</text>
+        <text class="b6cV" x="464" y="104">205 of 598</text>
+        <text class="b6cS" x="464" y="128">days differ on orders</text>
+        <text class="b6cH" x="674" y="74">RUNG 3 · MONTHLY BAR</text>
+        <text class="b6cV" x="674" y="104">21 of 21</text>
+        <text class="b6cS" x="674" y="128">months fail on orders</text>
+
+        <text class="b6cH" x="254" y="214">THE KEY CHECK HANDS YOU THE FIX LIST</text>
+        <text class="b6cS" x="254" y="234">which orders and how many copies, then rerun that window</text>
+
+        <text class="b6cN" x="30" y="272">A count says something is wrong. Only the key check says which rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - every rung sees the late rows; the key check is the one that names them</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The gate after each window<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Run the suite you already built, scoped to the window just loaded: counts, then keys both ways with duplicates, then the monthly bar. On the bench, with the late rows appended, rung 0 already fails (8,614 against 8,981) and rung 1 fails with 367 duplicated keys, exactly the difference the count saw, now with names. The daily view fails on 205 of 598 days and the monthly bar fails orders in all 21 months.</p>
+        <p>Order the gate so the first failure is the most useful one. A count tells you the window is wrong; the duplicated-key list tells you which orders, which is the input to the fix. The aggregates come next because they catch what keys cannot: a value that changed while every key stayed put, which is what sessions 3 and 5 were about.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Is a row check enough, or do you need aggregates too?<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Practitioners disagree, and the tools reflect it. Google's open-source Data Validation Tool offers both column validation (count, sum, avg, min, max, stddev, group by) and row validation with SHA256 row hashing. AWS DMS goes row by row and needs a key to do it. Both are vendor claims about their own tools. A row hash catches a changed value on a single order that an aggregate could average away; an aggregate is cheaper and speaks the grain the business signed.</p>
+        <p>Neither is "enough" in general. The answer depends on what a missed row costs, which is a business call: a refund ledger and a marketing dashboard deserve different gates. Write down which one this reload uses per table, and who agreed to it, in runbook section 5.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Rows that exist on one side only.</strong> In GitHub's 21 October 2018 incident, connectivity was "restored in 43 seconds", but the database then "contained writes that were not present in the other data center". The team chose to "prioritize data integrity over site usability and time to recovery", and ran degraded for 24 hours and 11 minutes while it reconciled. A reload is calmer than an outage, and the lesson carries: reconciling rows by key is slow work, so the gate that finds duplicates should run after every window, not once at the end.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Two windows, one late feed, two load rules</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You need DuckDB: <code>pip install duckdb</code> and a Python prompt, or the DuckDB command-line shell. Paste the setup once, then run each step in order in the same session. Every output below is what DuckDB printed on this exact data. Constructed Serai Commerce example: eight orders in two monthly windows, two of them delivered more than 30 days after purchase.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn build-along plan. legacy_orders holds 8 constructed orders, 4 in 2017-01 and 4 in 2017-02; late_feed holds o102 and o106. Both windows and the late feed load into two targets. new_append has no key: the late feed is accepted silently, leaving 10 rows and 8 keys, and the parity run fails both windows. new_merge has a primary key on order_id: a plain insert of the late feed fails with a duplicate-key constraint error on o102, and INSERT ON CONFLICT DO UPDATE merges it, leaving 8 rows and 8 keys, and the parity run passes both windows.">
+        <defs>
+          <filter id="b6dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="73" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="b6dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .b6dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .b6dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .b6dB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .b6dV { font: 800 16px Inter, sans-serif; fill: #46330F; }
+          .b6dR { font: 800 11px Inter, sans-serif; fill: #991B1B; }
+          .b6dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="b6dH" x="30" y="26">SAME WINDOWS, SAME LATE FEED, TWO TARGETS</text>
+        <text class="b6dS" x="370" y="26">Constructed Serai Commerce example · 8 orders, 2 windows, 2 late rows</text>
+
+        <g filter="url(#b6dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="60" width="200" height="160" rx="10" transform="rotate(-0.6 130 140)" fill="#F8F2E6"/>
+          <rect x="300" y="46" width="550" height="96" rx="12" transform="rotate(0.3 575 94)" fill="#FEF2F2" stroke="#991B1B"/>
+          <rect x="300" y="162" width="550" height="110" rx="12" transform="rotate(-0.3 575 217)" fill="#9CC3E6"/>
+          <path d="M234 110 L296 92" marker-end="url(#b6dAr)"/>
+          <path d="M234 170 L296 202" marker-end="url(#b6dAr)"/>
+        </g>
+
+        <text class="b6dH" x="44" y="86">legacy_orders</text>
+        <text class="b6dS" x="44" y="106">8 orders</text>
+        <text class="b6dL" x="44" y="130">2017-01: 4</text>
+        <text class="b6dL" x="44" y="150">2017-02: 4</text>
+        <text class="b6dH" x="44" y="182">late_feed</text>
+        <text class="b6dL" x="44" y="202">o102, o106</text>
+
+        <text class="b6dR" x="316" y="70">new_append · no key</text>
+        <text class="b6dL" x="316" y="92">INSERT the late feed: accepted silently</text>
+        <text class="b6dV" x="316" y="126">10 rows · 8 keys</text>
+        <text class="b6dR" x="600" y="126">parity: fail in both windows</text>
+
+        <text class="b6dH" x="316" y="186">new_merge · PRIMARY KEY (order_id)</text>
+        <text class="b6dL" x="316" y="208">plain INSERT: constraint error, duplicate key o102</text>
+        <text class="b6dL" x="316" y="228">INSERT ... ON CONFLICT DO UPDATE: merged</text>
+        <text class="b6dV" x="316" y="258">8 rows · 8 keys</text>
+        <text class="b6dB" x="600" y="258">parity: pass in both windows</text>
+
+        <text class="b6dN" x="30" y="294">Every number here is what DuckDB printed on the build-along below.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same data and the same windows, and the load rule alone decides the verdict</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Load the constructed orders and two empty targets.</strong> <code>legacy_orders</code> is the source of truth, one row per order. <code>late_feed</code> is every order delivered more than 30 days after purchase, which the feed will send again. <code>new_append</code> has no key; <code>new_merge</code> has a primary key on <code>order_id</code>.</p>
+        <div class="prompt-box good"><span class="label">★ Setup (paste once)</span>CREATE OR REPLACE TABLE legacy_orders AS
+SELECT order_id, CAST(purchased_on AS DATE) AS purchased_on,
+       CAST(delivered_on AS DATE) AS delivered_on,
+       CAST(item_value AS DECIMAL(10,2)) AS item_value
+FROM (VALUES
+ ('o101','2017-01-05','2017-01-12',129.90),
+ ('o102','2017-01-09','2017-02-20', 59.00),
+ ('o103','2017-01-17','2017-01-25',210.50),
+ ('o104','2017-01-28','2017-02-03', 45.00),
+ ('o105','2017-02-02','2017-02-10', 88.80),
+ ('o106','2017-02-11','2017-03-30',150.00),
+ ('o107','2017-02-19','2017-02-27', 32.40),
+ ('o108','2017-02-25','2017-03-06', 76.00)
+) t(order_id, purchased_on, delivered_on, item_value);
+
+CREATE OR REPLACE TABLE late_feed AS
+SELECT * FROM legacy_orders WHERE delivered_on - purchased_on &gt; 30;
+
+CREATE OR REPLACE TABLE new_append (order_id VARCHAR, purchased_on DATE,
+  delivered_on DATE, item_value DECIMAL(10,2));
+CREATE OR REPLACE TABLE new_merge (order_id VARCHAR PRIMARY KEY, purchased_on DATE,
+  delivered_on DATE, item_value DECIMAL(10,2));</div>
+      </div>
+      <div class="step">
+        <p><strong>Q1, what the late feed holds.</strong> Two orders, each already in legacy once. The same rule on the bench selects 367 of 8,614 orders.</p>
+        <div class="prompt-box good"><span class="label">★ Q1 · the late feed</span>SELECT order_id, purchased_on, delivered_on,
+       delivered_on - purchased_on AS days
+FROM late_feed ORDER BY order_id;
+-- o102 | 2017-01-09 | 2017-02-20 | 42
+-- o106 | 2017-02-11 | 2017-03-30 | 47</div>
+      </div>
+      <div class="step">
+        <p><strong>Q2, reload the first window into both targets.</strong> One month, by purchase date. The same rows go into both tables.</p>
+        <div class="prompt-box good"><span class="label">★ Q2 · window 2017-01</span>INSERT INTO new_append SELECT * FROM legacy_orders
+WHERE date_trunc('month', purchased_on) = DATE '2017-01-01';
+INSERT INTO new_merge SELECT * FROM legacy_orders
+WHERE date_trunc('month', purchased_on) = DATE '2017-01-01';</div>
+      </div>
+      <div class="step">
+        <p><strong>Q3, the parity run for each window.</strong> Rows, duplicated keys and item value per month, legacy against new, with a verdict. A month not yet loaded says so instead of failing. This is the gate: January passes, so February may start.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 · window parity on new_append</span>WITH l AS (
+  SELECT date_trunc('month', purchased_on) AS win,
+         count(*) AS legacy_rows, sum(item_value) AS legacy_value
+  FROM legacy_orders GROUP BY win),
+n AS (
+  SELECT date_trunc('month', purchased_on) AS win,
+         count(*) AS new_rows,
+         count(*) - count(DISTINCT order_id) AS dup_keys,
+         sum(item_value) AS new_value
+  FROM new_append GROUP BY win)
+SELECT strftime(win, '%Y-%m') AS month, legacy_rows, new_rows, dup_keys,
+       legacy_value, new_value,
+       CASE WHEN new_rows IS NULL THEN 'not loaded'
+            WHEN legacy_rows = new_rows AND dup_keys = 0
+             AND legacy_value = new_value THEN 'pass'
+            ELSE 'fail' END AS verdict
+FROM l FULL OUTER JOIN n USING (win)
+ORDER BY month;
+-- 2017-01 | 4 | 4    | 0    | 444.40 | 444.40 | pass
+-- 2017-02 | 4 | NULL | NULL | 347.20 | NULL   | not loaded</div>
+      </div>
+      <div class="step">
+        <p><strong>Reload the second window and run Q3 again.</strong> Repeat Q2 with <code>DATE '2017-02-01'</code> in both statements, then rerun Q3 unchanged. Both windows pass on <code>new_append</code>, and the same holds on <code>new_merge</code>. So far the two rules are indistinguishable.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 after window 2017-02</span>-- 2017-01 | 4 | 4 | 0 | 444.40 | 444.40 | pass
+-- 2017-02 | 4 | 4 | 0 | 347.20 | 347.20 | pass</div>
+      </div>
+      <div class="step">
+        <p><strong>Q4, the late feed arrives.</strong> Append it to the keyless table and count: ten rows, eight keys, and no error. Then try the same plain insert on the keyed table, and finally the merge.</p>
+        <div class="prompt-box good"><span class="label">★ Q4a · append into new_append</span>INSERT INTO new_append SELECT * FROM late_feed;
+SELECT count(*) AS rows, count(DISTINCT order_id) AS keys FROM new_append;
+-- 10 | 8</div>
+        <div class="prompt-box bad"><span class="label">Q4b · plain insert into new_merge: refused</span>INSERT INTO new_merge SELECT * FROM late_feed;
+-- Constraint Error: Duplicate key "order_id: o102" violates primary key constraint.</div>
+        <div class="prompt-box good"><span class="label">★ Q4c · merge into new_merge</span>INSERT INTO new_merge SELECT * FROM late_feed
+ON CONFLICT (order_id) DO UPDATE
+SET delivered_on = EXCLUDED.delivered_on, item_value = EXCLUDED.item_value;
+SELECT count(*) AS rows, count(DISTINCT order_id) AS keys FROM new_merge;
+-- 8 | 8</div>
+      </div>
+      <div class="step">
+        <p><strong>Rerun Q3 on both targets.</strong> As written it checks <code>new_append</code>; change <code>FROM new_append</code> to <code>FROM new_merge</code> for the second run. The appended table fails both windows, one extra row and one duplicated key each; the merged table passes both.</p>
+        <div class="prompt-box good"><span class="label">★ Q3 after the late feed</span>-- new_append
+-- 2017-01 | 4 | 5 | 1 | 444.40 | 503.40 | fail
+-- 2017-02 | 4 | 5 | 1 | 347.20 | 497.20 | fail
+-- new_merge
+-- 2017-01 | 4 | 4 | 0 | 444.40 | 444.40 | pass
+-- 2017-02 | 4 | 4 | 0 | 347.20 | 347.20 | pass</div>
+      </div>
+      <div class="step">
+        <p><strong>Q5, the fix list.</strong> The duplicated keys by name, with how many copies. On a real reload this is what the window's owner works from; on the bench it is 367 keys long.</p>
+        <div class="prompt-box good"><span class="label">★ Q5 · duplicated keys on new_append</span>SELECT order_id, count(*) AS copies
+FROM new_append
+GROUP BY order_id HAVING count(*) &gt; 1
+ORDER BY order_id;
+-- o102 | 2
+-- o106 | 2</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Notice when the parity run went red.</strong> Both windows passed right after the reload and failed only after the late feed ran. On a real migration the late feed keeps running for the whole reload and the parallel run, so a window that passed on Monday can fail on Thursday. Run the gate again after every late-feed load, not only after the window's own load. Builder session 7 turns that into a nightly diff.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 7</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li>List every feed that writes into one of your own fact tables besides the main nightly load: late rows, corrections, replays. For each, write whether it appends or merges today, and on which key.</li>
+      <li>Pick the window for your own reload and write one sentence on why it matches the grain your parity bar is signed at.</li>
+      <li>Find out whether your target warehouse enforces a primary key or only records it. Write the merge statement it offers for the late-row rule.</li>
+      <li>On tonight's data, rerun Q2 for window 2017-01 a second time on <code>new_append</code> and run Q3. Write down what the gate says, then read <a href="https://phoebefu6.github.io/learn-data-reliability-with-phoebe/courses/b5-backfills.html">the Data Reliability session on backfills</a> for how to make a window safe to rerun.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Builder session 6 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · On the bench the late feed is appended instead of merged. How many rows does the new warehouse hold?</p>
+      <button class="qopt" type="button">A · 8,614: the load reports success, so the count is right</button>
+      <button class="qopt" type="button">B · 8,981: the 367 late orders are stored a second time</button>
+      <button class="qopt" type="button">C · Fewer than 8,614: the late orders replace their history rows</button>
+      <button class="qopt" type="button">D · 9,843: one row per order line</button>
+      <p class="qwhy">Appending adds every late order again, so 8,614 plus 367 makes 8,981. Merging on the order key keeps 8,614. Every job reports success either way, which is why the rule has to be written as SQL.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · Why reload Serai's history in monthly windows rather than all at once?</p>
+      <button class="qopt" type="button">A · The new warehouse cannot hold more than a month of data</button>
+      <button class="qopt" type="button">B · Monthly windows make the late feed unnecessary</button>
+      <button class="qopt" type="button">C · A month is the industry standard window size</button>
+      <button class="qopt" type="button">D · Each window ends in the monthly check Serai signed, so a failure names one month and only that month is redone</button>
+      <p class="qwhy">The window follows the grain of the signed bar. A failure then points at one month, every earlier window is already proved, and the redo is one month of load instead of all 21.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Every rung of the ladder catches the late rows. Which check should come first in the gate after a window, and why?</p>
+      <button class="qopt" type="button">A · Counts, then the duplicated-key check: the count says the window is wrong, and the key check names the 367 orders to fix</button>
+      <button class="qopt" type="button">B · The monthly bar alone: it fails all 21 months, so nothing else is needed</button>
+      <button class="qopt" type="button">C · The daily check alone: 205 of 598 days is the most precise answer</button>
+      <button class="qopt" type="button">D · None: a load that reports success needs no gate</button>
+      <p class="qwhy">All of them see the drift; only the key check gives you the fix list. The aggregates still run after it, because they catch values that change while every key stays put.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Reload in windows, each gated by a parity run</span><span class="note">Taught as a method; every output run in DuckDB on the constructed pair above</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The late-row drift: 367 orders, 8,614 against 8,981</span><span class="note">From the parity bench in Builder session 10, the late-row drift planted alone</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Validation per iteration and the need for a key</span><span class="note">Google Cloud 2019 migration blog and migration docs, AWS DMS validation docs, read at source as vendor claims</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Row hashing against aggregates</span><span class="note">Google Data Validation Tool README, read at source; re-verify before delivery; taught as contested</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Reconciling rows under pressure</span><span class="note">GitHub's 21 October 2018 post-incident analysis, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Backfill mechanics and idempotency</span><span class="note">Owned by the Data Reliability and Data Orchestration courses; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 6 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Window at the bar's grain</b><span>Serai's bar is monthly, so 21 monthly windows in the sample.</span></div>
+      <div class="cheat-item"><b>Gate every window</b><span>Counts, keys, the monthly bar; the next window waits for a pass.</span></div>
+      <div class="cheat-item"><b>Merge, never append</b><span>The late feed merges on the order key: 8,614 rows, not 8,981.</span></div>
+      <div class="cheat-item"><b>Decide the key first</b><span>No key, no merge and no row-level check.</span></div>
+      <div class="cheat-item"><b>Keys name the fix</b><span>GROUP BY the key HAVING count(*) &gt; 1 is the fix list.</span></div>
+      <div class="cheat-item"><b>Recheck after late loads</b><span>A window that passed can fail once the late feed runs.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>History is in and every window passed. Session 7 keeps both warehouses running side by side, with legacy still the system of record, and turns tonight's gate into a nightly diff that says whether you are clean, and since when.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Builder session 6 of 10 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b5-aggregate-parity.html">← Prev: Aggregate parity at the grain people read</a> &nbsp;·&nbsp; <a href="b7-parallel-run.html">Next: Parallel run →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

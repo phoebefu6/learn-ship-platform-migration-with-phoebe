@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 6 of 6. Cutover is not the end of a warehouse move. A fixed time-zone offset moves 72 orders across midnight and changes 74 daily numbers while every month still matches. The week after needs a watch that ends on a written condition, a dated decommission log, and the switch-off that finally closes the cost case.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The week after and switching off - learn ship platform migration with phoebe">
+<meta property="og:description" content="Leader session 6 of 6. The drift watch, the decommission log, and why the saving starts only when the old warehouse is off.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/a6-the-week-after-and-switching-off.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The week after and switching off - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Leader session 6 of 6. 74 daily numbers change and 0 months do: watch daily, end the watch on a written rule, then switch the old warehouse off.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 6 · The week after and switching off - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Leader session 6 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Leader session 6 of 6</div>
+    <h1>The week after and <span class="accent">switching off</span></h1>
+    <p class="sub">Readers are on the new warehouse, the cutover went to plan, and the legacy stack sits read-only in case you need it back. This is the stretch where migrations quietly go wrong: a drift that every monthly number hides, late rows still arriving for orders placed before the switch, a cached report still serving the old figures. Tonight you write Serai Commerce's watch list, decide in writing when the watch ends, and keep the decommission log that takes the old warehouse from read-only to off. The saving the move promised starts on that last line, not on cutover day.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Advanced</span>
+      <span class="chip audience">Heads of data and platform owners</span>
+      <span class="chip audience">Whoever signs the old system off</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:5">3-22 · Watch, decommission, cost</span>
+      <span class="a3" style="flex:4">22-42 · Build-along: watch list and log</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 defined done: every number the business reads is the same, or explained. Sessions 2 to 5 took Serai from inventory to scope, to a signed parity bar, to cutover day with a rollback written while everyone was calm. Tonight is the last section of the runbook, the part most plans leave as one line saying "decommission legacy". The running example is a <strong>Constructed Serai Commerce example</strong> on 8,614 real Olist orders, and the drift numbers below are the ones the parity bench in <a href="b10-the-parity-bench.html">Builder session 10</a> prints. On the builder side, Builder session 9 runs the same week-after checks in SQL.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Two pages for the runbook. A watch list: what you check after cutover, at which grain, what raises an alarm, and the written condition that ends each watch. And a decommission log: five dated steps from read-only to switched off, each with an owner, the evidence that made it safe, and how to undo it. Plus the sentence that closes the cost case: "we stop paying for two systems on the day the last line of the log is signed".</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the drift watch after cutover</span>
+      <h2>The watch, and when it ends</h2>
+      <span class="tag concept">7 min live</span>
+    </div>
+    <p class="lede">Cutover moved the readers. It did not prove the readers will see the right numbers next week. Some drifts only show at a grain nobody compared closely, some only arrive after the switch, and some sit in places the parity suite never reads. The watch is a short list of exactly those, checked on purpose, with a written rule for when you stop.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn mechanism and two views of the same drift. Top: an order placed at 00:30 local summer time, offset minus 2 hours, is stored as 02:30 UTC; the report layer subtracts a fixed 3 hours and gets 23:30 the day before; 72 orders move this way. Bottom: the daily view of 598 days, where 74 days differ, all inside the two summer-time windows 2016-10-16 to 2017-02-18 and 2017-10-15 to 2018-02-17; and the monthly view of 21 months, where 0 months differ because no moved order crosses a month end.">
+        <defs>
+          <filter id="a6aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="61" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a6aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a6aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a6aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a6aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a6aB { font: 800 12px Inter, sans-serif; fill: #173E66; }
+          .a6aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a6aH" x="30" y="26">ONE DRIFT, READ DAILY AND MONTHLY</text>
+        <text class="a6aS" x="300" y="26">fixed -03:00 offset in the report layer · measured on the bench</text>
+
+        <g filter="url(#a6aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="250" height="84" rx="10" transform="rotate(-0.5 155 86)" fill="#FFFFFF"/>
+          <rect x="320" y="44" width="250" height="84" rx="10" transform="rotate(0.4 445 86)" fill="#FFFFFF"/>
+          <rect x="610" y="44" width="240" height="84" rx="10" transform="rotate(-0.4 730 86)" fill="#9CC3E6"/>
+          <path d="M284 86 L314 86" marker-end="url(#a6aAr)"/>
+          <path d="M574 86 L604 86" marker-end="url(#a6aAr)"/>
+          <rect x="60" y="180" width="760" height="40" rx="6" transform="rotate(-0.2 440 200)" fill="#FFFFFF"/>
+          <rect x="118" y="182" width="159" height="36" rx="4" fill="#9CC3E6"/>
+          <rect x="581" y="182" width="159" height="36" rx="4" fill="#9CC3E6"/>
+          <rect x="60" y="300" width="32" height="36" rx="4" transform="rotate(-0.6 76 318)" fill="#FFFFFF"/>
+          <rect x="96" y="300" width="32" height="36" rx="4" transform="rotate(0.5 112 318)" fill="#FFFFFF"/>
+          <rect x="132" y="300" width="32" height="36" rx="4" transform="rotate(-0.4 148 318)" fill="#FFFFFF"/>
+          <rect x="169" y="300" width="32" height="36" rx="4" transform="rotate(0.7 185 318)" fill="#FFFFFF"/>
+          <rect x="205" y="300" width="32" height="36" rx="4" transform="rotate(-0.5 221 318)" fill="#FFFFFF"/>
+          <rect x="241" y="300" width="32" height="36" rx="4" transform="rotate(-0.6 257 318)" fill="#FFFFFF"/>
+          <rect x="277" y="300" width="32" height="36" rx="4" transform="rotate(0.5 293 318)" fill="#FFFFFF"/>
+          <rect x="313" y="300" width="32" height="36" rx="4" transform="rotate(-0.4 329 318)" fill="#FFFFFF"/>
+          <rect x="350" y="300" width="32" height="36" rx="4" transform="rotate(0.7 366 318)" fill="#FFFFFF"/>
+          <rect x="386" y="300" width="32" height="36" rx="4" transform="rotate(-0.5 402 318)" fill="#FFFFFF"/>
+          <rect x="422" y="300" width="32" height="36" rx="4" transform="rotate(-0.6 438 318)" fill="#FFFFFF"/>
+          <rect x="458" y="300" width="32" height="36" rx="4" transform="rotate(0.5 474 318)" fill="#FFFFFF"/>
+          <rect x="494" y="300" width="32" height="36" rx="4" transform="rotate(-0.4 510 318)" fill="#FFFFFF"/>
+          <rect x="530" y="300" width="32" height="36" rx="4" transform="rotate(0.7 546 318)" fill="#FFFFFF"/>
+          <rect x="567" y="300" width="32" height="36" rx="4" transform="rotate(-0.5 583 318)" fill="#FFFFFF"/>
+          <rect x="603" y="300" width="32" height="36" rx="4" transform="rotate(-0.6 619 318)" fill="#FFFFFF"/>
+          <rect x="639" y="300" width="32" height="36" rx="4" transform="rotate(0.5 655 318)" fill="#FFFFFF"/>
+          <rect x="675" y="300" width="32" height="36" rx="4" transform="rotate(-0.4 691 318)" fill="#FFFFFF"/>
+          <rect x="711" y="300" width="32" height="36" rx="4" transform="rotate(0.7 727 318)" fill="#FFFFFF"/>
+          <rect x="748" y="300" width="32" height="36" rx="4" transform="rotate(-0.5 764 318)" fill="#FFFFFF"/>
+          <rect x="784" y="300" width="32" height="36" rx="4" transform="rotate(-0.6 800 318)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="a6aH" x="44" y="68">ORDER PLACED</text>
+        <text class="a6aL" x="44" y="88">00:30 local, summer time</text>
+        <text class="a6aS" x="44" y="106">offset -02:00, so stored as</text>
+        <text class="a6aS" x="44" y="120">02:30 UTC</text>
+        <text class="a6aH" x="334" y="68">REPORT LAYER</text>
+        <text class="a6aL" x="334" y="88">UTC minus a fixed 3 hours</text>
+        <text class="a6aS" x="334" y="106">02:30 - 3h = 23:30</text>
+        <text class="a6aS" x="334" y="120">no daylight saving rule</text>
+        <text class="a6aH" x="624" y="68">DAY IT LANDS ON</text>
+        <text class="a6aL" x="624" y="88">23:30 the day before</text>
+        <text class="a6aB" x="624" y="108">72 orders moved</text>
+
+        <text class="a6aH" x="30" y="166">DAILY VIEW · 598 days</text>
+        <text class="a6aL" x="126" y="198">2016-10-16 to</text>
+        <text class="a6aL" x="126" y="212">2017-02-18</text>
+        <text class="a6aL" x="589" y="198">2017-10-15 to</text>
+        <text class="a6aL" x="589" y="212">2018-02-17</text>
+        <text class="a6aB" x="60" y="244">74 of 598 days differ, all inside the two summer-time windows</text>
+
+        <text class="a6aH" x="30" y="288">MONTHLY VIEW · 21 months</text>
+        <text class="a6aB" x="60" y="358">0 of 21 months differ: no moved order crosses a month end in this sample</text>
+
+        <text class="a6aN" x="30" y="388">The monthly bar is right about every month and blind to 74 days. The watch reads daily.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same 72 orders change 74 days and no month, so a watch at the board's grain sees nothing</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What Serai watches, and at which grain<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Watch item</th><th>Grain</th><th>Why it can still be wrong after cutover</th><th>What the bench measured</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Orders near local midnight</strong></td><td>Daily</td><td>A fixed offset is right for most of the year and wrong in summer time, and the monthly bar cannot see it</td><td>72 of 595 near-midnight orders on another day; 74 days differ, 0 months</td></tr>
+            <tr><td><strong>The late-row feed</strong></td><td>Nightly, by key</td><td>Orders placed before cutover keep coming back on the late feed afterwards, now into the new warehouse</td><td>367 orders delivered more than 30 days after purchase; appended twice, they make 8,981 rows from 8,614</td></tr>
+            <tr><td><strong>Caches and extracts</strong></td><td>Each one</td><td>A report cache or a scheduled extract can keep serving legacy numbers to a reader who has "moved"</td><td>Not measured: list them by name and confirm what each reads</td></tr>
+            <tr><td><strong>The first month-end close</strong></td><td>Monthly</td><td>The first time finance reads the new warehouse under deadline</td><td>Serai's signed bar from session 4, unchanged</td></tr>
+          </tbody>
+        </table>
+        <p>The rule behind the list: watch where the parity suite was weakest, not where it was strongest. Serai's monthly bar caught everything except the time-zone drift, so the watch reads that one daily. Your list will be different, and it should be just as short.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A watch ends on a written condition, not a feeling<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A watch with no end either fades away unannounced or runs forever and gets ignored. Write the end into the runbook before cutover: what has to be true, for how long, and who says so. Serai's condition, a constructed policy: the rung-4 suite clean on 30 consecutive nights, the late feed's duplicated-key count at zero every night of that run, the first month-end close signed inside the bar, and every cache and extract on the list confirmed as reading the new warehouse.</p>
+        <p>How long is long enough is the same open question as the length of a parallel run. No source gives a number; Serai's 30 nights is constructed, and a business with a quarterly close might reasonably wait for that close. What is not open is that the number is written down, with an owner, before anyone is tired of watching.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The watch is a comparison, not a monitor<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Everything on Serai's list compares two things: the new warehouse against legacy while legacy is still loaded and read-only, or against a rule that encodes what legacy would have said, like the edge check on orders near midnight. That is the side this session owns. Designing lasting monitors on single tables in the new warehouse, freshness and volume and schema, with alert routing and on-call, belongs to the <a href="https://phoebefu6.github.io/learn-data-observability-with-phoebe/">Learn Data Observability course</a>. When the watch ends, the checks worth keeping become monitors there; the comparison against legacy stops, because legacy is about to be switched off.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A time-zone rule that changed under everyone's feet.</strong> The IANA time zone database's 2019b release records that "Brazil no longer observes DST". Code written since then can hard-code a -03:00 offset and pass every test on recent data, because recent data has no summer time. Only history from before 2019 shows the difference, and a migration reloads exactly that history. Serai's 72 orders all come from the summers of 2016-17 and 2017-18.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the decommission log</span>
+      <h2>Switching off, one dated step at a time</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Switching off a warehouse is not one action. It is five, in an order where each step is harder to undo than the one before. The decommission log records each step with a date, an owner, the evidence that made it safe, and how to undo it, so that nobody has to remember in a year why the old system disappeared.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn steps from left to right. One, read-only: writes revoked at cutover, undo in minutes. Two, rollback ends: signed at the first month-end close on new, no rollback after this. Three, snapshot: a final copy with totals, archived, undo from the archive. Four, revoke: every read grant removed, whoever shouts was a missed reader, undo in minutes. Five, switch off: jobs, compute and connections, undo from the archive only. Under all five, the log records one line per step: date, owner, evidence it is safe, how to undo, who signed.">
+        <defs>
+          <filter id="a6bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a6bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a6bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a6bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a6bA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a6bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a6bH" x="30" y="26">THE DECOMMISSION LOG, IN ORDER</text>
+        <text class="a6bS" x="290" y="26">each step dated, owned, and harder to undo than the one before</text>
+
+        <g filter="url(#a6bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="148" height="104" rx="10" transform="rotate(-0.6 104 102)" fill="#FFFFFF"/>
+          <rect x="198" y="50" width="148" height="104" rx="10" transform="rotate(0.5 272 102)" fill="#9CC3E6"/>
+          <rect x="366" y="50" width="148" height="104" rx="10" transform="rotate(-0.4 440 102)" fill="#FFFFFF"/>
+          <rect x="534" y="50" width="148" height="104" rx="10" transform="rotate(0.5 608 102)" fill="#FFFFFF"/>
+          <rect x="702" y="50" width="148" height="104" rx="10" transform="rotate(-0.5 776 102)" fill="#FFFFFF"/>
+          <path d="M180 102 L195 102" marker-end="url(#a6bAr)"/>
+          <path d="M348 102 L363 102" marker-end="url(#a6bAr)"/>
+          <path d="M516 102 L531 102" marker-end="url(#a6bAr)"/>
+          <path d="M684 102 L699 102" marker-end="url(#a6bAr)"/>
+          <path d="M104 158 L104 180" stroke-dasharray="3 4"/>
+          <path d="M272 158 L272 180" stroke-dasharray="3 4"/>
+          <path d="M440 158 L440 180" stroke-dasharray="3 4"/>
+          <path d="M608 158 L608 180" stroke-dasharray="3 4"/>
+          <path d="M776 158 L776 180" stroke-dasharray="3 4"/>
+          <rect x="30" y="182" width="820" height="54" rx="10" transform="rotate(-0.2 440 209)" fill="#F8F2E6"/>
+          <path d="M30 256 L846 256" marker-end="url(#a6bAr)"/>
+        </g>
+
+        <text class="a6bH" x="42" y="74">1 · READ-ONLY</text>
+        <text class="a6bS" x="42" y="94">writes revoked</text>
+        <text class="a6bS" x="42" y="110">at cutover</text>
+        <text class="a6bA" x="42" y="140">undo: minutes</text>
+
+        <text class="a6bH" x="210" y="74">2 · ROLLBACK ENDS</text>
+        <text class="a6bS" x="210" y="94" style="fill:#231C12">signed at the first</text>
+        <text class="a6bS" x="210" y="110" style="fill:#231C12">month-end close</text>
+        <text class="a6bA" x="210" y="140" style="fill:#173E66">no rollback after</text>
+
+        <text class="a6bH" x="378" y="74">3 · SNAPSHOT</text>
+        <text class="a6bS" x="378" y="94">final copy and</text>
+        <text class="a6bS" x="378" y="110">totals, archived</text>
+        <text class="a6bA" x="378" y="140">undo: from archive</text>
+
+        <text class="a6bH" x="546" y="74">4 · REVOKE</text>
+        <text class="a6bS" x="546" y="94">every read grant;</text>
+        <text class="a6bS" x="546" y="110">who shouts?</text>
+        <text class="a6bA" x="546" y="140">undo: minutes</text>
+
+        <text class="a6bH" x="714" y="74">5 · SWITCH OFF</text>
+        <text class="a6bS" x="714" y="94">jobs, compute,</text>
+        <text class="a6bS" x="714" y="110">connections</text>
+        <text class="a6bA" x="714" y="140">undo: archive only</text>
+
+        <text class="a6bH" x="46" y="206">THE LOG, ONE LINE PER STEP</text>
+        <text class="a6bS" x="46" y="224">date · owner · evidence it is safe · how to undo · who signed</text>
+
+        <text class="a6bA" x="30" y="278">left to right, each step is slower to undo, so the order is the control</text>
+        <text class="a6bN" x="30" y="304">Revoking reads before switching off is the cheapest way to find a reader the inventory missed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - five steps, one log line each, and the rollback window closes at step 2, not at cutover</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The five steps, and what each one needs first<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>1, read-only.</strong> At cutover, people lose write access to legacy, but its loads keep running, so it stays current and the rollback from session 5 is real. <strong>2, the rollback window ends.</strong> Not a date picked in advance: it closes on session 5's written condition, the first month-end close on new passing a rung-4 run with every monthly signer saying "same" or "explained", and the sponsor who owns the done sheet signs it. The week-after watch runs alongside and can close later. Before this step, a bad week means switching readers back; after it, it means fixing forward. <strong>3, final snapshot and archive.</strong> One last copy outside both warehouses, with the totals of the six metrics recorded beside it, so a question in a year can be answered from the archive. <strong>4, revoke every grant.</strong> This is session 2's stop-and-revoke at full scale: if someone shouts, you found a reader the inventory missed, and granting access back takes minutes. <strong>5, switch off.</strong> Jobs, compute, service accounts, network connections, after a quiet period with no complaint.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What a log line must say<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each line answers five questions: when, who did it, what evidence made it safe, how you would undo it, and who signed. "Evidence" is specific: for step 2, the watch list with every item closed; for step 3, the snapshot's totals against the last parity report; for step 4, the list of who asked for access back, and what was done for each. A line without evidence is an open item, exactly as it is on the done sheet.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who still reads legacy the week after<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The inventory from session 2 came from a 90-day query log, and session 2 called that window a judgement. The readers it misses are the rare ones: a quarterly regulatory extract, a spreadsheet with a saved connection, a partner feed that runs once a year, a service account nobody remembers creating. Step 4 is designed to surface them while the cost is still a phone call. Serai's quiet period after revoking is 60 days, the same constructed figure it used for retirements in session 2: long enough to span one month-end close and its reruns. Set yours from the slowest reporting cycle you know of, and if that is annual, say so in the log and decide whether to wait or to archive and accept the risk in writing.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Why a list beats memory.</strong> Google's SRE book, describing how it runs launches, says that "The checklist proved to be a useful tool for ensuring reproducibly reliable launches", and that "Almost all updates to Google's services proceed gradually, according to a defined process". A decommission is a launch in reverse: a change to production with readers, data and access at stake. Writing it as dated, owned steps is the same discipline applied to taking something away.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the cost case and the last parity report</span>
+      <h2>The saving starts at switch-off</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">The business case for the move was a lower or better cost of running data. During the move you pay for more, not less: the new warehouse while it is built, both warehouses through the parallel run, and the legacy one again for every week it stays read-only. The case is closed on the day the log's last line is signed, and not one day before.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 312" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An illustrative hand-drawn chart with no numbers. A flat line shows the cost of staying on legacy. A second line shows what you actually pay: equal to legacy at first, higher while the new warehouse is built, highest during the parallel run with both warehouses loaded, a little lower after cutover while legacy is read-only, and only after switch-off below the legacy line. The gap below the legacy line after switch-off is the saving.">
+        <defs>
+          <filter id="a6cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a6cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a6cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a6cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a6cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a6cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a6cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a6cH" x="30" y="26">WHAT YOU PAY, BEFORE AND AFTER SWITCH-OFF</text>
+        <text class="a6cS" x="370" y="26">illustrative shape · no prices · no durations</text>
+
+        <g filter="url(#a6cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="692" y="171" width="148" height="23" fill="#9CC3E6" stroke="none"/>
+          <path d="M80 62 L80 240 L850 240"/>
+          <path d="M480 64 L480 238" stroke="#85621F" stroke-dasharray="5 5"/>
+          <path d="M688 64 L688 238" stroke="#85621F" stroke-dasharray="5 5"/>
+          <path d="M82 170 L840 170" stroke="#5E5446" stroke-dasharray="7 5"/>
+          <path d="M82 170 L140 170 L160 122 L290 122 L310 92 L476 92 L490 112 L684 112 L694 196 L840 196" stroke="#624818" stroke-width="3"/>
+        </g>
+
+        <text class="a6cA" x="150" y="54">build</text>
+        <text class="a6cA" x="330" y="54">parallel run</text>
+        <text class="a6cA" x="480" y="54" text-anchor="middle">cutover</text>
+        <text class="a6cA" x="560" y="54">watch</text>
+        <text class="a6cA" x="688" y="54" text-anchor="middle">switch-off</text>
+
+        <text class="a6cL" x="170" y="112">new being built</text>
+        <text class="a6cL" x="320" y="82">both warehouses loaded</text>
+        <text class="a6cL" x="500" y="102">legacy read-only, new live</text>
+        <text class="a6cS" x="100" y="188">legacy only</text>
+        <text class="a6cS" x="740" y="160">had you stayed</text>
+        <text class="a6cB" x="700" y="216">the saving starts here</text>
+
+        <text class="a6cA" x="30" y="70">spend</text>
+        <text class="a6cA" x="818" y="258">time</text>
+
+        <text class="a6cN" x="30" y="296">Shape only, no real prices. Until the last line of the decommission log, you pay for both.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the move costs more until legacy is off, so every week of delay is paid twice</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Every week read-only is a week paid twice<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Read the figure as a leader. The parallel run is the expensive stretch, and everyone expects it. The stretch people forget is after cutover: the new warehouse carries the readers, the legacy one is idle, and it still costs licences, storage, support contracts and the people who keep it ready for a rollback. A watch with no written end turns into a legacy warehouse nobody dares switch off, and the saving that justified the move never arrives.</p>
+        <p>The figure carries no numbers on purpose. Real warehouse prices vary by contract and change often, and no verified figure supports a general claim about how much a move saves. The shape holds regardless: the saving cannot start while you are paying for both. Whether the new line ends below the old one at all is the business case's claim, and the first full quarter after switch-off is when you can check it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The last parity report before the archive<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Once legacy is off, you can never run the comparison again. The last parity report before step 3 is the evidence that the move was right, and it is only evidence if it says what each side read. On the bench, point both sides of the comparison at the new warehouse, the mistake a copied connection string makes, and every check passes: 0 of 5 defects caught at every rung, with every light green. Before the sponsor signs step 2, the report in front of them must name both targets, the rung and the bar, the same three things the go/no-go list asked for on cutover day.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Vendors describe the parallel stretch as a feature<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A 2019 Google Cloud blog on migrating data warehouses describes an iterative approach in which "both your data warehouse and BigQuery can be actively used in parallel". Read it as a vendor's claim about its own product, and as an honest description of the cost: actively used in parallel means actively paid for in parallel. Whether a phased move with a long overlap or a single switch with a short one is cheaper overall is contested, and session 3 left it open. Both end the same way: the saving begins at switch-off.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The bill for a migration nobody controlled.</strong> In December 2022 the Bank of England announced that the regulators had fined TSB "a total of £48,650,000" over its 2018 platform migration, finding that it "failed to organise and control the IT migration programme adequately." The fine came four years after the switch. The cost of a migration is not settled on cutover day: it is settled when the old system is off, the evidence is archived, and someone can show what was done and why.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Serai's watch list and decommission log</h2>
+      <span class="tag demo">★ 20 min · everyone builds</span>
+    </div>
+    <p class="lede">You need the done sheet from session 1, the parity bar from session 4 and the cutover plan from session 5. No estate of your own to hand? Do it for Serai. Dates are written as days after cutover day, C, and every timing is constructed. These two pages close the leader's half of the runbook.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's two runbook pages as hand-drawn grids. The watch list: orders near midnight, daily, alarm when any lands on another day, ends after 30 clean nights; late-feed keys, nightly, alarm on a duplicated key, ends after 30 clean nights; caches and extracts, each one, alarm when one serves legacy numbers, ends when the list is empty; first month-end close, monthly, alarm outside the signed bar, ends when the close is signed. The decommission log: read-only at C by the platform lead, undo in minutes; rollback ends at the first month-end close on new, signed by the sponsor, no rollback after; snapshot one day later by the platform lead, undo from archive; revoke two days later by the security owner, undo in minutes; switch off after a 60-day quiet period, signed by the sponsor, undo from archive only. All timings constructed.">
+        <defs>
+          <filter id="a6dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="73" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a6dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a6dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a6dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a6dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a6dH" x="30" y="26">PAGE 8 OF THE RUNBOOK · THE WATCH LIST</text>
+        <text class="a6dS" x="340" y="26">constructed Serai policy</text>
+
+        <g filter="url(#a6dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="40" width="820" height="160" rx="12" transform="rotate(-0.2 440 120)" fill="#FFFFFF"/>
+          <path d="M30 70 L850 70"/>
+          <path d="M240 40 L240 200"/>
+          <path d="M360 40 L360 200"/>
+          <path d="M600 40 L600 200"/>
+          <rect x="30" y="250" width="820" height="180" rx="12" transform="rotate(0.2 440 340)" fill="#FFFFFF"/>
+          <path d="M30 280 L850 280"/>
+          <path d="M240 250 L240 430"/>
+          <path d="M420 250 L420 430"/>
+          <path d="M600 250 L600 430"/>
+          <rect x="34" y="316" width="812" height="30" rx="6" fill="#9CC3E6"/>
+        </g>
+
+        <text class="a6dH" x="44" y="60">WATCH</text>
+        <text class="a6dH" x="254" y="60">GRAIN</text>
+        <text class="a6dH" x="374" y="60">ALARM WHEN</text>
+        <text class="a6dH" x="614" y="60">ENDS WHEN</text>
+
+        <text class="a6dL" x="44" y="96">Orders near midnight</text>
+        <text class="a6dS" x="254" y="96">daily</text>
+        <text class="a6dS" x="374" y="96">any lands on another day</text>
+        <text class="a6dS" x="614" y="96">30 clean nights</text>
+        <text class="a6dL" x="44" y="128">Late-feed keys</text>
+        <text class="a6dS" x="254" y="128">nightly</text>
+        <text class="a6dS" x="374" y="128">a key appears twice</text>
+        <text class="a6dS" x="614" y="128">30 clean nights</text>
+        <text class="a6dL" x="44" y="160">Caches and extracts</text>
+        <text class="a6dS" x="254" y="160">each one</text>
+        <text class="a6dS" x="374" y="160">one serves legacy numbers</text>
+        <text class="a6dS" x="614" y="160">list is empty</text>
+        <text class="a6dL" x="44" y="190">First month-end close</text>
+        <text class="a6dS" x="254" y="190">monthly</text>
+        <text class="a6dS" x="374" y="190">outside the signed bar</text>
+        <text class="a6dS" x="614" y="190">close signed</text>
+
+        <text class="a6dH" x="30" y="238">THE DECOMMISSION LOG · C = CUTOVER DAY</text>
+
+        <text class="a6dH" x="44" y="270">STEP</text>
+        <text class="a6dH" x="254" y="270">WHEN</text>
+        <text class="a6dH" x="434" y="270">SIGNED BY</text>
+        <text class="a6dH" x="614" y="270">UNDO</text>
+
+        <text class="a6dL" x="44" y="304">1 · Legacy read-only</text>
+        <text class="a6dS" x="254" y="304">C</text>
+        <text class="a6dS" x="434" y="304">platform lead</text>
+        <text class="a6dS" x="614" y="304">grant writes, minutes</text>
+        <text class="a6dL" x="44" y="336">2 · Rollback ends</text>
+        <text class="a6dL" x="254" y="336">first month-end close</text>
+        <text class="a6dL" x="434" y="336">sponsor</text>
+        <text class="a6dL" x="614" y="336">none: fix forward</text>
+        <text class="a6dL" x="44" y="368">3 · Snapshot, archive</text>
+        <text class="a6dS" x="254" y="368">step 2 + 1 day</text>
+        <text class="a6dS" x="434" y="368">platform lead</text>
+        <text class="a6dS" x="614" y="368">restore from archive</text>
+        <text class="a6dL" x="44" y="394">4 · Revoke all access</text>
+        <text class="a6dS" x="254" y="394">step 2 + 2 days</text>
+        <text class="a6dS" x="434" y="394">security owner</text>
+        <text class="a6dS" x="614" y="394">grant back, minutes</text>
+        <text class="a6dL" x="44" y="420">5 · Switch off</text>
+        <text class="a6dS" x="254" y="420">step 4 + 60 days</text>
+        <text class="a6dS" x="434" y="420">sponsor</text>
+        <text class="a6dS" x="614" y="420">archive only</text>
+
+        <text class="a6dN" x="30" y="456">Every timing is constructed. The order is not: each step is harder to undo than the one before it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a written condition closes the rollback window, and the log decides when the bills stop</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>List what the parity suite was weakest at.</strong> Go back to session 4's bar and ask which drift it could not see at the grain it was signed. For Serai that is the fixed offset, invisible to the monthly bar. Add anything that only arrives after cutover (the late feed) and anything the suite never read (caches, extracts, saved connections).</p>
+      </div>
+      <div class="step">
+        <p><strong>Give each watch item a grain, an alarm and an end.</strong> The end is a condition, not a date. Write the overall condition for closing the watch underneath.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's watch list (constructed policy)</span>Orders near midnight   daily      alarm: any of them on another day
+Late-feed keys         nightly    alarm: any key appears twice
+Caches and extracts    each one   alarm: one still serves legacy numbers
+First month-end close  monthly    alarm: a metric outside the signed bar
+
+The watch closes when: the rung-4 suite is clean on 30 consecutive
+nights, with no duplicated key on any of them; the first month-end
+close is signed inside the bar; and every cache and extract on the
+list is confirmed as reading the new warehouse. Owner: platform lead.</div>
+      </div>
+      <div class="step">
+        <p><strong>Write the five decommission steps in order, with an owner for each.</strong> Count dates from cutover day or from the step before, so the log still works if cutover moves.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's decommission log (timings constructed)</span>1  Legacy read-only        C                    platform lead
+   evidence: write grants revoked, list attached   undo: minutes
+2  Rollback window ends    first month-end close  sponsor
+   evidence: month-end close passed rung 4, every monthly
+   signer said same or explained, report names both
+   targets and the signed bar                       undo: none
+3  Final snapshot, archive step 2 + 1 day         platform lead
+   evidence: six metric totals match the last report
+                                                    undo: restore
+4  Revoke all access       step 2 + 2 days        security owner
+   evidence: who asked for access back, and why     undo: minutes
+5  Switch off              step 4 + 60 days       sponsor
+   evidence: no request in the quiet period         undo: archive only</div>
+      </div>
+      <div class="step">
+        <p><strong>Check the last parity report's header before anyone signs step 2.</strong> It must name what each side read. A report that compared the new warehouse with itself is all green and worthless: 0 of 5 on the bench.</p>
+      </div>
+      <div class="step">
+        <p><strong>Write the closing sentence and read it to whoever approved the move.</strong></p>
+        <div class="prompt-box good"><span class="label">★ The closing sentence</span>We stop paying for two systems on the day step 5 of the decommission
+log is signed. Until then the saving has not started. The rollback
+window closes on a written condition, the first month-end close on new
+passing rung 4, not on a date chosen in advance, and the last parity
+report names both sides.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">The decommission plan that proves nothing</span>
+Legacy platform to be decommissioned once the team is confident the
+new platform is stable.
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before you close the runbook</h2>
+      <span class="tag exercise">25 min</span>
+    </div>
+    <ol>
+      <li>Write your own watch list: at most five items, each with a grain, an alarm and an end condition. Mark which one your signed parity bar could not see.</li>
+      <li>Find every cache, extract and saved connection that reads your warehouse today. Note which ones would keep serving old numbers after a cutover.</li>
+      <li>Find the slowest reporting cycle in your business (quarterly, annual, regulatory) and decide what it means for your quiet period before switch-off.</li>
+      <li>Ask the owner of the last system your organisation migrated away from whether it is actually switched off. If it is not, write down what it still costs and who could sign it off.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 6 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Serai's monthly numbers have matched legacy inside the signed bar since cutover. Why does the watch still read the fixed-offset drift daily?</p>
+      <button class="qopt" type="button">A · Daily checks are cheaper to run than monthly ones</button>
+      <button class="qopt" type="button">B · The monthly bar might be too loose for the late rows</button>
+      <button class="qopt" type="button">C · The drift moves 72 orders to the day before, changing 74 days and no month, and the ops dashboard reads daily</button>
+      <button class="qopt" type="button">D · Monthly numbers are not available until the month ends</button>
+      <p class="qwhy">None of the 72 shifted orders crosses a month end in this sample, so every month agrees while 74 daily numbers do not. The watch reads at the grain the parity bar could not see.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · When does the saving in the migration's business case start?</p>
+      <button class="qopt" type="button">A · When the last step of the decommission log is signed and legacy is off</button>
+      <button class="qopt" type="button">B · On cutover day, when readers move to the new warehouse</button>
+      <button class="qopt" type="button">C · When the parallel run begins</button>
+      <button class="qopt" type="button">D · When legacy becomes read-only</button>
+      <p class="qwhy">Until switch-off you pay for both warehouses: during the build, the parallel run and every week legacy stays ready for a rollback. Read-only legacy still costs money.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · The last parity report before the archive is green on every check. What must you know before the sponsor signs?</p>
+      <button class="qopt" type="button">A · Nothing more: green on every check means the move is proved</button>
+      <button class="qopt" type="button">B · How long the report took to run</button>
+      <button class="qopt" type="button">C · Whether the report ran on a weekday</button>
+      <button class="qopt" type="button">D · What each side read, the rung and the bar: with both sides on the new warehouse the bench catches 0 of 5 and shows all green</button>
+      <p class="qwhy">A comparison of the new warehouse with itself passes every check. Once legacy is off it can never be rerun, so the report counts only if its header names both targets, the rung and the bar.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The fixed-offset drift, the edge check, the late rows and the both-sides-new break</span><span class="note">Constructed rules on real rows; every count measured on the bench in Builder session 10</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Brazil's end of daylight saving</span><span class="note">IANA time zone database NEWS, release 2019b, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Gradual change and launch checklists</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Running both warehouses in parallel</span><span class="note">Google Cloud blog (2019), read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB's 2018 migration and the 2022 fine</span><span class="note">Bank of England release (2022), read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's watch list, end condition, quiet period and decommission timings</span><span class="note">Constructed for the case; no source gives a length for a watch or a quiet period</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The cost of running two systems</span><span class="note">Shape only; no verified prices, so no numbers are claimed</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 6 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Watch the weak grain</b><span>Fixed offset: 74 days differ, 0 months. Read it daily.</span></div>
+      <div class="cheat-item"><b>Late rows keep coming</b><span>367 orders return on the late feed. Watch keys for duplicates.</span></div>
+      <div class="cheat-item"><b>A watch ends in writing</b><span>A condition, an owner, set before cutover. Serai's 30 nights is constructed.</span></div>
+      <div class="cheat-item"><b>Five steps, one log</b><span>Read-only, rollback ends, snapshot, revoke, switch off. Date, owner, evidence, undo.</span></div>
+      <div class="cheat-item"><b>The saving starts at off</b><span>Until the last log line is signed, you pay for two systems.</span></div>
+      <div class="cheat-item"><b>Last report names both sides</b><span>Both sides on the new warehouse: 0 of 5 caught, all green.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>That is the leader track: done, inventory, scope, the bar, cutover and switch-off. To see every check behind those decisions run on one screen, go to <a href="b10-the-parity-bench.html">Builder session 10, the parity bench</a>: climb the five rungs, loosen the bar, point both sides at the new warehouse, and watch the score your signature depends on.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 6 of 6 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a5-cutover-day-and-the-rollback.html">← Prev: Cutover day and the rollback</a> &nbsp;·&nbsp; <a href="../index.html">Course home</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

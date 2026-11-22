@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 3 of 6. Every table gets one call: lift it, rebuild it or retire it. Then the move needs an order and a shape: one switch or phased waves with a parallel run, a choice the evidence does not settle. Serai's 14 tables become a scope sheet: 3 retired first, then four waves of 5, 2, 3 and 1.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Sequence and scope: lift, rebuild or retire - learn ship platform migration with phoebe">
+<meta property="og:description" content="Leader session 3 of 6. One decision per table, one switch or many, and an order of moves taken from the dependency graph.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/courses/a3-lift-rebuild-or-retire.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sequence and scope: lift, rebuild or retire - learn ship platform migration with phoebe">
+<meta name="twitter:description" content="Leader session 3 of 6. 14 tables: 9 lifted, 2 rebuilt, 3 retired first, moved in four gated waves.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-ship-platform-migration-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 3 · Sequence and scope: lift, rebuild or retire - learn ship platform migration with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-ship-platform-migration-with-phoebe</a> / Leader session 3 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Ship It: Data Platform Migration · Leader session 3 of 6</div>
+    <h1>Sequence and scope: <span class="accent">lift, rebuild or retire</span></h1>
+    <p class="sub">An inventory says what you own and who reads it. It does not say how each table moves, or in what order. Tonight every table on Serai Commerce's list gets one call: lift it as it is, rebuild it for the new warehouse, or retire it. Then the move gets a shape, and here the evidence runs out: one big switch or a phased move with a parallel run is a real disagreement, and you will hear both sides. You leave with a scope sheet a steering group can sign: a decision, a reason and a wave for every table.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Intermediate</span>
+      <span class="chip audience">Heads of data and platform owners</span>
+      <span class="chip audience">Programme leads sequencing a move</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:5">3-20 · Decide, shape, order</span>
+      <span class="a3" style="flex:4">20-40 · Build-along: the scope sheet</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where this session sits</h2>
+    </div>
+    <p class="lede">Session 1 gave you the done sheet; session 2 the inventory, with a status, a reader and a signer on every table. Tonight is runbook section 2, scope and sequence, seen from the chair that signs it. Builder session 2 computes the same order of moves with a recursive query over the lineage edges; you do not need the SQL, only its output and the judgement it cannot make for you. The running case is a <strong>Constructed Serai Commerce example</strong>: the company, its warehouses, its 14-table slice and every decision on this page are constructed for teaching. The target warehouse is already chosen. Choosing one belongs to the <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/courses/a4-buy-landscape.html">Data Warehouse course, Leader session 4</a>; this page owns what moves, how, and when.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">🔍 Every diagram zooms</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> Serai's scope sheet: 14 tables, each one lifted, rebuilt or retired, with a one-line reason and a wave. On the constructed case that is 9 lifts, 2 rebuilds and 3 retirements, moved as retire first, then wave 0 with 5 tables, wave 1 with 2, wave 2 with 3 and wave 3 with 1. Plus a written choice between one switch and a phased move, with who made it and why, and one sentence for the steering meeting: "we move in the order the graph gives us, and each wave is proved before the next starts".</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers one decision per asset and the criteria behind it</span>
+      <h2>One call per table</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Every table in scope gets exactly one of three answers. Lift: translate it as it is, so it produces the same numbers in the new dialect. Rebuild: redesign it for the new warehouse, because a straight copy would carry a fault or cost more than it saves. Retire: switch it off before the move. Two questions, asked in order, decide which.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn decision tree for each table. Question 1: does anyone read it, or feed something that is read? If no, retire: 3 of Serai's tables, scorecard_v1, region_sales_2019 and orders_backup_2017. If yes, question 2: is its SQL complex, or does it carry one of the seven drifts, and does the fix change its design? If the fix changes the design, rebuild: 2 tables, stg.orders to merge late rows on key and orders_daily for a named time zone. If it is simple or a one-line rule fixes it, lift: 9 tables. All counts constructed.">
+        <defs>
+          <filter id="a3aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <marker id="a3aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#231C12" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a3aH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a3aL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a3aS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a3aA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a3aN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a3aH" x="30" y="26">ONE DECISION PER TABLE</text>
+        <text class="a3aS" x="230" y="26">Constructed Serai Commerce example · the 14 tables from Builder session 1</text>
+
+        <g filter="url(#a3aSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="60" width="300" height="70" rx="10" transform="rotate(-0.5 180 95)" fill="#FFFFFF"/>
+          <rect x="560" y="60" width="290" height="70" rx="10" transform="rotate(0.5 705 95)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="30" y="180" width="300" height="86" rx="10" transform="rotate(0.4 180 223)" fill="#9CC3E6"/>
+          <rect x="560" y="180" width="290" height="86" rx="10" transform="rotate(-0.4 705 223)" fill="#F8F2E6"/>
+          <rect x="30" y="316" width="820" height="50" rx="10" transform="rotate(-0.15 440 341)" fill="#FFFFFF"/>
+          <path d="M332 95 L556 95" marker-end="url(#a3aAr)"/>
+          <path d="M180 132 L180 176" marker-end="url(#a3aAr)"/>
+          <path d="M332 210 L556 210" marker-end="url(#a3aAr)"/>
+          <path d="M180 268 L180 312" marker-end="url(#a3aAr)"/>
+        </g>
+
+        <text class="a3aH" x="44" y="86">Q1 · DOES ANYONE READ IT,</text>
+        <text class="a3aH" x="44" y="102">OR FEED WHAT IS READ?</text>
+        <text class="a3aS" x="44" y="120">the inventory from session 2 answers</text>
+        <text class="a3aA" x="350" y="86">no reader, nothing downstream</text>
+        <text class="a3aH" x="574" y="86">RETIRE · 3</text>
+        <text class="a3aS" x="574" y="106">scorecard_v1, region_sales_2019,</text>
+        <text class="a3aS" x="574" y="121">orders_backup_2017</text>
+
+        <text class="a3aA" x="192" y="158">yes</text>
+        <text class="a3aH" x="44" y="206">Q2 · IS ITS SQL COMPLEX, OR DOES</text>
+        <text class="a3aH" x="44" y="222">IT CARRY ONE OF THE SEVEN DRIFTS?</text>
+        <text class="a3aL" x="44" y="246">if so, does the fix change its design?</text>
+        <text class="a3aA" x="346" y="200">yes: the fix changes the design</text>
+        <text class="a3aH" x="574" y="206">REBUILD · 2</text>
+        <text class="a3aS" x="574" y="228">stg.orders: merge late rows on key</text>
+        <text class="a3aS" x="574" y="246">orders_daily: local day from a named zone</text>
+
+        <text class="a3aA" x="192" y="294">simple, or a one-line rule fixes it</text>
+        <text class="a3aH" x="44" y="338">LIFT · 9</text>
+        <text class="a3aS" x="44" y="356">translate as is, plus translation rules: 5 sources, stg.reviews, brand_review, scorecard_v2, orders_monthly</text>
+
+        <text class="a3aN" x="30" y="388">Ask the questions in this order. Every count is constructed for Serai, on Builder session 1's 14 tables.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - two questions, in order, give every table one answer, and the hard call is the second one</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Three answers, and what each one costs<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <table class="clean">
+          <thead><tr><th>Answer</th><th>What happens to the table</th><th>What it costs later</th><th>What parity means for it</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Lift</strong></td><td>The same logic, translated into the new dialect, with the translation rules from Builder session 3 applied</td><td>A translation, a historical reload, a parity proof</td><td>Every number the same as legacy, or explained</td></tr>
+            <tr><td><strong>Rebuild</strong></td><td>New design for the new warehouse: a key where there was none, a merge where there was an append, a named time zone where there was an offset</td><td>Everything a lift costs, plus design and review time</td><td>Still the same as legacy, unless a difference was written on the done sheet before anyone looked</td></tr>
+            <tr><td><strong>Retire</strong></td><td>Stopped and revoked with a date, then archived and dropped, as session 2 set out</td><td>A conversation and a date</td><td>None: nothing to prove</td></tr>
+          </tbody>
+        </table>
+        <p>Read the last column twice. A rebuild is not a licence to change numbers. Serai rebuilds stg.orders and mart.orders_daily so that they give the same answers as legacy through a better design; the readers should see no change at all. If a rebuild is also meant to fix something legacy got wrong, that intended difference goes on the done sheet as "explained", with an owner, before the first parity run. Otherwise every difference it makes looks like a defect, and every defect looks like a design choice.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The two questions, applied to Serai<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Question 1, does anyone read it, or feed what is read?</strong> Session 2's inventory already answered this: 5 tables are read by people, 6 only by jobs that build those 5, and 3 by nobody. The 3 retire candidates leave here and never reach question 2.</p>
+        <p><strong>Question 2, is its SQL complex, or does it carry a drift, and does the fix change its design?</strong> Session 1 named the seven drifts. Some are fixed by a rule: Export C's lower-case customer keys are normalised on load, and a missing review score stays NULL instead of becoming 0. Those tables are lifts with a rule. Two are not. stg.orders receives the late-row feed, and the only safe fix is to merge on the order key instead of appending, which means giving the table a key and a different load. mart.orders_daily turns timestamps into local days, and the fix for the fixed -03:00 offset is a named time zone with its daylight-saving history, which changes how the table is built. Both are rebuilds.</p>
+        <p>The mapping of drifts to tables is constructed for the case. On your estate, the builders' translation rules and their lineage tell you which table carries which fault.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where scope quietly grows<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Once a team is redesigning one table, the next one always looks worth redesigning too. Each extra rebuild adds design and review time, and, worse, each one is a table whose numbers someone may be tempted to "improve" on the way through. A move that is also a redesign has two reasons for every difference, and a parity check cannot tell them apart.</p>
+        <p>Three habits keep the rebuild column short. Rebuild only for a reason on question 2, written in one line on the scope sheet. Put every intended change of a number on the done sheet before parity runs. And park every other improvement on a list for after cutover, when legacy is off and a difference can only have one cause.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Vendors put a decision step before the move.</strong> A 2019 Google Cloud blog on migrating data warehouses lays out its phases as "Prepare and discover", "Assess and plan" and "Execute", and asks that "At the end of each iteration, validate that the use case was successfully migrated according to your definition of done". Read it as a vendor describing the process around its own product, never as a recommendation of that product. The per-table call is what "assess and plan" means in practice, and the definition of done it points to is the sheet you built in session 1.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers big bang against a phased move with a parallel run</span>
+      <h2>One switch or many: a live disagreement</h2>
+      <span class="tag concept">6 min live</span>
+    </div>
+    <p class="lede">Once you know what moves, you choose the shape of the move. Build everything, prove it as a whole and move every reader on one day; or move in waves, each running beside legacy until it is proved, and move readers wave by wave. Both have serious advocates, and no published evidence says which fails less often.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 346" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn timelines, shape only with no durations. Top, one switch: legacy serves every reader while the new warehouse is built and proved with no readers, then on one day every reader moves to new. Bottom, phased with a parallel run: legacy keeps loading the whole time so both can be compared, and four waves of 5, 2, 3 and 1 tables each run beside it, with readers moving at the end of each wave. Vendors recommend the lower lane; TSB shows the cost of one large switch; one case is not a base rate.">
+        <defs>
+          <filter id="a3bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a3bH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a3bL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a3bS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a3bB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a3bN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a3bH" x="30" y="26">TWO SHAPES OF THE SAME MOVE</text>
+        <text class="a3bS" x="260" y="26">shape only, no durations · no source says which fails less often</text>
+
+        <g filter="url(#a3bSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="72" width="560" height="34" rx="8" transform="rotate(-0.3 310 89)" fill="#F8F2E6"/>
+          <rect x="200" y="116" width="390" height="34" rx="8" transform="rotate(0.3 395 133)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="596" y="72" width="14" height="78" rx="4" transform="rotate(1.5 603 111)" fill="#9CC3E6"/>
+          <rect x="616" y="72" width="234" height="34" rx="8" transform="rotate(0.4 733 89)" fill="#FFFFFF"/>
+
+          <rect x="30" y="200" width="762" height="34" rx="8" transform="rotate(0.2 411 217)" fill="#F8F2E6"/>
+          <rect x="150" y="246" width="140" height="34" rx="8" transform="rotate(-0.8 220 263)" fill="#FFFFFF"/>
+          <rect x="294" y="246" width="12" height="34" rx="4" transform="rotate(2 300 263)" fill="#9CC3E6"/>
+          <rect x="312" y="246" width="140" height="34" rx="8" transform="rotate(0.7 382 263)" fill="#FFFFFF"/>
+          <rect x="456" y="246" width="12" height="34" rx="4" transform="rotate(-2 462 263)" fill="#9CC3E6"/>
+          <rect x="474" y="246" width="140" height="34" rx="8" transform="rotate(-0.6 544 263)" fill="#FFFFFF"/>
+          <rect x="618" y="246" width="12" height="34" rx="4" transform="rotate(2 624 263)" fill="#9CC3E6"/>
+          <rect x="636" y="246" width="140" height="34" rx="8" transform="rotate(0.8 706 263)" fill="#FFFFFF"/>
+          <rect x="780" y="246" width="12" height="34" rx="4" transform="rotate(-2 786 263)" fill="#9CC3E6"/>
+        </g>
+
+        <text class="a3bH" x="30" y="58">ONE SWITCH</text>
+        <text class="a3bS" x="122" y="58">build and prove everything, then move every reader on one day</text>
+        <text class="a3bL" x="44" y="94">legacy serves every reader</text>
+        <text class="a3bS" x="214" y="138">new is built and proved, with no reader on it yet</text>
+        <text class="a3bL" x="630" y="94">new serves every reader</text>
+        <text class="a3bB" x="620" y="138">one day, every reader</text>
+
+        <text class="a3bH" x="30" y="186">PHASED, WITH A PARALLEL RUN</text>
+        <text class="a3bS" x="250" y="186">each wave runs beside legacy until it passes parity, then its readers move</text>
+        <text class="a3bL" x="44" y="222">legacy keeps loading, so the two can be compared every night</text>
+        <text class="a3bL" x="162" y="268">wave 0 · 5 tables</text>
+        <text class="a3bL" x="324" y="268">wave 1 · 2 tables</text>
+        <text class="a3bL" x="486" y="268">wave 2 · 3 tables</text>
+        <text class="a3bL" x="648" y="268">wave 3 · 1 table</text>
+        <text class="a3bB" x="150" y="302">blue: the day readers move to new, once in the top lane and once per wave below</text>
+
+        <text class="a3bN" x="30" y="330">Vendors recommend the lower lane. TSB shows what one large switch can cost. One case is not a base rate.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same move, with every reader switching on one day or wave by wave beside a running legacy</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The case for phased waves with a parallel run<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each wave is small, so when it fails parity the cause is in a handful of tables, not anywhere in the estate. Readers move a few at a time, so a wrong number reaches one team, not the board pack and the finance close on the same morning. Legacy keeps loading throughout, so every night there are two answers to compare, and the way back for a wave is to point its readers at legacy again.</p>
+        <p>The vendor guides argue for this shape. The 2019 Google Cloud blog describes an iterative move in which "both your data warehouse and BigQuery can be actively used in parallel". That is a vendor claim about its own process, and a vendor has a reason to prefer a move that starts small and starts soon.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The case for one switch<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A phased move means two warehouses, both loaded, both paid for, both watched, for as long as the waves take. Some wave tables are read by things that have not moved, so data has to be fed across from one system to the other, and every one of those feeds is one more thing to build, test and later switch off. Readers who use tables from several waves see two systems at once. A single switch avoids all of that: build the new warehouse whole, prove it whole, and move every reader together.</p>
+        <p>Its risk is concentration. Everything that was not caught in testing arrives on the same day, for every reader, with the whole estate as the search space. The Bank of England fined TSB "a total of £48,650,000" in 2022, finding it "failed to organise and control the IT migration programme adequately" after its 2018 platform migration, and TSB's own release says go-live "followed a long period of testing, with reports to the Board signalling readiness." That is one bank, one programme, and a migration of customer systems rather than a warehouse. It shows the cost of a large switch that goes wrong. It does not show how often one does.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What decides it for your estate<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Because nobody has published how often either shape fails, the choice is a judgement about your estate, and the scope sheet should record it as one: who chose, on what reasons, on what date. Questions worth writing answers to:</p>
+        <ul>
+          <li>Can both warehouses be fed from the same sources every night, or would a phased move need feeds between the two?</li>
+          <li>How tangled are the readers? A dashboard that reads tables from three waves cannot move until the last of them has.</li>
+          <li>How long can you afford to run two systems? No source gives a length for a parallel run; Serai's 4 weeks is constructed, and Builder session 7 takes the question up.</li>
+          <li>What is the way back? Session 5 writes the rollback; a phased move has one per wave, a single switch has one for everything.</li>
+        </ul>
+        <p>Many teams land in between: build and prove in waves, then move readers in one or two planned switches. Even a team that chooses one switch still needs the wave order from Part 3, because it decides what is built and proved first.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A fine that names the programme, not the code.</strong> The Bank of England's December 2022 release on TSB does not blame one faulty table or one bad line of SQL. It finds the bank "failed to organise and control the IT migration programme adequately". Whatever shape you choose, the finding is about the choosing: who decided, on what evidence, and who could stop it. Write the shape decision into the runbook with a name next to it, so that it is a decision someone owns rather than a default nobody chose.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the order of moves, from retirements to reports</span>
+      <h2>The graph sets the order, the gates set the pace</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The order is not a preference. A table can only be proved in the new warehouse once everything it is built from is there and proved. So retirements leave first, then the tables move in waves taken from the lineage: raw and reference tables, then staging, then marts, then the marts built from marts.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 392" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn columns, left to right. Retire first, 3 tables: scorecard_v1, region_sales_2019, orders_backup_2017, each stopped, revoked and archived. Wave 0, 5 tables: orders_export_a and b lifted, orders_export_c and raw.reviews lifted with a rule, ref.state_region lifted. Wave 1, 2 tables: stg.orders rebuilt, stg.reviews lifted. Wave 2, 3 tables: orders_daily rebuilt, brand_review and scorecard_v2 lifted. Wave 3, 1 table: orders_monthly lifted. Each wave ends in a parity gate before the next starts.">
+        <defs>
+          <filter id="a3cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a3cH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a3cL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a3cS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a3cB { font: 800 11px Inter, sans-serif; fill: #173E66; }
+          .a3cA { font: 700 11px Inter, sans-serif; fill: #46330F; }
+          .a3cN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a3cH" x="30" y="26">THE ORDER OF MOVES, WITH EACH TABLE'S CALL</text>
+        <text class="a3cS" x="370" y="26">waves from Builder session 2 · calls constructed · blue = rebuild</text>
+
+        <g filter="url(#a3cSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="40" width="148" height="290" rx="10" transform="rotate(-0.4 104 185)" fill="#F8F2E6"/>
+          <rect x="198" y="40" width="148" height="290" rx="10" transform="rotate(0.3 272 185)" fill="#F8F2E6"/>
+          <rect x="366" y="40" width="148" height="290" rx="10" transform="rotate(-0.3 440 185)" fill="#F8F2E6"/>
+          <rect x="534" y="40" width="148" height="290" rx="10" transform="rotate(0.4 608 185)" fill="#F8F2E6"/>
+          <rect x="702" y="40" width="148" height="290" rx="10" transform="rotate(-0.3 776 185)" fill="#F8F2E6"/>
+
+          <rect x="38" y="74" width="132" height="40" rx="7" transform="rotate(-1.5 104 94)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="38" y="122" width="132" height="40" rx="7" transform="rotate(1.2 104 142)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+          <rect x="38" y="170" width="132" height="40" rx="7" transform="rotate(-1 104 190)" fill="#FFFFFF" stroke-dasharray="5 4"/>
+
+          <rect x="206" y="74" width="132" height="40" rx="7" transform="rotate(1 272 94)" fill="#FFFFFF"/>
+          <rect x="206" y="122" width="132" height="40" rx="7" transform="rotate(-1.2 272 142)" fill="#FFFFFF"/>
+          <rect x="206" y="170" width="132" height="40" rx="7" transform="rotate(1.4 272 190)" fill="#FFFFFF"/>
+          <rect x="206" y="218" width="132" height="40" rx="7" transform="rotate(-1 272 238)" fill="#FFFFFF"/>
+          <rect x="206" y="266" width="132" height="40" rx="7" transform="rotate(1.1 272 286)" fill="#FFFFFF"/>
+
+          <rect x="374" y="74" width="132" height="40" rx="7" transform="rotate(-1.3 440 94)" fill="#9CC3E6"/>
+          <rect x="374" y="122" width="132" height="40" rx="7" transform="rotate(1 440 142)" fill="#FFFFFF"/>
+
+          <rect x="542" y="74" width="132" height="40" rx="7" transform="rotate(1.2 608 94)" fill="#9CC3E6"/>
+          <rect x="542" y="122" width="132" height="40" rx="7" transform="rotate(-1 608 142)" fill="#FFFFFF"/>
+          <rect x="542" y="170" width="132" height="40" rx="7" transform="rotate(1.3 608 190)" fill="#FFFFFF"/>
+
+          <rect x="710" y="74" width="132" height="40" rx="7" transform="rotate(-1.1 776 94)" fill="#FFFFFF"/>
+        </g>
+
+        <text class="a3cH" x="42" y="62">RETIRE FIRST · 3</text>
+        <text class="a3cH" x="210" y="62">WAVE 0 · 5 TABLES</text>
+        <text class="a3cH" x="378" y="62">WAVE 1 · 2 TABLES</text>
+        <text class="a3cH" x="546" y="62">WAVE 2 · 3 TABLES</text>
+        <text class="a3cH" x="714" y="62">WAVE 3 · 1 TABLE</text>
+
+        <text class="a3cL" x="50" y="91">scorecard_v1</text>
+        <text class="a3cS" x="50" y="106">retire, two steps</text>
+        <text class="a3cL" x="50" y="139">region_sales_2019</text>
+        <text class="a3cS" x="50" y="154">retire, two steps</text>
+        <text class="a3cL" x="50" y="187">orders_backup_2017</text>
+        <text class="a3cS" x="50" y="202">retire, two steps</text>
+
+        <text class="a3cL" x="218" y="91">orders_export_a</text>
+        <text class="a3cS" x="218" y="106">lift</text>
+        <text class="a3cL" x="218" y="139">orders_export_b</text>
+        <text class="a3cS" x="218" y="154">lift</text>
+        <text class="a3cL" x="218" y="187">orders_export_c</text>
+        <text class="a3cS" x="218" y="202">lift + key rule</text>
+        <text class="a3cL" x="218" y="235">raw.reviews</text>
+        <text class="a3cS" x="218" y="250">lift + NULL rule</text>
+        <text class="a3cL" x="218" y="283">ref.state_region</text>
+        <text class="a3cS" x="218" y="298">lift</text>
+
+        <text class="a3cL" x="386" y="91">stg.orders</text>
+        <text class="a3cB" x="386" y="106">rebuild</text>
+        <text class="a3cL" x="386" y="139">stg.reviews</text>
+        <text class="a3cS" x="386" y="154">lift</text>
+
+        <text class="a3cL" x="554" y="91">orders_daily</text>
+        <text class="a3cB" x="554" y="106">rebuild</text>
+        <text class="a3cL" x="554" y="139">brand_review</text>
+        <text class="a3cS" x="554" y="154">lift</text>
+        <text class="a3cL" x="554" y="187">scorecard_v2</text>
+        <text class="a3cS" x="554" y="202">lift</text>
+
+        <text class="a3cL" x="722" y="91">orders_monthly</text>
+        <text class="a3cS" x="722" y="106">lift</text>
+
+        <text class="a3cA" x="42" y="350">stop, revoke, archive</text>
+        <text class="a3cA" x="210" y="350">prove wave 0</text>
+        <text class="a3cA" x="378" y="350">prove wave 1</text>
+        <text class="a3cA" x="546" y="350">prove wave 2</text>
+        <text class="a3cA" x="714" y="350">prove wave 3</text>
+
+        <text class="a3cN" x="30" y="376">9 lifts and 2 rebuilds in four gated waves. A wave starts only when every table it reads has passed parity.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - retirements leave first, the graph gives each table its wave, and every wave ends in a parity gate</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Where the waves come from<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Builder session 2 takes the 11 lineage edges from session 1's query log, removes the three retire candidates, and gives every table its wave: the longest path from a table nothing in the warehouse builds. On Serai's slice that is wave 0, the three marketplace exports, raw.reviews and ref.state_region; wave 1, stg.orders and stg.reviews; wave 2, mart.orders_daily, mart.brand_review and mart.seller_scorecard_v2; wave 3, mart.orders_monthly, which is built from orders_daily. The builders also check that all 11 edges point forward, from a lower wave to a higher one.</p>
+        <p>Two things to ask for as the leader. First, the output, not the method: the list of waves and the forward-edge check. Second, why brand_review sits in wave 2 although it reads a reference table directly. The answer is that it also reads both staging tables, so it waits until they are proved; a table moves after the slowest of its inputs, never the fastest.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Retire first, and a gate after every wave<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Retirements go first because they shrink every later step. Left in the graph, mart.seller_scorecard_v1 would land in wave 2 as one more table to translate, reload and prove for a mart nobody reads. Retiring first means the first step of session 2's two-step retirement, stop and revoke with a date, is done on legacy before wave 0 begins.</p>
+        <p>A wave is finished when its tables are loaded in the new warehouse and pass the parity checks session 4 signs off, against the legacy copies. Only then does the next wave start reading them. If wave 1 fails, the cause is in its two tables, because wave 0 already passed. Note where Serai's two rebuilds sit: stg.orders in wave 1 and orders_daily in wave 2. Rebuilds take longer and carry more risk, and the gate stops a slow rebuild from being hurried by the wave behind it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>When the wave plan meets the business calendar<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The graph gives the order, not the dates. Dates come from the business: nobody wants the wave that carries the monthly mart to finish on the morning of the finance close, or the board pack to change system in the week it is read. Lay the waves on the calendar and move a gate rather than reorder a wave: an order taken from the graph cannot be swapped without some table being proved before its inputs.</p>
+        <p>Isolated tables are the exception. A table with no edge in or out, read by people, can move in any wave, because nothing depends on it and it depends on nothing inside the warehouse. On Serai's slice both isolated tables are retire candidates, so the question does not arise; on a real estate it often does, and those tables are useful filler for a quiet wave.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>An order written down before the change starts.</strong> Google's SRE book says "Almost all updates to Google's services proceed gradually, according to a defined process". That chapter is about releasing software, not moving data, so read it as an analogy, not as evidence about warehouses. The habit carries across: the order is written down before the first wave moves, so that nobody chooses the next step at eleven at night under pressure, and the scope sheet is that written order.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Serai's scope sheet</h2>
+      <span class="tag demo">★ 20 min · everyone builds</span>
+    </div>
+    <p class="lede">You need the inventory sheet from session 2 and the wave list from whoever runs the builder work, Builder session 2's output for Serai. No estate of your own to hand? Build Serai's with the rows below. The sheet becomes runbook section 2, signed.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 442" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Serai's scope sheet as a hand-drawn grid with columns table, reader, decision, why and wave. Wave 0: the three order exports, raw.reviews and ref.state_region, all lifted, two with a rule. Wave 1: stg.orders rebuilt to merge late rows on key, stg.reviews lifted. Wave 2: mart.orders_daily rebuilt for a named time zone, mart.brand_review and mart.seller_scorecard_v2 lifted. Wave 3: mart.orders_monthly lifted. Retire first: scorecard_v1, region_sales_2019 and orders_backup_2017. The two rebuild rows are highlighted.">
+        <defs>
+          <filter id="a3dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+        </defs>
+        <style>
+          .a3dH { font: 800 12px Inter, sans-serif; fill: #231C12; }
+          .a3dL { font: 600 11px Inter, sans-serif; fill: #231C12; }
+          .a3dS { font: 400 11px Inter, sans-serif; fill: #5E5446; }
+          .a3dN { font: 400 12px Inter, sans-serif; fill: #5E5446; }
+        </style>
+
+        <text class="a3dH" x="30" y="26">SERAI'S SCOPE SHEET · RUNBOOK SECTION 2</text>
+        <text class="a3dS" x="470" y="26">decisions constructed · waves from Builder session 2</text>
+
+        <g filter="url(#a3dSk)" fill="none" stroke="#231C12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="40" width="820" height="368" rx="12" transform="rotate(-0.15 440 224)" fill="#FFFFFF"/>
+          <rect x="33" y="192" width="814" height="20" rx="5" fill="#9CC3E6" stroke="none"/>
+          <rect x="33" y="240" width="814" height="20" rx="5" fill="#9CC3E6" stroke="none"/>
+          <path d="M30 70 L850 70"/>
+          <path d="M30 334 L850 334"/>
+          <path d="M230 40 L230 408"/>
+          <path d="M420 40 L420 408"/>
+          <path d="M520 40 L520 408"/>
+          <path d="M740 40 L740 408"/>
+        </g>
+
+        <text class="a3dH" x="44" y="60">TABLE</text>
+        <text class="a3dH" x="244" y="60">READER</text>
+        <text class="a3dH" x="434" y="60">DECISION</text>
+        <text class="a3dH" x="534" y="60">WHY, IN ONE LINE</text>
+        <text class="a3dH" x="754" y="60">WAVE</text>
+
+        <text class="a3dS" x="44" y="86">raw.orders_export_a</text>
+        <text class="a3dS" x="244" y="86">feeds stg.orders</text>
+        <text class="a3dS" x="434" y="86">lift</text>
+        <text class="a3dS" x="534" y="86">plain load, no drift</text>
+        <text class="a3dS" x="754" y="86">0</text>
+
+        <text class="a3dS" x="44" y="110">raw.orders_export_b</text>
+        <text class="a3dS" x="244" y="110">feeds stg.orders</text>
+        <text class="a3dS" x="434" y="110">lift</text>
+        <text class="a3dS" x="534" y="110">plain load, no drift</text>
+        <text class="a3dS" x="754" y="110">0</text>
+
+        <text class="a3dS" x="44" y="134">raw.orders_export_c</text>
+        <text class="a3dS" x="244" y="134">feeds stg.orders</text>
+        <text class="a3dS" x="434" y="134">lift + rule</text>
+        <text class="a3dS" x="534" y="134">lower-case keys: one rule</text>
+        <text class="a3dS" x="754" y="134">0</text>
+
+        <text class="a3dS" x="44" y="158">raw.reviews</text>
+        <text class="a3dS" x="244" y="158">feeds stg.reviews</text>
+        <text class="a3dS" x="434" y="158">lift + rule</text>
+        <text class="a3dS" x="534" y="158">empty score stays NULL</text>
+        <text class="a3dS" x="754" y="158">0</text>
+
+        <text class="a3dS" x="44" y="182">ref.state_region</text>
+        <text class="a3dS" x="244" y="182">feeds brand_review</text>
+        <text class="a3dS" x="434" y="182">lift</text>
+        <text class="a3dS" x="534" y="182">small reference table</text>
+        <text class="a3dS" x="754" y="182">0</text>
+
+        <text class="a3dL" x="44" y="206">stg.orders</text>
+        <text class="a3dL" x="244" y="206">analyst_2</text>
+        <text class="a3dL" x="434" y="206">rebuild</text>
+        <text class="a3dL" x="534" y="206">late rows: merge on key</text>
+        <text class="a3dL" x="754" y="206">1</text>
+
+        <text class="a3dS" x="44" y="230">stg.reviews</text>
+        <text class="a3dS" x="244" y="230">feeds brand_review</text>
+        <text class="a3dS" x="434" y="230">lift</text>
+        <text class="a3dS" x="534" y="230">plain staging</text>
+        <text class="a3dS" x="754" y="230">1</text>
+
+        <text class="a3dL" x="44" y="254">mart.orders_daily</text>
+        <text class="a3dL" x="244" y="254">ops dashboard</text>
+        <text class="a3dL" x="434" y="254">rebuild</text>
+        <text class="a3dL" x="534" y="254">local day from a named zone</text>
+        <text class="a3dL" x="754" y="254">2</text>
+
+        <text class="a3dS" x="44" y="278">mart.brand_review</text>
+        <text class="a3dS" x="244" y="278">brand review dashboard</text>
+        <text class="a3dS" x="434" y="278">lift</text>
+        <text class="a3dS" x="534" y="278">joins only, no drift</text>
+        <text class="a3dS" x="754" y="278">2</text>
+
+        <text class="a3dS" x="44" y="302">mart.seller_scorecard_v2</text>
+        <text class="a3dS" x="244" y="302">analyst_1</text>
+        <text class="a3dS" x="434" y="302">lift</text>
+        <text class="a3dS" x="534" y="302">simple, no drift</text>
+        <text class="a3dS" x="754" y="302">2</text>
+
+        <text class="a3dS" x="44" y="326">mart.orders_monthly</text>
+        <text class="a3dS" x="244" y="326">board pack, finance close</text>
+        <text class="a3dS" x="434" y="326">lift</text>
+        <text class="a3dS" x="534" y="326">sums of orders_daily</text>
+        <text class="a3dS" x="754" y="326">3</text>
+
+        <text class="a3dS" x="44" y="350">mart.seller_scorecard_v1</text>
+        <text class="a3dS" x="244" y="350">nobody</text>
+        <text class="a3dS" x="434" y="350">retire</text>
+        <text class="a3dS" x="534" y="350">replaced by scorecard_v2</text>
+        <text class="a3dS" x="754" y="350">retire first</text>
+
+        <text class="a3dS" x="44" y="374">mart.region_sales_2019</text>
+        <text class="a3dS" x="244" y="374">an old export job</text>
+        <text class="a3dS" x="434" y="374">retire</text>
+        <text class="a3dS" x="534" y="374">owner to be found first</text>
+        <text class="a3dS" x="754" y="374">retire first</text>
+
+        <text class="a3dS" x="44" y="398">tmp.orders_backup_2017</text>
+        <text class="a3dS" x="244" y="398">last read 2026-05-10</text>
+        <text class="a3dS" x="434" y="398">retire</text>
+        <text class="a3dS" x="534" y="398">ask analyst_1 first</text>
+        <text class="a3dS" x="754" y="398">retire first</text>
+
+        <text class="a3dN" x="30" y="430">Every rebuild carries a one-line reason. A rebuild without one goes back to lift.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - fourteen rows, one decision, one reason and one wave each, with the two rebuilds where the judgement lives</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Start from the signed inventory, not a fresh list.</strong> Session 2's sheet has 14 rows with a status, a reader and a signer. Carry the 3 retire candidates straight across as "retire", with the stop-and-revoke dates you already wrote. They take no further decision tonight.</p>
+      </div>
+      <div class="step">
+        <p><strong>Ask question 2 of every remaining row, and write the reason in one line.</strong> For each drift from session 1, ask the builders which table carries it and whether a rule fixes it or the design has to change. A rule means lift; a design change means rebuild.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's calls (constructed)</span>lift (7)          raw.orders_export_a, raw.orders_export_b, ref.state_region,
+                  stg.reviews, mart.brand_review, mart.seller_scorecard_v2,
+                  mart.orders_monthly
+lift + rule (2)   raw.orders_export_c   lower-case keys normalised on load
+                  raw.reviews           an empty score stays NULL, never 0
+rebuild (2)       stg.orders            late rows merged on key, not appended
+                  mart.orders_daily     local day from a named time zone
+retire (3)        mart.seller_scorecard_v1, mart.region_sales_2019,
+                  tmp.orders_backup_2017</div>
+      </div>
+      <div class="step">
+        <p><strong>Take the waves from the builders, not from a whiteboard.</strong> Ask for the wave list and the check that every lineage edge points forward. Copy it in; do not reorder it. If someone wants a table earlier, the answer is to move its inputs earlier too, or not at all.</p>
+        <div class="prompt-box good"><span class="label">★ Serai's order of moves, from Builder session 2</span>retire first  3   mart.region_sales_2019, mart.seller_scorecard_v1,
+                    tmp.orders_backup_2017
+wave 0        5   raw.orders_export_a, raw.orders_export_b, raw.orders_export_c,
+                    raw.reviews, ref.state_region
+wave 1        2   stg.orders, stg.reviews
+wave 2        3   mart.brand_review, mart.orders_daily, mart.seller_scorecard_v2
+wave 3        1   mart.orders_monthly
+gate          each wave passes parity before the next starts</div>
+      </div>
+      <div class="step">
+        <p><strong>Write the shape decision, with a name and a reason.</strong> One switch, phased waves, or waves built and proved with readers moved in one or two switches. State the reasons from Part 2 that decided it for your estate, and that the evidence does not settle the question in general. For practice, Serai chooses phased waves with a parallel run; its 4-week parallel run is constructed, and Builder session 7 asks how long is long enough.</p>
+      </div>
+      <div class="step">
+        <p><strong>Write the steering sentence and read it to whoever approves the move.</strong></p>
+        <div class="prompt-box good"><span class="label">★ The steering sentence</span>We move 11 tables and retire 3. Each table is lifted, rebuilt or retired
+for a reason written on the scope sheet, and no rebuild changes a number
+unless that change is on the done sheet first. We move in the order the
+lineage gives us, and each wave passes parity before the next one starts.
+We chose a phased move with a parallel run; who chose it, and why, is on
+page two.</div>
+      </div>
+    </div>
+
+    <div class="prompt-box bad">
+      <span class="label">The scope statement that decides nothing</span>
+Lift and shift the whole estate in one go to hit the date, and optimise
+the models once we are on the new platform. Sequence to be agreed with
+each team during the build.
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before session 4</h2>
+      <span class="tag exercise">25 min</span>
+    </div>
+    <ol>
+      <li>Take your inventory from session 2 and mark every non-retired table lift or rebuild. Count the rebuilds, and for each write the one-line reason. Your numbers will differ.</li>
+      <li>For one rebuild, ask its owner whether any number it produces is meant to change. If yes, write that change on the done sheet as "explained", with an owner, before any parity run.</li>
+      <li>Ask whoever runs your last migration, or your next one, whether it was one switch or phased, who decided, and on what reasons. Write down whether those reasons were about your estate or about a schedule.</li>
+      <li>Find one dashboard on your done sheet that reads tables from more than one wave. Write down the earliest point its readers could move.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 3 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Why is Serai's stg.orders a rebuild rather than a lift?</p>
+      <button class="qopt" type="button">A · Because analyst_2 reads it, and tables people read are always rebuilt</button>
+      <button class="qopt" type="button">B · Because staging tables cannot be translated between dialects</button>
+      <button class="qopt" type="button">C · Because the late-row feed lands there, and the fix is a key and a merge instead of an append, which changes how the table is built</button>
+      <button class="qopt" type="button">D · Because it has the most lineage edges, so it should move first</button>
+      <p class="qwhy">A rebuild is for a fault whose fix changes the design. Export C's lower-case keys and the missing review scores are fixed by a rule, so those tables stay lifts. Being read, or being busy in the graph, decides whether and when a table moves, not how.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · A board member says "the evidence shows a single switch is too risky, so we must phase it". What is the most accurate reply?</p>
+      <button class="qopt" type="button">A · The vendor guides recommend phasing and TSB shows what a large switch can cost, but one case is not a base rate, and no source says which shape fails less often</button>
+      <button class="qopt" type="button">B · Agreed: the TSB fine proves single switches fail</button>
+      <button class="qopt" type="button">C · Disagree: vendors only recommend phasing to sell more months of their product</button>
+      <button class="qopt" type="button">D · It depends only on the number of tables in the estate</button>
+      <p class="qwhy">The disagreement is real. The Google Cloud blog's iterative move is a vendor claim; TSB is one programme that went badly. Neither settles the choice, so the scope sheet records it as a judgement, with a name and reasons.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · During the rebuild of mart.seller_scorecard_v2, the analytics lead wants to change how an active seller is counted. What is the right call?</p>
+      <button class="qopt" type="button">A · Make the change; a rebuild is the moment to improve a table</button>
+      <button class="qopt" type="button">B · Make the change and widen the parity bar for that table so it passes</button>
+      <button class="qopt" type="button">C · Refuse, because a migration may never change any number</button>
+      <button class="qopt" type="button">D · Either park it until after cutover, or write the change on the done sheet as "explained", with an owner, before any parity check runs</button>
+      <p class="qwhy">An unannounced change looks exactly like a defect, and a defect can then hide behind it. C goes too far: a number may change, but only as a written, owned decision made before anyone looks at a diff.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Lift, rebuild or retire, per table</span><span class="note">Taught as a method; the two questions and their order are the practitioner norm stated with reasons, not a cited standard</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The order of moves in waves</span><span class="note">Waves by longest path over the lineage edges, run in DuckDB in Builder session 2 on the constructed graph</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Iterative migration with both systems in use</span><span class="note">Google Cloud blog (2019) on migrating data warehouses, read at source as a vendor claim</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">TSB's 2018 migration and the 2022 fine</span><span class="note">Bank of England release (2022) and TSB's release on its independent review, read at source; the review's own text is not quoted</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Change in a defined order</span><span class="note">Google SRE book, "Reliable Product Launches at Scale", read at source; used as an analogy from software releases</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">One switch against phased waves</span><span class="note">Contested; both sides taught, no source settles it and no base rate is published</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Serai's calls, reasons and 4-week parallel run</span><span class="note">Constructed for the case; no source gives a length for a parallel run</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Choosing the target warehouse</span><span class="note">Owned by the Data Warehouse course, Leader session 4; linked, not retaught</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Three answers</b><span>Lift: translate as is. Rebuild: redesign for the target. Retire: switch off first.</span></div>
+      <div class="cheat-item"><b>Two questions, in order</b><span>Is it read, or feeding what is? Does its fix change its design?</span></div>
+      <div class="cheat-item"><b>A rebuild is not a rewrite</b><span>Same numbers as legacy, unless the change is on the done sheet first.</span></div>
+      <div class="cheat-item"><b>One switch or waves</b><span>Contested. Record who chose, why, and when.</span></div>
+      <div class="cheat-item"><b>The graph sets the order</b><span>Serai: retire 3, then waves of 5, 2, 3 and 1.</span></div>
+      <div class="cheat-item"><b>Gates set the pace</b><span>A wave starts when every table it reads has passed parity.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You know what moves, how, and in what order. Session 4 writes the bar every wave must pass: which differences are accepted and signed before anyone looks, how tight each metric's tolerance is, and what a bar that is too loose lets through.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 3 of 6 · learn-ship-platform-migration-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a2-inventory-before-plan.html">← Prev: Inventory before plan</a> &nbsp;·&nbsp; <a href="a4-the-parity-bar.html">Next: The parity bar →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>
