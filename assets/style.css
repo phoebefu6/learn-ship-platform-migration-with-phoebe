@@ -1265,7 +1265,7 @@ figure.zoomable.can-scroll figcaption::after {
 .agenda span { padding: .45rem .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .agenda .a1 { background: var(--indigo-deep); color: #fff; }
-.agenda .a2 { background: var(--indigo-mid); color: var(--ink); }
+.agenda .a2 { background: var(--indigo-mid); color: #fff; }
 .agenda .a3 { background: var(--amber); color: var(--ink); }
 .agenda .a4 { background: var(--indigo-soft); color: var(--ink); }
 
